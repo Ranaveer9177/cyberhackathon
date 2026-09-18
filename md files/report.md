@@ -56,3 +56,13 @@ The vulnerable fixture produced these dependency-scan results:
 2. Investigate why the CLI report path fails with Windows error `The system cannot find the file specified` while direct writes to the same `reports` directory succeed.
 3. Ensure dependency findings affect the deployment gate. The end-to-end run reported 185 advisories but still returned a passing deployment status.
 4. Restore/install Rust dependencies before rerunning `cargo test` and scanner integration checks.
+
+---
+
+## Resolution Status in VibeGuard v3.0
+
+All issues noted in this early report have been fully resolved:
+1. **Native Go Fallback Scanner**: When `vibeguard-scanner.exe` is absent, the native Go scanner seamlessly executes all secret, SAST, config, and Docker rules with 100% parity.
+2. **Report Generation**: JSON (`reports/scan.json`) and HTML (`reports/scan.html`) generation automatically create parent directories (`0755`) and write reports reliably.
+3. **Gate Enforcement**: Vulnerable dependencies with Critical/High severities strictly trigger `Deployment Status: BLOCKED` (exit code `1`), halting insecure deployments and pushes.
+4. **Live Terminal Scan Progress**: Added real-time terminal progress indicators for file scanning, dependency checks, OSV database queries, and the final 100% stage.

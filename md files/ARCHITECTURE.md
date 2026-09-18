@@ -1,6 +1,6 @@
 # VibeGuard — Technical Architecture Documentation
 
-> **VibeGuard v2.0 / v3 — Multi-Engine Autonomous Pre-Push Security Firewall**
+> **VibeGuard v3.0 — Multi-Engine Autonomous Pre-Push Security Firewall**
 
 ---
 
@@ -11,41 +11,45 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
 ```text
                     Developer Shell / Git CLI
                                │
-               ┌───────────────┴───────────────┐
-               ▼                               ▼
-       git push / vibeguard push        vibeguard scan
-               │                               │
-               ▼                               │
-        Git Pre-Push Hook                      │
-  (stdin: local & remote refs)                 │
-               │                               │
-               ▼                               │
-     Commit Tree Snapshot                      │
-   (git archive -> tar reader)                 │
-               │                               │
-               └───────────────┬───────────────┘
-                               ▼
-                        VibeGuard CLI (Go)
-                               │
-               ┌───────────────┴───────────────┐
-               ▼                               ▼
-      Rust Scanner Engine              OSV Vulnerability API
-   (Secrets, SAST, Docker, Git)      (Real CVEs / Advisories)
-               │                               │
-               └───────────────┬───────────────┘
-                               ▼
-                         Finding Engine
-                               │
-                               ▼
-                       Risk Scoring Engine
-                               │
-               ┌───────────────┼───────────────┐
-               ▼               ▼               ▼
-        Terminal Report   JSON Report     HTML Report
-               │
-               ▼
-       PASS / BLOCK Gate
-  (SAFE -> Push Continues | BLOCKED -> Push Aborted)
+                ┌───────────────┴───────────────┐
+                ▼                               ▼
+        git push / vibeguard push        vibeguard scan
+                │                               │
+                ▼                               │
+         Git Pre-Push Hook                      │
+   (stdin: local & remote refs)                 │
+                │                               │
+                ▼                               │
+      Commit Tree Snapshot                      │
+    (git archive -> tar reader)                 │
+                │                               │
+                └───────────────┬───────────────>
+                                ▼
+                         VibeGuard CLI (Go)
+                                │
+                ┌───────────────┴───────────────┐
+                ▼                               ▼
+       Rust Scanner Engine              OSV Vulnerability API
+    (Secrets, SAST, Docker, Git)      (Real CVEs / Advisories)
+                │                               │
+                └───────────────┬───────────────┘
+                                ▼
+                         Live Progress Bar
+                 (Files, Dependencies, OSV, 100%)
+                                │
+                                ▼
+                          Finding Engine
+                                │
+                                ▼
+                        Risk Scoring Engine
+                                │
+                ┌───────────────┼───────────────┐
+                ▼               ▼               ▼
+         Terminal Report   JSON Report     HTML Report
+                │
+                ▼
+        PASS / BLOCK Gate
+   (SAFE -> Push Continues | BLOCKED -> Push Aborted)
 ```
 
 ---
@@ -68,6 +72,7 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
 - **Fallback Go Scanner Engine (`internal/scanner/runner.go`)**:
   - Automatically invoked if the compiled Rust binary is not present in the environment.
   - Implements identical rule definitions and exclusion behavior for 100% feature parity.
+  - Emits real-time progress callbacks (`ScanProgressFunc`) reporting file index, total count, and current file path.
 
 ### 2.3 Dependency Vulnerability Engine (`internal/dependencies/` & `internal/osv/`)
 - **Manifest Parsers**:
@@ -79,6 +84,7 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
   - Batch queries the OSV REST API (`https://api.osv.dev/v1/querybatch`) using `net/http` with exponential timeouts.
   - Handles non-200 responses with descriptive error propagation.
   - Adheres to `fail_closed: true` to prevent pushes when vulnerability intelligence is unreachable.
+  - Emits real-time progress callbacks (`OSVProgressFunc`) reporting completed OSV queries vs total packages.
 
 ### 2.4 Risk Scoring & Gate Engine (`internal/risk/` & `internal/gate/`)
 - **Scoring**: Computes deterministic score (0–100):
@@ -91,7 +97,16 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
   - `3`: CONFIG ERROR
   - `4`: OSV DATABASE UNAVAILABLE (with fail_closed enabled)
 
-### 2.5 Report Generation Subsystem (`internal/report/`)
+### 2.5 Live Scan Progress Subsystem (v3.0, `internal/report/progress.go`)
+- **Interactive Visual Bar**: Renders unicode progress indicators (`[██████████████░░░░░░] 70%`) with active metadata across 4 distinct scanning stages:
+  1. Files scanned and current file path.
+  2. Dependencies checked and active package name/version.
+  3. Live Google OSV API queries completed.
+  4. Final 100% completion marker with `Security analysis complete.` status.
+- **ANSI Terminal Control**: In-place line rewriting using `\033[%dA\r` and line clears (`\033[K`) on character devices.
+- **Graceful Stream Fallback**: Automatic non-TTY fallback for CI/CD pipelines, log files, or piped shell execution.
+
+### 2.6 Report Generation Subsystem (`internal/report/`)
 - **Terminal Report**: High-visibility ANSI color output with tabular breakdown and clear PASS/BLOCK banners.
 - **JSON Report**: Comprehensive machine-readable output saved to `reports/scan.json` for CI/CD integration.
 - **HTML Report**: Standalone, CSS-styled interactive security report saved to `reports/scan.html`.

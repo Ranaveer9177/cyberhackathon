@@ -290,20 +290,29 @@ cyberhackathon/
 - **Step 4**: Implement `GitPushVerified` executing `git push --no-verify` inside `vibeguard push` to eliminate duplicate scanning.
 - **Step 5**: Enhance pre-push hook script to dynamically resolve `vibeguard.exe` from repository root or PATH.
 - **Test**: Verify self-scan passes 100/100, and `vibeguard push` scans cleanly exactly once.
-- **Deploy**: VibeGuard v3 Release.
+- **Deploy**: Complete double-scan elimination and realistic SAST.
+
+### Phase 15 — Live Terminal Scan Progress Indicators (v3.0)
+- **Step 1**: Implement dynamic terminal progress engine in `internal/report/progress.go` (`ProgressBar`, `BuildBar`, `Render`, `Finish`, `Reset`, ANSI in-place cursor handling `\033[%dA\r`).
+- **Step 2**: Add `ScanProgressFunc` in `internal/scanner/runner.go` with candidate discovery upfront to report files scanned / total files and active file path.
+- **Step 3**: Add `OSVProgressFunc` in `internal/osv/client.go` to report live OSV queries completed / total queries.
+- **Step 4**: Integrate progress indicators into `cmd/vibeguard/main.go` across File Scan, Dependency Scan, OSV Querying, and 100% final completion stage.
+- **Step 5**: Fix commit diff parser in `main.go` to handle file paths with spaces and honor repository exclusions.
+- **Test**: Unit tests in `internal/report/progress_test.go`, full test suite `go test ./...`, self-scan test `vibeguard scan .`, and pre-push hook execution.
+- **Deploy**: VibeGuard v3.0 Release with Live Scan Progress.
 
 ---
 
 ## 8. Future Roadmap & Horizons
 
-### Phase 15 — Optional AI Remediation Layer
+### Phase 16 — Optional AI Remediation Layer
 - Interface with developer-selected AI models (Local Ollama, Anthropic, OpenAI, or Gemini).
 - Generate contextual code diff patches for identified vulnerabilities.
 - Keep core vulnerability detection 100% deterministic and non-dependent on AI.
 
-### Phase 16 — Native CI/CD Actions
+### Phase 17 — Native CI/CD Actions
 - GitHub Action: `uses: vibeguard/vibeguard-action@v1`.
 - GitLab CI template and pre-commit framework integration (`.pre-commit-hooks.yaml`).
 
-### Phase 17 — IDE Sidecar & Real-Time LSP
+### Phase 18 — IDE Sidecar & Real-Time LSP
 - Lightweight language server protocol (LSP) plugin for VS Code, JetBrains, and Neovim to highlight security issues in real-time as code is typed.

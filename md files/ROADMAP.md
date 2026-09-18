@@ -17,7 +17,7 @@
 - [x] **v0.9 — Container & Config**: Dockerfile security analysis, config file security audits.
 - [x] **v1.0 — Stable MVP**: Multi-shell support, comprehensive test fixtures, end-to-end integration.
 - [x] **v2.0 — Git Pre-Push Hook**: Autonomous `.git/hooks/pre-push` gate, `vibeguard init`, `vibeguard push`, `vibeguard status`.
-- [x] **v3.0 — Scoped Snapshot & Exclusions**: Pure Go `git archive` snapshot scanning, `.vibeguard/config.json` exclusions, refined SAST terminology, double-scan elimination.
+- [x] **v3.0 — Live Scan Progress & Scoped Pre-Push Gate**: Real-time terminal progress bars across all scanning stages (files, dependencies, OSV queries, 100% completion indicator), pure Go `git archive` snapshot scanning, `.vibeguard/config.json` exclusions, refined SAST terminology, double-scan elimination.
 
 ---
 

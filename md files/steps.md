@@ -164,3 +164,52 @@ Version: v0.9
 10. Deploy.
 
 Version: v1.0
+
+---
+
+## Phase 11 — Git Pre-Push Hook Architecture
+
+1. Implement Git repository detection.
+2. Implement pre-push hook installer.
+3. Preserve existing user hooks via chaining.
+4. Add `vibeguard init`, `status`, `uninstall`.
+5. Add `vibeguard push` guided workflow.
+6. Build.
+7. Test.
+8. Deploy.
+
+Version: v2.0
+
+---
+
+## Phase 12 — Scoped Snapshot & Exclusion System
+
+1. Add pure Go `git archive` commit snapshotting.
+2. Add configurable repository exclusions (`.vibeguard/config.json`).
+3. Add universal exclusion matching across Go and Rust engines.
+4. Refine SAST rule terminology.
+5. Eliminate double scanning via `git push --no-verify`.
+6. Build.
+7. Test.
+8. Deploy.
+
+Version: v2.1
+
+---
+
+## Phase 13 — Live Terminal Scan Progress
+
+1. Implement dynamic progress bar renderer (`internal/report/progress.go`).
+2. Implement ANSI terminal cursor positioning (`\033[%dA\r`, `\033[K`).
+3. Add non-TTY fallback stream mode.
+4. Add file scanning progress callbacks (`ScanProgressFunc`).
+5. Add dependency scanning progress loops.
+6. Add live OSV database query progress callbacks (`OSVProgressFunc`).
+7. Add 100% final completion indicator (`Security analysis complete.`).
+8. Connect live progress to `vibeguard scan` and pre-push hook.
+9. Fix commit diff secret parser for paths with spaces and honor exclusions.
+10. Build.
+11. Test.
+12. Deploy.
+
+Version: v3.0
