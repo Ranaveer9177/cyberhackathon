@@ -15,7 +15,7 @@ pub fn get_sast_rules() -> Vec<Rule> {
     vec![
         Rule {
             id: "SAST-001".to_string(),
-            name: "SQL Injection".to_string(),
+            name: "Potential SQL Injection".to_string(),
             category: Category::SourceCode,
             severity: Severity::HIGH,
             pattern: Regex::new(r#"(?i)(fmt\.Sprintf\("SELECT|"SELECT.*"\+|query.*\+.*request|execute\("SELECT)"#).unwrap(),
@@ -24,7 +24,7 @@ pub fn get_sast_rules() -> Vec<Rule> {
         },
         Rule {
             id: "SAST-002".to_string(),
-            name: "Command Injection".to_string(),
+            name: "Potential OS Command Injection".to_string(),
             category: Category::SourceCode,
             severity: Severity::HIGH,
             pattern: Regex::new(r#"(?i)(exec\.Command|os\.system\(|subprocess\.call\(|child_process\.exec\(|Runtime\.getRuntime\(\)\.exec\()"#).unwrap(),
@@ -42,7 +42,7 @@ pub fn get_sast_rules() -> Vec<Rule> {
         },
         Rule {
             id: "SAST-004".to_string(),
-            name: "Disabled TLS".to_string(),
+            name: "Potential TLS Misconfiguration".to_string(),
             category: Category::SourceCode,
             severity: Severity::HIGH,
             pattern: Regex::new(r#"(?i)(InsecureSkipVerify.*true|verify.*False|rejectUnauthorized.*false|NODE_TLS_REJECT_UNAUTHORIZED)"#).unwrap(),
@@ -60,7 +60,7 @@ pub fn get_sast_rules() -> Vec<Rule> {
         },
         Rule {
             id: "SAST-006".to_string(),
-            name: "Insecure HTTP".to_string(),
+            name: "Potential Insecure HTTP Connection".to_string(),
             category: Category::SourceCode,
             severity: Severity::MEDIUM,
             pattern: Regex::new(r#"http://(?!localhost|127\.0\.0\.1)"#).unwrap(),

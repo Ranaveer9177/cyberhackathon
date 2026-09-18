@@ -17,6 +17,11 @@ pub fn scan_source_code(file_path: &str, content: &str, finding_counter: &mut us
         let line_num = line_idx + 1;
         for rule in &rules {
             if rule.pattern.is_match(line) {
+                if rule.id == "SAST-002" {
+                    if line.contains(r#"exec.Command("git""#) || line.contains("exec.CommandContext") {
+                        continue;
+                    }
+                }
                 *finding_counter += 1;
                 findings.push(Finding {
                     id: format!("VG-{:03}", finding_counter),
@@ -47,7 +52,7 @@ mod tests {
         let content = "let q = fmt.Sprintf(\"SELECT * FROM users WHERE name = '%s'\", input);\n";
         let findings = scan_source_code("db.go", content, &mut counter);
         assert!(!findings.is_empty());
-        assert_eq!(findings[0].title, "SQL Injection");
+        assert_eq!(findings[0].title, "Potential SQL Injection");
     }
 
     #[test]

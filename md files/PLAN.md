@@ -1,1281 +1,309 @@
-# 1. Project Name
+# VibeGuard — Unified Master Development Plan
 
-**VibeGuard**
-
-### Full Name
-
-**VibeGuard — Pre-Deployment Security Verification CLI**
+> **Comprehensive Engineering Blueprint & Phase-by-Phase Execution Plan**  
+> *Merged from PLAN.md and PLAN1.md — Covering v0.1 Prototype through v2.0 Git Secure Push Gate & Future Horizons.*
 
 ---
 
-# 2. Project Objective
+## 1. Product Definition & Objectives
 
-Build a command-line security verification tool that scans a software
-project before deployment and identifies common security weaknesses.
+**VibeGuard** is an autonomous, on-machine pre-deployment security verification CLI and Git pre-push security firewall. It scans software projects, detects security vulnerabilities, verifies dependency integrity against real-world vulnerability intelligence (Google OSV), calculates a deterministic 0–100 Security Score, generates multi-format reports, and enforces an automated **PASS / BLOCK** gate decision before code can be deployed or pushed to remote repositories.
 
-VibeGuard will analyze the project for:
-
-- Hardcoded secrets
-- Sensitive files
-- Insecure source-code patterns
-- Vulnerable dependencies
-- Basic configuration issues
-- Docker security issues
-- Git security issues
-
-The tool will provide:
-
-- Exact file location
-- Line number
-- Finding type
-- Severity
-- Security explanation
-- CVE/advisory information where applicable
-- Security score
-- Deployment decision
-- Security report
+### Primary Goals:
+1. **Autonomous Git Pre-Push Gate**: Intercept `git push` automatically via standard Git hooks; snapshot exact committed content and abort pushes if high or critical vulnerabilities exist.
+2. **Deterministic Risk Scoring**: Provide an objective, reproducible 0–100 security score using mathematical severity weighting.
+3. **Realistic SAST & Zero Tooling False Positives**: Differentiate true application vulnerabilities (dynamic SQL string concatenation, shell invocations, disabled TLS) from internal CLI calls and scanner rule definitions.
+4. **Authoritative Dependency Vulnerability Intelligence**: Link directly to Google OSV database without synthetic CVE generation or AI hallucinations.
+5. **Configurable Policy & Exclusions**: Empower developers to configure blocking thresholds and excluded subtrees in `.vibeguard/config.json`.
+6. **100% On-Machine Privacy**: Local code and files never leave the machine. Discovered secrets are masked in logs and reports.
 
 ---
 
-# 3. Hackathon Scope
+## 2. Technology Stack & Responsibilities
 
-## Target Platform
+| Component | Technology | Primary Responsibilities |
+| :--- | :--- | :--- |
+| **CLI & Orchestrator** | **Go (1.21+)** | Command-line UX, Git hook management, push commit snapshot extraction, dependency manifest parsing, OSV REST API communication, finding aggregation, scoring, report generation, deployment gate decision. |
+| **Security Scanner** | **Rust (2021 edition)** | High-speed recursive directory walk with exclusion filtering, secret pattern regex matching with evidence masking, static code analysis (SAST), Dockerfile auditing, configuration checking, JSON IPC stream. |
+| **Fallback Scanner** | **Go (Built-in)** | Native Go scanner engine mirroring all Rust rules to ensure seamless scanning in environments without a Rust compiler installed. |
+| **Vulnerability DB** | **Google OSV API** | Real-time vulnerability intelligence for Go, npm, PyPI, and crates.io packages (no hallucinated CVEs). |
+| **Git Integration** | **Git Hooks & Pure Go Tar** | Pre-push hook lifecycle management (`pre-push`), ref update tuple parsing via stdin, commit tree snapshotting via `git archive` and `archive/tar`. |
+| **Data Exchange** | **JSON** | Inter-process communication between Rust scanner and Go CLI; machine-readable reports. |
+| **Target Shells** | **PowerShell 7+, CMD, Bash, Zsh** | Cross-platform compatibility on Windows, Linux, and macOS. |
 
-For the hackathon prototype:
+---
 
-**Windows only**
+## 3. Architecture
 
+```text
+                    Developer Shell / Git CLI
+                               │
+               ┌───────────────┴───────────────┐
+               ▼                               ▼
+       git push / vibeguard push        vibeguard scan
+               │                               │
+               ▼                               │
+        Git Pre-Push Hook                      │
+  (stdin: local & remote refs)                 │
+               │                               │
+               ▼                               │
+     Commit Tree Snapshot                      │
+   (git archive -> tar reader)                 │
+               │                               │
+               └───────────────┬───────────────┘
+                               ▼
+                        VibeGuard CLI (Go)
+                               │
+               ┌───────────────┴───────────────┐
+               ▼                               ▼
+      Rust Scanner Engine              OSV Vulnerability API
+   (Secrets, SAST, Docker, Git)      (Real CVEs / Advisories)
+               │                               │
+               └───────────────┬───────────────┘
+                               ▼
+                         Finding Engine
+                               │
+                               ▼
+                       Risk Scoring Engine
+                               │
+               ┌───────────────┼───────────────┐
+               ▼               ▼               ▼
+        Terminal Report   JSON Report     HTML Report
+               │
+               ▼
+       PASS / BLOCK Gate
+  (SAFE -> Push Continues | BLOCKED -> Push Aborted)
+```
 
+---
 
-4. Technology Stack
-Main Application
+## 4. Repository Structure
 
-Go
-
-Used for:
-
-CLI
-Orchestration
-Finding aggregation
-OSV API
-Risk scoring
-Report generation
-Deployment decision
-Security Scanner
-
-Rust
-
-Used for:
-
-File traversal
-Secret detection
-Source-code pattern detection
-Exact file/line detection
-Security rules
-Vulnerability Intelligence
-
-OSV
-
-Used for:
-
-Dependency vulnerability lookup
-Advisory information
-CVE aliases where available
-Affected versions
-Fixed versions
-Interface
-
-PowerShell 7+
-
-Used as the Windows command-line environment for running the prototype.
-
-Data Exchange
-
-JSON
-
-Used for:
-
-Rust → Go communication
-Machine-readable scan results
-Report data
-Reports
-
-Initial:
-
-Terminal
-JSON
-HTML
-Development
-Windows
-PowerShell 7+
-Git
-VS Code
-Go
-Rust
-Cargo
-5. Architecture
-                    PowerShell 7+
-                          |
-                          v
-                  VibeGuard CLI
-                       (Go)
-                          |
-              +-----------+-----------+
-              |                       |
-              v                       v
-       Rust Security Scanner         OSV
-              |                       |
-       +------+------+                 |
-       |      |      |                 |
-    Secrets  SAST  Files               |
-       |      |      |                 |
-       +------+------+                 |
-              |                       |
-              +-----------+-----------+
-                          |
-                          v
-                    Finding Engine
-                          |
-                          v
-                     Risk Engine
-                          |
-             +------------+------------+
-             |            |            |
-             v            v            v
-         Terminal       JSON         HTML
-                          |
-                          v
-                  PASS / BLOCK
-6. Repository Structure
-VibeGuard/
-│
-├── FEATURES.md
-├── PLAN.md
-├── PROCESSES.md
-├── LANGUAGE.md
-├── CHANGELOG.md
-├── README.md
-│
+```text
+cyberhackathon/
 ├── cmd/
-│   └── vibeguard/
-│
+│   └── vibeguard/               # Go CLI application entrypoint
+│       └── main.go              # Commands: init, status, push, scan, report, uninstall, version
 ├── internal/
-│   ├── dependencies/
-│   ├── osv/
-│   ├── risk/
-│   ├── report/
-│   └── config/
-│
-├── scanner/
-│   ├── src/
-│   │   ├── main.rs
-│   │   ├── scanner.rs
-│   │   ├── files.rs
-│   │   ├── secrets.rs
-│   │   ├── sast.rs
-│   │   └── rules.rs
-│   └── Cargo.toml
-│
-├── tests/
-│   ├── secrets/
-│   ├── sast/
-│   ├── dependencies/
-│   └── integration/
-│
-├── test-project/
-│
-└── reports/
-7. Development Rules
-Rule 1
-
-Build the smallest working version first.
-
-Rule 2
-
-Every completed feature must have a test.
-
-Rule 3
-
-Every completed version must be buildable and runnable.
-
-Rule 4
-
-Do not start a new major feature if the previous version is broken.
-
-Rule 5
-
-Use fake credentials only in test projects.
-
-Rule 6
-
-Do not generate fake CVEs.
-
-Rule 7
-
-OSV is the source of truth for dependency vulnerability information.
-
-Rule 8
-
-AI is NOT required for the prototype.
-
-Rule 9
-
-Do not build a web dashboard during the 6-hour MVP.
-
-Rule 10
-
-Do not implement automatic code modification during the hackathon.
-
-8. Version Strategy
-
-Development will be divided into small versions.
-
-v0.1 → Foundation
-v0.2 → Secret Detection
-v0.3 → Source Security
-v0.4 → Dependency Security
-v0.5 → Risk & Reporting
-v0.6 → Deployment Gate
-v0.7 → Docker/Git/Configuration
-v1.0 → Stable MVP
-
-The exact implementation priority may be adjusted according to the
-remaining hackathon time.
-
-9. VERSION v0.1 — Foundation
-Objective
-
-Create the basic VibeGuard CLI and connect the Go application to the
-Rust scanner.
-
-Features
-Go CLI
-scan command
-Project path argument
-Rust scanner executable
-Recursive directory scanning
-JSON communication
-Basic terminal output
-CLI
-.\vibeguard.exe scan .\test-project
-Go Responsibilities
-Receive CLI command
-Validate project path
-Start Rust scanner
-Read JSON output
-Display results
-Rust Responsibilities
-Receive project path
-Recursively scan files
-Return basic file information
-Produce valid JSON
-Expected Output
-VibeGuard Security Scanner
-
-Project: test-project
-
-Scanning...
-
-Files scanned: 25
-
-Scan completed successfully.
-Tests
-Test 1
-
-Run scanner against an existing directory.
-
-Expected:
-
-Scan completed successfully.
-Test 2
-
-Run scanner against an invalid directory.
-
-Expected:
-
-Error: Project path does not exist.
-Test 3
-
-Verify Rust JSON output.
-
-Expected:
-
-Valid JSON.
-
-Build
-
-Go:
-
-go build
-
-Rust:
-
-cargo build --release
-Deploy/Test Status
-v0.1
-
-Implementation: ⬜
-Build: ⬜
-Test: ⬜
-Deploy: ⬜
-10. VERSION v0.2 — Secret Detection
-Objective
-
-Detect common secrets and credentials inside project files.
-
-Features
-
-Detect:
-
-API keys
-Password assignments
-Tokens
-JWT-like secrets
-Private keys
-.env files
-Credential files
-Rust Module
-scanner/src/secrets.rs
-Detection Methods
-
-Initial:
-
-Regular expressions
-Keywords
-File-name patterns
-
-Future:
-
-Entropy analysis
-Context analysis
-Finding Format
-
-Example:
-
-{
-  "id": "VG-001",
-  "category": "secret",
-  "severity": "CRITICAL",
-  "title": "Hardcoded Secret Detected",
-  "file": "src/config.go",
-  "line": 18
-}
-Terminal Output
-[CRITICAL] VG-001
-Hardcoded Secret Detected
-
-File: src/config.go
-Line: 18
-Type: API Key
-Secret Protection
-
-Do not display complete secrets.
-
-Example:
-
-Detected:
-sk-demo-************
-Tests
-
-Test cases:
-
-Fake API key
-Fake password
-Fake token
-.env
-Private-key pattern
-Normal text
-False positive example
-Success Criteria
-[PASS] API key detection
-[PASS] Password detection
-[PASS] Token detection
-[PASS] Sensitive file detection
-[PASS] Secret masking
-Deploy
-
-Build the scanner and run it against:
-
-test-project/
-Status
-v0.2
-
-Implementation: ⬜
-Build: ⬜
-Test: ⬜
-Deploy: ⬜
-11. VERSION v0.3 — Source Code Security
-Objective
-
-Detect common insecure coding patterns.
-
-Initial Security Rules
-
-Implement only practical rules that can be completed during the
-hackathon.
-
-Examples:
-
-Dangerous command execution
-SQL query concatenation
-Dangerous eval
-Disabled TLS verification
-Weak cryptographic algorithm
-Insecure HTTP usage
-Hardcoded credentials
-Rule Structure
-
-Each rule should contain:
-
-Rule ID
-Name
-Category
-Severity
-Detection Pattern
-Description
-Recommendation
-Example
-Rule ID: VG-SQL-001
-
-Name:
-Possible SQL Injection
-
-Severity:
-HIGH
-Example Finding
-[HIGH] VG-010
-Possible SQL Injection
-
-File: src/database.go
-Line: 42
-
-Reason:
-User-controlled input appears to be directly concatenated
-into an SQL query.
-Tests
-
-Create vulnerable examples for:
-
-SQL injection pattern
-Command execution
-Dangerous eval
-Weak crypto
-Disabled TLS verification
-
-Also test safe code to reduce false positives.
-
-Success Criteria
-[PASS] Rule engine
-[PASS] File detection
-[PASS] Line detection
-[PASS] Severity
-[PASS] Finding IDs
-Status
-v0.3
-
-Implementation: ⬜
-Build: ⬜
-Test: ⬜
-Deploy: ⬜
-12. VERSION v0.4 — Dependency Security
-Objective
-
-Detect project dependencies and identify known vulnerabilities.
-
-Supported Ecosystems
-
-For the MVP:
-
-Go
-npm
-Python
-Rust
-Dependency Files
-go.mod
-go.sum
-
-package.json
-package-lock.json
-
-requirements.txt
-
-Cargo.toml
-Cargo.lock
-Process
-Project
-   |
-   v
-Detect dependency file
-   |
-   v
-Extract package + version
-   |
-   v
-Query OSV
-   |
-   v
-Receive vulnerability data
-   |
-   v
-Create VibeGuard finding
-Finding Information
-
-Include:
-
-Package
-Installed version
-Vulnerability ID
-CVE alias if available
-Advisory
-Severity
-Affected versions
-Fixed version
-Dependency file
-Important
-
-VibeGuard must NOT invent CVE information.
-
-Example:
-
-Package:
-example-package
-
-Installed:
-1.2.0
-
-Advisory:
-OSV-XXXX
-
-CVE:
-CVE-XXXX-XXXXX
-
-Fixed:
-1.4.0
-
-Only display fields returned by the vulnerability source.
-
-Tests
-
-Test:
-
-Known vulnerable dependency
-Safe dependency
-Unknown package
-Invalid version
-OSV unavailable
-Multiple dependencies
-Failure Handling
-
-If OSV cannot be reached:
-
-Dependency vulnerability lookup unavailable.
-
-Local security checks will continue.
-
-The complete scanner should not crash.
-
-Status
-v0.4
-
-Implementation: ⬜
-Build: ⬜
-Test: ⬜
-Deploy: ⬜
-13. VERSION v0.5 — Risk Scoring & Reporting
-Objective
-
-Combine all findings into a clear security report.
-
-Severity Levels
-CRITICAL
-HIGH
-MEDIUM
-LOW
-INFO
-Risk Score
-
-Generate a deterministic security score.
-
-Example:
-
-Security Score: 62/100
-
-The scoring formula must be documented.
-
-Terminal Report
-
-Example:
-
-========================================
-       VIBEGUARD SECURITY REPORT
-========================================
-
-Project: DemoShop
-
-Critical : 2
-High     : 3
-Medium   : 4
-Low      : 2
-Info     : 1
-
-Security Score: 62/100
-
-Secrets        : 2
-Source Code    : 4
-Dependencies   : 3
-Configuration  : 1
-
-========================================
-
-Deployment Status: BLOCKED
-========================================
-JSON Report
-
-Command:
-
-.\vibeguard.exe scan .\test-project --format json
-
-Output:
-
-reports/scan.json
-HTML Report
-
-Command:
-
-.\vibeguard.exe report .\test-project --format html
-
-Output:
-
-reports/scan.html
-Tests
-Score calculation
-Severity counting
-JSON generation
-HTML generation
-Empty findings
-Multiple findings
-Status
-v0.5
-
-Implementation: ⬜
-Build: ⬜
-Test: ⬜
-Deploy: ⬜
-14. VERSION v0.6 — Deployment Gate
-Objective
-
-Use security findings to determine whether deployment should be
-allowed or blocked.
-
-Default Policy
-
-Example:
-
-Any CRITICAL finding
-        ↓
-DEPLOYMENT BLOCKED
-
-Configurable policies can be added later.
-
-Example
-Critical: 2
-High: 3
-
-Deployment Status: BLOCKED
-
-After fixing:
-
-Critical: 0
-High: 0
-
-Deployment Status: PASSED
-Exit Codes
-
-Example:
-
-0 = PASS
-1 = SECURITY FINDINGS / BLOCK
-2 = SCANNER ERROR
-
-This allows future CI/CD systems to use VibeGuard.
-
-Test
-
-Run:
-
-.\vibeguard.exe scan .\test-project
-
-Verify that:
-
-Critical finding → exit code 1
-
-Then remove the critical finding.
-
-Run again:
-
-No blocking findings → exit code 0
-Status
-v0.6
-
-Implementation: ⬜
-Build: ⬜
-Test: ⬜
-Deploy: ⬜
-15. VERSION v0.7 — Additional Security Checks
-Objective
-
-Add additional security checks if sufficient hackathon time remains.
-
-Docker Security
-
-Check:
-
-Root user
-Privileged mode
-Hardcoded secrets
-Unsafe base image
-Exposed ports
-Unsafe configuration
-Git Security
-
-Check:
-
-.env
-Private keys
-Credential files
-Sensitive files
-.gitignore
-Configuration Security
-
-Check:
-
-Debug mode
-Insecure HTTP
-Disabled TLS
-Unsafe CORS
-Default credentials
-Priority
-
-These features are optional for the 6-hour MVP.
-
-Do not delay the working v0.6 system to implement them.
-
-Status
-v0.7
-
-Implementation: ⬜
-Build: ⬜
-Test: ⬜
-Deploy: ⬜
-16. VERSION v1.0 — Stable MVP
-Objective
-
-Create the final hackathon-ready VibeGuard prototype.
-
-Required Features
-[ ] Cross-project scanning
-[ ] Secret detection
-[ ] Source-code security rules
-[ ] Dependency detection
-[ ] OSV vulnerability lookup
-[ ] Finding IDs
-[ ] Severity
-[ ] Exact file locations
-[ ] Line numbers
-[ ] Security score
-[ ] Terminal report
-[ ] JSON report
-[ ] HTML report
-[ ] PASS/BLOCK decision
-Final CLI
-
-Main command:
-
-.\vibeguard.exe scan .\test-project
-
-Report:
-
-.\vibeguard.exe report .\test-project --format html
-
-Version:
-
-.\vibeguard.exe version
-17. Test Project
-
-Create a deliberately vulnerable project for demonstration.
-
-test-project/
-│
-├── .env
-├── Dockerfile
-├── go.mod
-├── package.json
-│
-├── src/
-│   ├── config.go
-│   ├── database.go
-│   └── auth.js
-│
-└── README.md
-Test Vulnerabilities
-
-The test project should contain controlled fake examples:
-
-1. Fake API key
-2. Fake password
-3. Sensitive .env file
-4. Vulnerable dependency
-5. SQL injection pattern
-6. Dangerous command execution
-7. Weak crypto
-8. Docker root configuration
-
-Only fake credentials should be used.
-
-18. Integration Testing
-
-Run the complete system:
-
-.\vibeguard.exe scan .\test-project
-
-Verify:
-
-Go starts successfully
-        ↓
-Rust scanner starts
-        ↓
-Files are scanned
-        ↓
-Findings are returned
-        ↓
-Dependencies are checked
-        ↓
-OSV results are processed
-        ↓
-Severity is calculated
-        ↓
-Security score is generated
-        ↓
-Report is created
-        ↓
-PASS/BLOCK is returned
-19. Final Demonstration
-Demo Part 1 — Vulnerable Project
-
-Run:
-
-.\vibeguard.exe scan .\test-project
-
-Show:
-
-CRITICAL
-HIGH
-MEDIUM
-LOW
-
-Security Score
-
-Deployment Status: BLOCKED
-Demo Part 2 — Finding Details
-
-Show:
-
-VG-001
-
-Hardcoded Secret
-
-File:
-src/config.go
-
-Line:
-18
-
-Severity:
-CRITICAL
-
-Recommendation:
-Move the credential to secure configuration.
-Demo Part 3 — Dependency Vulnerability
-
-Show:
-
-VG-005
-
-Vulnerable Dependency
-
-Package:
-example-package
-
-Version:
-1.2.0
-
-CVE:
-CVE-XXXX-XXXXX
-
-Fixed Version:
-1.4.0
-Demo Part 4 — Fix
-
-Fix the controlled vulnerabilities in the test project.
-
-Run:
-
-.\vibeguard.exe scan .\test-project
-
-Show the reduced findings.
-
-Demo Part 5 — Deployment Pass
-
-Show:
-
-Critical: 0
-Blocking Findings: 0
-
-Deployment Status: PASSED
-
-This demonstrates the complete security verification cycle.
-
-20. Six-Hour Hackathon Schedule
-Hour 1 — Foundation
-
-Tasks:
-
-Create repository
-Create folder structure
-Initialize Go
-Initialize Rust
-Implement CLI
-Implement Go → Rust communication
-Test basic scanning
-
-Target:
-
-v0.1
-Hour 2 — Secret Scanner
-
-Tasks:
-
-File traversal
-Secret rules
-API key detection
-Password detection
-Token detection
-Sensitive file detection
-Finding IDs
-Severity
-
-Target:
-
-v0.2
-Hour 3 — Source Security
-
-Tasks:
-
-Rule engine
-SQL injection pattern
-Command execution
-Weak crypto
-TLS verification
-Exact line detection
-Test cases
-
-Target:
-
-v0.3
-Hour 4 — Dependency Security
-
-Tasks:
-
-Detect dependency files
-Parse packages
-Query OSV
-Process vulnerability results
-Display CVE/advisory
-Fixed version
-Error handling
-
-Target:
-
-v0.4
-Hour 5 — Reports & Deployment Gate
-
-Tasks:
-
-Risk score
-Terminal report
-JSON report
-HTML report
-PASS/BLOCK
-Exit codes
-
-Target:
-
-v0.5
-v0.6
-Hour 6 — Testing & Demo
-
-Tasks:
-
-Complete integration testing
-Fix bugs
-Prepare vulnerable test project
-Run final scan
-Run clean scan
-Generate final report
-Prepare screenshots
-Prepare presentation
-Prepare project documentation
-
-Target:
-
-v1.0
-21. Priority System
-
-If time becomes limited:
-
-P0 — MUST HAVE
-Go CLI
-Rust scanner
-Directory scanning
-Secret detection
-Basic source rules
-Dependency detection
-OSV lookup
-Terminal output
-P1 — SHOULD HAVE
-Risk score
-JSON report
-HTML report
-PASS/BLOCK
-Exit codes
-P2 — NICE TO HAVE
-Docker scanning
-Git scanning
-Configuration scanning
-Ignore file
-P3 — FUTURE
-AI
-Automatic fixing
-Dashboard
-CI/CD integration
-SBOM
-Cloud platform
-Historical scans
-22. What NOT To Build During The Hackathon
-
-Do not spend hackathon time on:
-
-❌ Web dashboard
-❌ User authentication
-❌ Database
-❌ Cloud deployment
-❌ SaaS platform
-❌ Automatic code fixing
-❌ Complex AI system
-❌ Full SAST engine
-❌ Mobile application
-❌ Linux/macOS builds
-❌ Team management
-❌ Billing
-
-These belong in the future roadmap.
-
-23. Windows Prototype Environment
-Required
-Windows
-PowerShell 7+
-Go
-Rust
-Cargo
-Git
-VS Code
-Internet connection for OSV lookup
-24. Build Process
-
-Rust:
-
-cargo build --release
-
-Go:
-
-go build
-
-Final prototype:
-
-vibeguard.exe
-vibeguard-scanner.exe
-25. Final Windows Prototype
-Windows
-   |
-   v
-PowerShell 7+
-   |
-   v
-vibeguard.exe
-   |
-   v
-vibeguard-scanner.exe
-   |
-   +---- Secret Scanner
-   |
-   +---- Source Scanner
-   |
-   +---- Dependency Scanner
-   |
-   +---- OSV
-   |
-   v
-Finding Engine
-   |
-   v
-Risk Score
-   |
-   v
-Security Report
-   |
-   v
-PASS / BLOCK
-26. Completion Checklist
-Foundation
- Repository created
- Go project initialized
- Rust project initialized
- CLI working
- Go → Rust communication working
-Security
- Secret detection working
- Source security rules working
- Dependency detection working
- OSV lookup working
- Findings have IDs
- Findings have severity
- File and line information working
-Reporting
- Terminal report
- JSON report
- HTML report
- Security score
- PASS/BLOCK
-Testing
- Unit tests
- Scanner tests
- OSV tests
- Integration test
- Vulnerable test project
- Clean project test
-Documentation
- FEATURES.md
- PLAN.md
- PROCESSES.md
- LANGUAGE.md
- CHANGELOG.md
- README.md
-Presentation
- Problem statement
- Proposed solution
- Architecture
- Technologies
- Live demo
- Screenshots
- Results
- Future scope
-27. Final Success Criteria
-
-The prototype is considered successful when a developer can execute:
-
-.\vibeguard.exe scan .\test-project
-
-and VibeGuard can:
-
-1. Scan the project
-2. Detect security issues
-3. Identify exact locations
-4. Assign severity
-5. Check dependencies
-6. Retrieve trusted vulnerability information
-7. Generate a security score
-8. Generate a report
-9. Decide PASS/BLOCK
-10. Complete the process from one CLI command
-28. Final Product Definition
-
-VibeGuard is a Windows-based prototype of a cross-platform security
-verification CLI.
-
-The prototype uses:
-
-PowerShell 7+ for the command-line environment
-Go for the main application and orchestration
-Rust for security scanning
-OSV for dependency vulnerability intelligence
-JSON for component communication
-HTML/JSON/terminal for reporting
-
-The core purpose is to provide developers with an independent security
-verification step before software deployment.
-
-29. Future Expansion
-
-After the hackathon, VibeGuard can be expanded to:
-
-v1.1 — Linux support
-v1.2 — macOS support
-v1.3 — Docker scanning
-v1.4 — Git security
-v1.5 — CI/CD integration
-v1.6 — SBOM
-v1.7 — Web dashboard
-v1.8 — AI security assistant
-v1.9 — AI remediation suggestions
-v2.0 — Full developer security platform
-30. Development Principle
-
-Build → Test → Fix → Build → Deploy
-
-Every version should follow:
-
-PLAN
-  ↓
-IMPLEMENT
-  ↓
-TEST
-  ↓
-FIX
-  ↓
-BUILD
-  ↓
-DEPLOY
-  ↓
-DOCUMENT
-  ↓
-NEXT VERSION
-31. Current Project Status
-Project:
-VibeGuard
-
-Platform:
-Windows
-
-CLI Environment:
-PowerShell 7+
-
-Core Language:
-Go
-
-Scanner Language:
-Rust
-
-Vulnerability Source:
-OSV
-
-Current Version:
-v0.0 — Planning
-
-Next Version:
-v0.1 — Foundation
-
-Hackathon Duration:
-6 Hours
-
-Status:
-PLANNING
+│   ├── config/                  # Configuration loader, validator, and exclusion matcher
+│   ├── dependencies/            # Manifest parsers (go.mod, package.json, requirements.txt, Cargo.toml)
+│   ├── gate/                    # PASS / BLOCK deployment decision engine
+│   ├── git/                     # Git pre-push hook manager, ref parser, and commit snapshot extractor
+│   ├── osv/                     # Google OSV client, batch query engine, and severity mapping
+│   ├── report/                  # Terminal ANSI, JSON, and standalone HTML report generators
+│   ├── risk/                    # Deterministic 0-100 scoring algorithm
+│   └── scanner/                 # Subprocess runner for Rust scanner binary with Go fallback
+├── scanner/                     # Rust Scanner Engine
+│   ├── Cargo.toml
+│   └── src/
+│       ├── config.rs            # Configuration file analysis (debug mode, CORS, 0.0.0.0)
+│       ├── docker.rs            # Dockerfile security analysis (root user, ENV secrets)
+│       ├── git.rs               # Repository sensitive file checks (.env, private keys)
+│       ├── main.rs              # Scanner entry point and JSON output serializer
+│       ├── rules.rs             # Built-in regex rule definitions
+│       ├── sast.rs              # SAST source code scanner
+│       ├── scanner.rs           # Fast recursive directory traversal with exclusion filters
+│       ├── secrets.rs           # High-entropy secret detection & masking
+│       └── types.rs             # Common data structures
+├── test-project/                # Controlled intentionally vulnerable test fixture
+├── tests/                       # Test suites (dependencies, integration, sast, secrets)
+├── .vibeguard/
+│   └── config.json              # Repository-level configuration and exclusion rules
+├── reports/                     # Output directory for generated reports
+├── CHANGELOG.md                 # Full version history
+├── FEATURES.md                  # Detailed feature documentation
+├── LANGUAGE.md                  # Technical architecture and language decisions
+├── PLAN.md                      # Unified Master Development Plan
+├── PROCESSES.md                 # Development lifecycle and verification processes
+└── README.md                    # Project overview and quickstart guide
+```
+
+---
+
+## 5. Development Rules & Engineering Principles
+
+1. **Build the Smallest Working Version First**: Follow incremental development with verifiable milestones.
+2. **Comprehensive Test Coverage**: Add unit and integration tests for every completed capability.
+3. **Always Runnable**: Keep every commit buildable, testable, and cleanly passing `go vet` and `go test`.
+4. **Deterministic Vulnerability Intelligence**: Never invent or hallucinate CVE/advisory data; Google OSV is the definitive source of truth.
+5. **Safe Test Fixtures**: Never commit real credentials; use fake, non-functional keys in test fixtures.
+6. **No Security Bypasses on Error**: Enforce `fail_closed` policy so network or scanner failures block deployment rather than allowing untested code into production.
+7. **Privacy by Default**: Keep code analysis completely local; mask secrets in terminal output, JSON, and HTML.
+
+---
+
+## 6. Version Progression Matrix
+
+| Version | Milestone | Key Capabilities Delivered |
+| :---: | :--- | :--- |
+| **v0.1** | Foundation & IPC | Go CLI skeleton, Rust scanner skeleton, JSON IPC communication. |
+| **v0.2** | Filesystem Traversal | Recursive directory walker, binary file filtering, directory exclusions. |
+| **v0.3** | Secret Detection | AWS, GitHub, Slack tokens, private keys, password assignments, credential masking. |
+| **v0.4** | SAST Rules Engine | Potential SQL injection, OS command injection, disabled TLS, weak crypto, eval. |
+| **v0.5** | Dependency Security | Go, npm, Python, Rust manifest parsers, Google OSV batch queries. |
+| **v0.6** | Security Finding Engine | Normalized finding IDs (`VG-001`), severity classification, category grouping. |
+| **v0.7** | Reports & Score | Deterministic 0–100 score, colored ANSI terminal, JSON, and standalone HTML reports. |
+| **v0.8** | Deployment Gate | PASS / BLOCK logic, exit codes (`0` Pass, `1` Block, `2` Error). |
+| **v0.9** | Container & Git Checks | Dockerfile security (root user, ENV secrets), sensitive Git files (.env, keys). |
+| **v1.0** | Stable Multi-CLI MVP | Full cross-platform verification, end-to-end integration tests, documentation. |
+| **v2.0** | Git Secure Push Gate | Git pre-push hook integration, `vibeguard push`, `vibeguard init`, `.vibeguard/config.json`. |
+| **v2.1 / v3** | Scoped Push & Exclusions | Pure Go `git archive` snapshot scanning, exclusion rules (`exclude: [...]`), refined SAST, zero double-scanning. |
+
+---
+
+## 7. Detailed Phase-by-Phase Implementation Plan
+
+### Phase 1 — Project Foundation (v0.1)
+- **Step 1**: Initialize Go module `github.com/vibeguard/vibeguard` and project directory structure.
+- **Step 2**: Create basic Go CLI entrypoint in `cmd/vibeguard/main.go`.
+- **Step 3**: Initialize Rust scanner package in `scanner/` with `Cargo.toml`.
+- **Step 4**: Implement JSON IPC communication protocol between Go orchestrator and Rust scanner subprocess.
+- **Step 5**: Create basic directory scan execution workflow.
+- **Test**: Run Go binary, verify invocation of scanner, parse JSON output.
+- **Deploy**: Build and verify `vibeguard` v0.1.
+
+### Phase 2 — Project & File Scanner (v0.2)
+- **Step 1**: Implement recursive filesystem traversal using Rust's `walkdir`.
+- **Step 2**: Detect files, directory types, and source extensions.
+- **Step 3**: Filter out binary executables, media, and archive files (.exe, .dll, .so, .png, .zip).
+- **Step 4**: Implement directory skips (`node_modules`, `vendor`, `.git`, `target`, `dist`, `build`).
+- **Step 5**: Return structured scanned file count and path lists.
+- **Test**: Run scanner on mixed directory hierarchies with binaries and source files.
+- **Deploy**: Integrate fast traversal into core scanning pipeline.
+
+### Phase 3 — Secret Detection (v0.3)
+- **Step 1**: Build regex pattern engine for high-entropy secrets in `scanner/src/secrets.rs`.
+- **Step 2**: Add patterns for AWS keys (`AKIA[0-9A-Z]{16}`), GitHub tokens (`ghp_[a-zA-Z0-9]{36}`), Slack tokens (`xox[bprs]-...`).
+- **Step 3**: Add patterns for private keys (`BEGIN RSA/OPENSSH PRIVATE KEY`), passwords, and generic API keys.
+- **Step 4**: Add sensitive filename detection (`.env`, `id_rsa`, `*.pem`, `*.key`, `credentials.*`, `secrets.*`).
+- **Step 5**: Implement secret masking (preserve first 8 characters, mask remainder with `****`).
+- **Test**: Verify detection and masking against `tests/secrets/` fixtures.
+- **Deploy**: Integrate secret scanner into scan pipeline.
+
+### Phase 4 — Source Code Security (SAST) (v0.4)
+- **Step 1**: Create static code analysis rule definitions in `scanner/src/rules.rs` and `scanner/src/sast.rs`.
+- **Step 2**: Implement Potential SQL Injection detection (string concatenation and dynamic formatting).
+- **Step 3**: Implement Potential OS Command Injection detection (`exec.Command`, `os.system`, `child_process.exec`).
+- **Step 4**: Implement Dangerous Evaluation detection (`eval()`, `Function()`).
+- **Step 5**: Implement Potential TLS Misconfiguration detection (`InsecureSkipVerify: true`, `rejectUnauthorized: false`).
+- **Step 6**: Implement Weak Cryptography detection (`md5`, `sha1`, `DES`, `RC4`).
+- **Step 7**: Implement Potential Insecure HTTP Connection detection (excluding `localhost` and `127.0.0.1`).
+- **Step 8**: Extract exact line numbers and code evidence for all findings.
+- **Test**: Run against `tests/sast/vulnerable.go` and ensure accurate line reporting.
+- **Deploy**: Integrate SAST module into scan pipeline.
+
+### Phase 5 — Dependency Security (SCA) (v0.5)
+- **Step 1**: Implement manifest parsers in `internal/dependencies/` for:
+  - Go: `go.mod`
+  - Node.js: `package.json` and `package-lock.json`
+  - Python: `requirements.txt`
+  - Rust: `Cargo.toml` and `Cargo.lock`
+- **Step 2**: Sanitize package version strings (strip caret `^`, tilde `~`, comparison operators `>=`).
+- **Step 3**: Connect to Google OSV REST API (`https://api.osv.dev/v1/querybatch`) in `internal/osv/`.
+- **Step 4**: Extract advisory summaries, CVE aliases, affected versions, and fixed upgrade versions.
+- **Step 5**: Map CVSS v3/v4 vectors and database severities into normalized VibeGuard severity levels.
+- **Test**: Verify known vulnerable dependencies (`lodash@4.17.20`, `django@3.2.0`, `flask@2.0.1`).
+- **Deploy**: Integrate dependency vulnerability scanner into scan pipeline.
+
+### Phase 6 — Security Finding Engine (v0.6)
+- **Step 1**: Merge findings from Secrets, SAST, Dependencies, Docker, and Configuration modules.
+- **Step 2**: Generate sequential, normalized finding IDs (`VG-001`, `VG-002`, etc.).
+- **Step 3**: Assign standardized severities (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `INFO`).
+- **Step 4**: Attach actionable remediation recommendations to each finding.
+- **Step 5**: Group findings by category and compute aggregate counts.
+- **Test**: Verify finding collation across multi-vulnerability projects.
+- **Deploy**: Establish central Finding Engine.
+
+### Phase 7 — Risk Scoring & Reporting (v0.7)
+- **Step 1**: Implement deterministic 0–100 mathematical risk scoring formula:
+  $$\text{Score} = \max\left(0, 100 - (15 \times C + 8 \times H + 3 \times M + 1 \times L)\right)$$
+- **Step 2**: Create colored ANSI terminal report with severity banners and finding summaries.
+- **Step 3**: Create structured JSON report generator (`reports/scan.json`).
+- **Step 4**: Create responsive, standalone HTML report generator (`reports/scan.html`) with CSS visual badges.
+- **Test**: Verify reports across both clean (100/100) and vulnerable test fixtures.
+- **Deploy**: Enable `--format terminal|json|html` CLI options.
+
+### Phase 8 — Deployment Gate & Exit Codes (v0.8)
+- **Step 1**: Implement gate evaluation in `internal/gate/`:
+  - `PASSED`: No blocking findings present.
+  - `BLOCKED`: One or more blocking findings present.
+- **Step 2**: Establish standardized process exit codes:
+  - `0`: PASS / SAFE
+  - `1`: BLOCK / VULNERABILITIES FOUND
+  - `2`: RUNTIME ERROR
+  - `3`: CONFIG ERROR
+  - `4`: OSV UNAVAILABLE (with fail_closed enabled)
+- **Test**: Verify CI/CD pipeline automation triggers and exit code returns.
+- **Deploy**: Standardize CLI exit behavior across all commands.
+
+### Phase 9 — Docker, Git & Configuration Auditing (v0.9)
+- **Step 1**: Implement Dockerfile scanner in `scanner/src/docker.rs` (root user check, ENV secret check, COPY . .).
+- **Step 2**: Implement Git repository checker in `scanner/src/git.rs` (untracked sensitive credential files).
+- **Step 3**: Implement configuration auditor in `scanner/src/config.rs` (debug mode, wildcard CORS, 0.0.0.0 host binding).
+- **Test**: Verify detection in Dockerfile and configuration fixtures.
+- **Deploy**: Integrate into comprehensive scan.
+
+### Phase 10 — Multi-Shell Verification & MVP Release (v1.0)
+- **Step 1**: Verify seamless execution across PowerShell 7+, CMD, Git Bash, and Linux shells.
+- **Step 2**: Package release binaries and complete v1.0 documentation.
+- **Test**: Execute full test suite (`go test ./...`) and end-to-end integration tests.
+- **Deploy**: VibeGuard v1.0 Release.
+
+### Phase 11 — Git Pre-Push Hook Architecture (v2.0)
+- **Step 1**: Implement Git repository detection and inspection in `internal/git/repo.go`.
+- **Step 2**: Implement pre-push hook installer in `internal/git/hooks.go` (`.git/hooks/pre-push`).
+- **Step 3**: Implement user hook preservation: back up existing hooks to `pre-push.user` and chain execution.
+- **Step 4**: Implement `vibeguard init`: install hook and generate `.vibeguard/config.json`.
+- **Step 5**: Implement `vibeguard status`: inspect Git repository, branch, remote, hook, and policies.
+- **Step 6**: Implement `vibeguard uninstall`: cleanly remove hook and restore user backup.
+- **Step 7**: Implement `vibeguard push`: interactive staging, commit creation, security scan, and remote push.
+- **Test**: Verify hook installation, preservation, execution, and uninstallation.
+- **Deploy**: VibeGuard v2.0 Release.
+
+### Phase 12 — Scoped Pre-Push Snapshot & Exact Commit Scanning (v2.1 / v3)
+- **Step 1**: Parse pre-push stdin ref update tuples (`<local_ref> <local_sha> <remote_ref> <remote_sha>`).
+- **Step 2**: Detect branch deletions (`strings.Trim(localSha, "0") == ""`) and allow immediately.
+- **Step 3**: Extract exact commit tree snapshot using pure Go `git archive` and `archive/tar`.
+- **Step 4**: Scope pre-push scan strictly to the committed snapshot, preventing dirty working directory changes from polluting pre-push decisions.
+- **Step 5**: Automatically clean up temporary snapshot directory via `defer`.
+- **Test**: Verify pre-push hook scans exact committed tree.
+- **Deploy**: Integrated into `runScan` hook workflow.
+
+### Phase 13 — Configurable Repository Exclusions & Policy Schema (v2.1 / v3)
+- **Step 1**: Add `Exclude []string` field to `Config` struct in `internal/config/config.go`.
+- **Step 2**: Implement `IsExcluded(relPath string) bool` matching exact paths, directory subtrees, and basenames.
+- **Step 3**: Update `.vibeguard/config.json` with default exclusions (`.git`, `.vibeguard`, `reports`, `md files`, `tests`, `code.md`, `finalreport.md`, etc.).
+- **Step 4**: Update Go scanner `RunInternalScanner` to skip excluded subtrees during filesystem walk.
+- **Step 5**: Update Rust scanner `scan_directory` to load `.vibeguard/config.json` and skip matching exclusions.
+- **Step 6**: Update dependency detector `DetectDependencies` to skip excluded manifest files.
+- **Test**: Verify self-scan reports 0 findings, while `test-project` still reports full findings.
+- **Deploy**: Universal exclusion filtering across all engines.
+
+### Phase 14 — SAST Realism & Double-Scan Elimination (v2.1 / v3)
+- **Step 1**: Update SAST rule titles to precise terminology:
+  - `Potential OS Command Injection`
+  - `Potential SQL Injection`
+  - `Potential TLS Misconfiguration`
+  - `Potential Insecure HTTP Connection`
+- **Step 2**: Eliminate false positives on internal CLI tooling: ignore safe fixed commands like `exec.Command("git", ...)` and `exec.CommandContext`.
+- **Step 3**: Skip comments and regex compilation definitions (`regexp.MustCompile`, `Regex::new`) during code scanning.
+- **Step 4**: Implement `GitPushVerified` executing `git push --no-verify` inside `vibeguard push` to eliminate duplicate scanning.
+- **Step 5**: Enhance pre-push hook script to dynamically resolve `vibeguard.exe` from repository root or PATH.
+- **Test**: Verify self-scan passes 100/100, and `vibeguard push` scans cleanly exactly once.
+- **Deploy**: VibeGuard v3 Release.
+
+---
+
+## 8. Future Roadmap & Horizons
+
+### Phase 15 — Optional AI Remediation Layer
+- Interface with developer-selected AI models (Local Ollama, Anthropic, OpenAI, or Gemini).
+- Generate contextual code diff patches for identified vulnerabilities.
+- Keep core vulnerability detection 100% deterministic and non-dependent on AI.
+
+### Phase 16 — Native CI/CD Actions
+- GitHub Action: `uses: vibeguard/vibeguard-action@v1`.
+- GitLab CI template and pre-commit framework integration (`.pre-commit-hooks.yaml`).
+
+### Phase 17 — IDE Sidecar & Real-Time LSP
+- Lightweight language server protocol (LSP) plugin for VS Code, JetBrains, and Neovim to highlight security issues in real-time as code is typed.

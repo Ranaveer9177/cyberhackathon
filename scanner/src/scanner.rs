@@ -13,6 +13,22 @@ pub fn scan_directory(path: &str) -> Vec<String> {
         "pdf",
     ];
 
+    let mut config_excludes: Vec<String> = Vec::new();
+    let config_path = Path::new(path).join(".vibeguard").join("config.json");
+    if config_path.exists() {
+        if let Ok(data) = std::fs::read_to_string(&config_path) {
+            if let Ok(val) = serde_json::from_str::<serde_json::Value>(&data) {
+                if let Some(arr) = val.get("exclude").and_then(|e| e.as_array()) {
+                    for item in arr {
+                        if let Some(s) = item.as_str() {
+                            config_excludes.push(s.replace('\\', "/"));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     for entry in WalkDir::new(path)
         .into_iter()
         .filter_map(|e| e.ok())
@@ -24,6 +40,24 @@ pub fn scan_directory(path: &str) -> Vec<String> {
         for component in file_path.components() {
             if let Some(comp_str) = component.as_os_str().to_str() {
                 if skipped_dirs.contains(&comp_str) {
+                    skip = true;
+                    break;
+                }
+            }
+        }
+
+        let rel_path = file_path.strip_prefix(path).unwrap_or(file_path);
+        let rel_str = rel_path.to_string_lossy().replace('\\', "/");
+        let rel_clean = rel_str.trim_start_matches('/');
+
+        for exc in &config_excludes {
+            let exc_clean = exc.trim_start_matches('/');
+            if rel_clean == exc_clean || rel_clean.starts_with(&format!("{}/", exc_clean)) {
+                skip = true;
+                break;
+            }
+            if let Some(file_name) = file_path.file_name().and_then(|f| f.to_str()) {
+                if file_name == exc_clean {
                     skip = true;
                     break;
                 }

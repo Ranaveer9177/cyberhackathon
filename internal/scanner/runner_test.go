@@ -32,7 +32,7 @@ func TestInternalScannerOnTestProject(t *testing.T) {
 		if f.Category == "secret" {
 			foundSecret = true
 		}
-		if f.Title == "SQL Injection" {
+		if f.Title == "Potential SQL Injection" {
 			foundSQL = true
 		}
 		if f.Category == "docker" {
@@ -44,9 +44,28 @@ func TestInternalScannerOnTestProject(t *testing.T) {
 		t.Errorf("expected at least one secret finding in test-project")
 	}
 	if !foundSQL {
-		t.Errorf("expected SQL injection finding in test-project")
+		t.Errorf("expected Potential SQL injection finding in test-project")
 	}
 	if !foundDocker {
 		t.Errorf("expected docker finding in test-project")
+	}
+}
+
+func TestInternalScannerExclusions(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatalf("failed to get root: %v", err)
+	}
+
+	result, err := RunInternalScanner(root)
+	if err != nil {
+		t.Fatalf("RunInternalScanner on root failed: %v", err)
+	}
+
+	// Verify excluded files are not reported as findings
+	for _, f := range result.Findings {
+		if f.File == "tests/sast/vulnerable.go" {
+			t.Errorf("excluded test file %s was scanned and reported as finding", f.File)
+		}
 	}
 }

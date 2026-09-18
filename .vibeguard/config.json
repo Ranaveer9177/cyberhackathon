@@ -8,5 +8,19 @@
   "secret_scan": true,
   "source_scan": true,
   "report_format": "terminal",
-  "fail_closed": true
+  "fail_closed": true,
+  "exclude": [
+    ".git",
+    ".vibeguard",
+    "reports",
+    "md files",
+    "tests",
+    "test-project",
+    "code.md",
+    "finalreport.md",
+    "output.md",
+    "output2.md",
+    "test output.md",
+    "test3.md"
+  ]
 }

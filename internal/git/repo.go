@@ -1,9 +1,11 @@
 package git
 
 import (
+	"archive/tar"
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -53,17 +55,42 @@ func GetBranch(path string) string {
 	return strings.TrimSpace(out)
 }
 
-// GetRemote returns the remote URL for origin.
-func GetRemote(path string) string {
+// GetRemoteName returns the name of the first git remote (usually "origin").
+func GetRemoteName(path string) string {
 	root, err := FindGitRoot(path)
 	if err != nil {
 		return ""
 	}
-	out, err := runGit(root, "remote", "get-url", "origin")
+	out, err := runGit(root, "remote")
+	if err != nil {
+		return ""
+	}
+	lines := strings.Split(strings.TrimSpace(out), "\n")
+	if len(lines) > 0 && lines[0] != "" {
+		return strings.TrimSpace(lines[0])
+	}
+	return "origin"
+}
+
+// GetRemoteURL returns the URL of the specified remote (defaults to origin).
+func GetRemoteURL(path, remoteName string) string {
+	if remoteName == "" {
+		remoteName = "origin"
+	}
+	root, err := FindGitRoot(path)
+	if err != nil {
+		return ""
+	}
+	out, err := runGit(root, "remote", "get-url", remoteName)
 	if err != nil {
 		return ""
 	}
 	return strings.TrimSpace(out)
+}
+
+// GetRemote returns the remote URL for origin.
+func GetRemote(path string) string {
+	return GetRemoteURL(path, "origin")
 }
 
 // GetCommitHash returns the short commit hash of HEAD.
@@ -182,6 +209,19 @@ func GitPush(path string) error {
 	return cmd.Run()
 }
 
+// GitPushVerified executes `git push --no-verify` after VibeGuard has already completed full verification.
+func GitPushVerified(path string) error {
+	root, err := FindGitRoot(path)
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command("git", "push", "--no-verify")
+	cmd.Dir = root
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
 // Helper to run git commands and capture stdout
 func runGit(dir string, args ...string) (string, error) {
 	cmd := exec.Command("git", args...)
@@ -195,22 +235,124 @@ func runGit(dir string, args ...string) (string, error) {
 	return stdout.String(), nil
 }
 
-// GetPushedRefs reads standard Git pre-push ref update tuples from stdin if present.
-func GetPushedRefs() (localRef, localSha, remoteRef, remoteSha string) {
-	stat, err := os.Stdin.Stat()
-	if err != nil || (stat.Mode()&os.ModeCharDevice) != 0 {
-		return "", "", "", ""
-	}
+// PushRef represents a Git ref update passed via stdin to a pre-push hook.
+type PushRef struct {
+	LocalRef  string
+	LocalSHA  string
+	RemoteRef string
+	RemoteSHA string
+}
 
-	scanner := bufio.NewScanner(os.Stdin)
-	if scanner.Scan() {
+// ReadPrePushRefs reads standard Git pre-push ref update tuples from an io.Reader.
+func ReadPrePushRefs(r io.Reader) ([]PushRef, error) {
+	var refs []PushRef
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
 		parts := strings.Fields(line)
 		if len(parts) >= 4 {
-			return parts[0], parts[1], parts[2], parts[3]
+			refs = append(refs, PushRef{
+				LocalRef:  parts[0],
+				LocalSHA:  parts[1],
+				RemoteRef: parts[2],
+				RemoteSHA: parts[3],
+			})
 		}
 	}
+	return refs, scanner.Err()
+}
+
+// ReadAllPushedRefs reads standard Git pre-push ref update tuples from stdin if present.
+func ReadAllPushedRefs() ([]PushRef, error) {
+	stat, err := os.Stdin.Stat()
+	if err != nil || (stat.Mode()&os.ModeCharDevice) != 0 {
+		return nil, nil
+	}
+	return ReadPrePushRefs(os.Stdin)
+}
+
+// GetPushedRefs reads standard Git pre-push ref update tuples from stdin if present.
+func GetPushedRefs() (localRef, localSha, remoteRef, remoteSha string) {
+	refs, err := ReadAllPushedRefs()
+	if err == nil && len(refs) > 0 {
+		return refs[0].LocalRef, refs[0].LocalSHA, refs[0].RemoteRef, refs[0].RemoteSHA
+	}
 	return "", "", "", ""
+}
+
+// CreatePushSnapshot extracts the tree at localSha into a temporary directory using Go's archive/tar.
+func CreatePushSnapshot(repoPath, localSha string) (string, error) {
+	root, err := FindGitRoot(repoPath)
+	if err != nil {
+		return "", err
+	}
+
+	tempDir, err := os.MkdirTemp("", "vibeguard-push-*")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp directory: %w", err)
+	}
+
+	cmd := exec.Command("git", "archive", "--format=tar", localSha)
+	cmd.Dir = root
+	out, err := cmd.StdoutPipe()
+	if err != nil {
+		os.RemoveAll(tempDir)
+		return "", err
+	}
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	if err := cmd.Start(); err != nil {
+		os.RemoveAll(tempDir)
+		return "", fmt.Errorf("failed to start git archive: %w", err)
+	}
+
+	tr := tar.NewReader(out)
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			os.RemoveAll(tempDir)
+			return "", fmt.Errorf("failed reading tar: %w", err)
+		}
+
+		target := filepath.Join(tempDir, filepath.FromSlash(header.Name))
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if err := os.MkdirAll(target, 0755); err != nil {
+				os.RemoveAll(tempDir)
+				return "", err
+			}
+		case tar.TypeReg, tar.TypeRegA:
+			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+				os.RemoveAll(tempDir)
+				return "", err
+			}
+			outFile, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR|os.O_TRUNC, header.FileInfo().Mode())
+			if err != nil {
+				os.RemoveAll(tempDir)
+				return "", err
+			}
+			if _, err := io.Copy(outFile, tr); err != nil {
+				outFile.Close()
+				os.RemoveAll(tempDir)
+				return "", err
+			}
+			outFile.Close()
+		}
+	}
+
+	if err := cmd.Wait(); err != nil {
+		os.RemoveAll(tempDir)
+		return "", fmt.Errorf("git archive failed: %v: %s", err, stderr.String())
+	}
+
+	return tempDir, nil
 }
 
 // GetPushedCommitFiles returns the list of files touched in the exact commits being pushed.

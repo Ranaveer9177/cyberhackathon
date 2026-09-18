@@ -4,6 +4,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	"github.com/vibeguard/vibeguard/internal/config"
 )
 
 type Dependency struct {
@@ -16,15 +18,30 @@ type Dependency struct {
 func DetectDependencies(projectPath string) ([]Dependency, error) {
 	var deps []Dependency
 
+	cfg, _ := config.LoadConfig(projectPath)
+	if cfg == nil {
+		cfg = config.DefaultConfig()
+	}
+
 	err := filepath.WalkDir(projectPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		
+
+		relPath, _ := filepath.Rel(projectPath, path)
+		if relPath == "" || relPath == "." {
+			return nil
+		}
+		relPath = filepath.ToSlash(relPath)
+
 		if d.IsDir() {
-			if d.Name() == "node_modules" || d.Name() == ".git" || d.Name() == "vendor" {
+			if d.Name() == "node_modules" || d.Name() == ".git" || d.Name() == "vendor" || cfg.IsExcluded(relPath) {
 				return filepath.SkipDir
 			}
+			return nil
+		}
+
+		if cfg.IsExcluded(relPath) {
 			return nil
 		}
 

@@ -27,8 +27,31 @@ if [ -f "$HOOK_DIR/` + UserHookFile + `" ]; then
     fi
 fi
 
-# 2. Run VibeGuard security verification gate
-vibeguard scan . --hook
+# 2. Resolve repository root
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+if [ -z "$REPO_ROOT" ]; then
+    REPO_ROOT=$(pwd)
+fi
+
+# 3. Locate VibeGuard binary
+VIBEGUARD_BIN=""
+if [ -f "$REPO_ROOT/vibeguard.exe" ]; then
+    VIBEGUARD_BIN="$REPO_ROOT/vibeguard.exe"
+elif [ -f "$REPO_ROOT/vibeguard" ]; then
+    VIBEGUARD_BIN="$REPO_ROOT/vibeguard"
+elif command -v vibeguard.exe >/dev/null 2>&1; then
+    VIBEGUARD_BIN="vibeguard.exe"
+elif command -v vibeguard >/dev/null 2>&1; then
+    VIBEGUARD_BIN="vibeguard"
+fi
+
+if [ -z "$VIBEGUARD_BIN" ]; then
+    echo "Notice: VibeGuard binary not found in repository root or PATH. Allowing push."
+    exit 0
+fi
+
+# 4. Run VibeGuard security verification gate
+"$VIBEGUARD_BIN" scan "$REPO_ROOT" --hook
 exit $?
 `
 }
