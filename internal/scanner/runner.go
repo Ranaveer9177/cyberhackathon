@@ -87,8 +87,20 @@ func FindScannerExecutable() (string, bool) {
 	return "", false
 }
 
+type ScanProgressFunc func(current, total int, currentFile string)
+
 // RunScanner runs the Rust scanner executable if available; otherwise falls back to the built-in Go scanner.
 func RunScanner(projectPath string) (*ScanResult, error) {
+	return RunScannerWithProgress(projectPath, nil)
+}
+
+// RunScannerWithProgress runs the scanner with optional real-time progress callbacks.
+func RunScannerWithProgress(projectPath string, progress ScanProgressFunc) (*ScanResult, error) {
+	// When live progress is requested, use internal scanner for granular per-file callbacks
+	if progress != nil {
+		return RunInternalScannerWithProgress(projectPath, progress)
+	}
+
 	// Read config to check enabled modules
 	secretScan := true
 	sourceScan := true
@@ -129,7 +141,7 @@ func RunScanner(projectPath string) (*ScanResult, error) {
 	}
 
 	// Fallback to built-in Go scanning engine
-	return RunInternalScanner(projectPath)
+	return RunInternalScannerWithProgress(projectPath, progress)
 }
 
 // Built-in rule definition
@@ -278,9 +290,20 @@ func getInternalRules() []internalRule {
 
 // RunInternalScanner performs comprehensive scanning using the built-in Go engine.
 func RunInternalScanner(projectPath string) (*ScanResult, error) {
+	return RunInternalScannerWithProgress(projectPath, nil)
+}
+
+type candidateFile struct {
+	path    string
+	relPath string
+	name    string
+	ext     string
+}
+
+// RunInternalScannerWithProgress performs comprehensive scanning with optional live progress reporting.
+func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFunc) (*ScanResult, error) {
 	start := time.Now()
 	var findings []Finding
-	fileCount := 0
 	counter := 0
 
 	cfg, _ := config.LoadConfig(projectPath)
@@ -327,6 +350,8 @@ func RunInternalScanner(projectPath string) (*ScanResult, error) {
 		".c": true, ".cpp": true, ".cs": true,
 	}
 
+	// 1. Collect all non-skipped candidate files
+	var files []candidateFile
 	err := filepath.WalkDir(projectPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil
@@ -354,8 +379,32 @@ func RunInternalScanner(projectPath string) (*ScanResult, error) {
 			return nil
 		}
 
-		fileCount++
-		fileName := d.Name()
+		files = append(files, candidateFile{
+			path:    path,
+			relPath: relPath,
+			name:    d.Name(),
+			ext:     ext,
+		})
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	totalFiles := len(files)
+
+	// 2. Scan each candidate file and emit progress
+	for idx, f := range files {
+		currentNum := idx + 1
+		if progress != nil {
+			progress(currentNum, totalFiles, f.relPath)
+		}
+
+		path := f.path
+		relPath := f.relPath
+		fileName := f.name
+		ext := f.ext
 
 		// Sensitive filename checks (excluding code source files)
 		if secretScan && !sourceExts[ext] && (fileName == ".env" || fileName == "id_rsa" || fileName == "id_dsa" || ext == ".pem" || ext == ".key" ||
@@ -376,7 +425,7 @@ func RunInternalScanner(projectPath string) (*ScanResult, error) {
 
 		contentBytes, err := os.ReadFile(path)
 		if err != nil {
-			return nil
+			continue
 		}
 		content := string(contentBytes)
 		lines := strings.Split(content, "\n")
@@ -496,12 +545,6 @@ func RunInternalScanner(projectPath string) (*ScanResult, error) {
 				}
 			}
 		}
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
 	}
 
 	projectName := filepath.Base(projectPath)
@@ -509,7 +552,7 @@ func RunInternalScanner(projectPath string) (*ScanResult, error) {
 
 	return &ScanResult{
 		Project:      projectName,
-		FilesScanned: fileCount,
+		FilesScanned: totalFiles,
 		Findings:     findings,
 		ScanTimeMs:   duration,
 	}, nil

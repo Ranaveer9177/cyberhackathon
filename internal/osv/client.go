@@ -69,17 +69,25 @@ func QueryOSV(name, version, ecosystem string) ([]Vulnerability, error) {
 	return queryResp.Vulns, nil
 }
 
+type OSVProgressFunc func(current, total int)
+
 // CheckAllDependencies queries OSV for all dependencies, returning results.
 func CheckAllDependencies(deps []DependencyInfo) []VulnResult {
-	results, _ := CheckAllDependenciesWithStatus(deps)
+	results, _ := CheckAllDependenciesWithProgress(deps, nil)
 	return results
 }
 
 // CheckAllDependenciesWithStatus queries OSV and returns an error if all lookups failed due to network/API outage.
 func CheckAllDependenciesWithStatus(deps []DependencyInfo) ([]VulnResult, error) {
+	return CheckAllDependenciesWithProgress(deps, nil)
+}
+
+// CheckAllDependenciesWithProgress queries OSV for dependencies with real-time progress callbacks.
+func CheckAllDependenciesWithProgress(deps []DependencyInfo, progress OSVProgressFunc) ([]VulnResult, error) {
 	var results []VulnResult
 	var lastErr error
 	successCount := 0
+	total := len(deps)
 
 	ecosystemMap := map[string]string{
 		"Go":        "Go",
@@ -88,13 +96,16 @@ func CheckAllDependenciesWithStatus(deps []DependencyInfo) ([]VulnResult, error)
 		"crates.io": "crates.io",
 	}
 
-	for _, d := range deps {
+	for idx, d := range deps {
 		eco, ok := ecosystemMap[d.Ecosystem]
 		if !ok {
 			eco = d.Ecosystem
 		}
 
 		vulns, err := QueryOSV(d.Name, d.Version, eco)
+		if progress != nil {
+			progress(idx+1, total)
+		}
 		if err != nil {
 			lastErr = err
 			continue

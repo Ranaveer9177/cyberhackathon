@@ -1,4 +1,4 @@
-# VibeGuard v2.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
+# VibeGuard v3.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
 
 > **The Autonomous Pre-Push Security Firewall for Engineering Teams**  
 > *"Make security verification an automatic, non-negotiable step before code ever leaves your machine."*
@@ -7,9 +7,10 @@
 
 ## Overview
 
-**VibeGuard v2.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST), vulnerable third-party dependencies (SCA via Google OSV), Dockerfile misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
+**VibeGuard v3.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST), vulnerable third-party dependencies (SCA via Google OSV), Dockerfile misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
 
 VibeGuard operates directly in developer terminal workflows and CI/CD pipelines:
+- **Live Interactive Scan Progress**: Real-time terminal progress bars during file scanning, dependency resolution, and OSV database queries.
 - **Autonomous Git Pre-Push Gate**: Intercepts `git push` via standard pre-push hooks. Scans only the exact commits being pushed using pure Go `git archive` snapshotting.
 - **Deterministic 0–100 Security Score**: Evaluates risk using weighted mathematical severity scoring.
 - **Strict Policy Enforcement**: Standardized exit codes (`0` SAFE, `1` BLOCKED, `2` ERROR, `3` CONFIG ERROR, `4` OSV UNAVAILABLE) to reliably integrate with git hooks, GitHub Actions, and deployment pipelines.
@@ -92,9 +93,11 @@ cyberhackathon/
 │   ├── osv/                     # Google OSV API client & batch query engine
 │   │   ├── client.go
 │   │   └── types.go
-│   ├── report/                  # Terminal ANSI, JSON, and standalone HTML report generators
+│   ├── report/                  # Terminal ANSI, JSON, HTML generators & live progress bars
 │   │   ├── html.go
 │   │   ├── json.go
+│   │   ├── progress.go
+│   │   ├── progress_test.go
 │   │   ├── report_test.go
 │   │   └── terminal.go
 │   ├── risk/                    # Deterministic 0-100 risk scoring algorithm
@@ -235,6 +238,39 @@ Performs security verification on any path.
 Cleanly removes the VibeGuard pre-push hook and restores any previous user hook backup.
 ```powershell
 .\vibeguard.exe uninstall
+```
+
+---
+
+## Live Scan Progress (v3.0)
+
+During scans, VibeGuard renders terminal progress indicators with real-time feedback across all 4 stages:
+
+### 1. File Scanning
+```text
+[██████████████░░░░░░] 70%
+Files: 56/80
+Current: internal/scanner/runner.go
+```
+
+### 2. Dependency Scanning
+```text
+[████████████████░░░░] 80%
+Dependencies: 36/45
+Current: lodash@4.17.20
+```
+
+### 3. Vulnerability Database (OSV) Lookup
+```text
+[██████████████████░░] 90%
+OSV queries: 41/45
+```
+
+### 4. Final Completion Stage
+```text
+[████████████████████] 100%
+
+Security analysis complete.
 ```
 
 ---
