@@ -15,6 +15,7 @@ VibeGuard intentionally pairs **Go** and **Rust** to optimize developer ergonomi
 | **Scanner Engine** | **Rust** | Zero-cost abstractions, fearless memory safety without garbage collection pauses, blazing-fast file traversal with `walkdir`, and high-performance compiled regex matching. |
 | **Fallback Engine** | **Go** | Native Go scanner implementation maintaining 100% rule parity, ensuring VibeGuard functions out-of-the-box on developer systems where `cargo` is not installed. |
 | **Vulnerability Data** | **Google OSV** | Distributed open-source vulnerability database providing machine-readable CVEs and advisories with zero hallucinations. |
+| **Environment Provisioning** | **Batch / winget** | Automated Windows setup script (`setup.bat`) integrating Windows Package Manager (`winget`) with intelligent pre-checks to eliminate redundant re-downloads. |
 | **Data Protocol** | **JSON** | Universal, lightweight serialization format for inter-process communication and report persistence. |
 
 ---

@@ -1,7 +1,7 @@
 # VibeGuard — Complete Source Code Repository
 **Project:** VibeGuard v3.0.0 (Autonomous Git Secure Push Gate)
-**Generated:** 2026-09-19 01:47:11
-**Total Files:** 77
+**Generated:** 2026-09-19 02:05:28
+**Total Files:** 78
 
 ---
 
@@ -61,29 +61,30 @@
 52. [scanner/src/scanner.rs](#scannersrcscannerrs)
 53. [scanner/src/secrets.rs](#scannersrcsecretsrs)
 54. [scanner/src/types.rs](#scannersrctypesrs)
-55. [src/README.md](#srcreadmemd)
-56. [test output.md](#testoutputmd)
-57. [test-project/.env](#testprojectenv)
-58. [test-project/Dockerfile](#testprojectdockerfile)
-59. [test-project/README.md](#testprojectreadmemd)
-60. [test-project/go.mod](#testprojectgomod)
-61. [test-project/package.json](#testprojectpackagejson)
-62. [test-project/requirements.txt](#testprojectrequirementstxt)
-63. [test-project/src/auth.js](#testprojectsrcauthjs)
-64. [test-project/src/config.go](#testprojectsrcconfiggo)
-65. [test-project/src/database.go](#testprojectsrcdatabasego)
-66. [test3.md](#test3md)
-67. [test4.md](#test4md)
-68. [test5.md](#test5md)
-69. [tests/dependencies/Cargo.toml](#testsdependenciescargotoml)
-70. [tests/dependencies/go.mod](#testsdependenciesgomod)
-71. [tests/dependencies/package.json](#testsdependenciespackagejson)
-72. [tests/dependencies/requirements.txt](#testsdependenciesrequirementstxt)
-73. [tests/integration/integration_test.go](#testsintegrationintegrationtestgo)
-74. [tests/sast/safe.go](#testssastsafego)
-75. [tests/sast/vulnerable.go](#testssastvulnerablego)
-76. [tests/secrets/clean_text.txt](#testssecretscleantexttxt)
-77. [tests/secrets/fake_keys.txt](#testssecretsfakekeystxt)
+55. [setup.bat](#setupbat)
+56. [src/README.md](#srcreadmemd)
+57. [test output.md](#testoutputmd)
+58. [test-project/.env](#testprojectenv)
+59. [test-project/Dockerfile](#testprojectdockerfile)
+60. [test-project/README.md](#testprojectreadmemd)
+61. [test-project/go.mod](#testprojectgomod)
+62. [test-project/package.json](#testprojectpackagejson)
+63. [test-project/requirements.txt](#testprojectrequirementstxt)
+64. [test-project/src/auth.js](#testprojectsrcauthjs)
+65. [test-project/src/config.go](#testprojectsrcconfiggo)
+66. [test-project/src/database.go](#testprojectsrcdatabasego)
+67. [test3.md](#test3md)
+68. [test4.md](#test4md)
+69. [test5.md](#test5md)
+70. [tests/dependencies/Cargo.toml](#testsdependenciescargotoml)
+71. [tests/dependencies/go.mod](#testsdependenciesgomod)
+72. [tests/dependencies/package.json](#testsdependenciespackagejson)
+73. [tests/dependencies/requirements.txt](#testsdependenciesrequirementstxt)
+74. [tests/integration/integration_test.go](#testsintegrationintegrationtestgo)
+75. [tests/sast/safe.go](#testssastsafego)
+76. [tests/sast/vulnerable.go](#testssastvulnerablego)
+77. [tests/secrets/clean_text.txt](#testssecretscleantexttxt)
+78. [tests/secrets/fake_keys.txt](#testssecretsfakekeystxt)
 
 ---
 
@@ -276,11 +277,9 @@ cyberhackathon/
 ├── .vibeguard/
 │   └── config.json              # Repository-level configuration and exclusion rules
 ├── reports/                     # Output directory for generated reports
-├── CHANGELOG.md                 # Full release and version history
-├── FEATURES.md                  # Comprehensive feature specification
-├── LANGUAGE.md                  # Technical architecture and language decisions
-├── PLAN.md                      # Development blueprint & phase tracking
-└── README.md                    # Project documentation
+├── setup.bat                    # Automated environment setup script for Windows
+├── README.md                    # Project documentation
+├── md files/                    # Core project documentation and blueprints
 ```
 
 ---
@@ -299,10 +298,40 @@ cyberhackathon/
 
 ## Installation & Build
 
-### Prerequisites
+### Automated Environment Setup (`setup.bat`)
+On Windows workstations, run the automated setup script to check, install, configure, and verify all development prerequisites via `winget`. Existing installations are preserved without redundant re-downloads:
+
+```cmd
+.\setup.bat
+```
+
+Example Output:
+```text
+================================
+ VibeGuard Development Setup
+================================
+
+[OK] Git
+[OK] Go 1.27.0
+[OK] Rust 1.98.1
+[OK] Cargo 1.98.1
+[OK] Node.js
+[OK] Python
+[OK] Docker
+
+PATH verification:
+[OK] Go
+[OK] Rust
+[OK] Cargo
+
+VibeGuard development environment ready.
+```
+
+### Manual Prerequisites
 - **Go** (1.21 or higher)
 - **Git** (2.20 or higher)
 - *(Optional)* **Rust & Cargo** (1.70 or higher) if rebuilding the Rust scanning engine
+- *(Optional)* **Docker CLI / Desktop** for container testing
 
 ### Build Steps
 
@@ -327,7 +356,7 @@ cyberhackathon/
 4. **Verify Installation**:
    ```powershell
    .\vibeguard.exe version
-   # Output: VibeGuard v2.0.0
+   # Output: VibeGuard v3.0.0
    ```
 
 ---
@@ -4907,6 +4936,27 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
 - **Terminal Report**: High-visibility ANSI color output with tabular breakdown and clear PASS/BLOCK banners.
 - **JSON Report**: Comprehensive machine-readable output saved to `reports/scan.json` for CI/CD integration.
 - **HTML Report**: Standalone, CSS-styled interactive security report saved to `reports/scan.html`.
+
+### 2.7 Automated Environment Setup Subsystem (`setup.bat`)
+- **Architecture**:
+  ```text
+  VibeGuard Setup
+  │
+  ├── Check winget
+  ├── Install Git
+  ├── Install Go
+  ├── Install Rust + Cargo
+  ├── Install Node.js
+  ├── Install Python
+  ├── Install Docker
+  ├── Verify every installation
+  ├── Configure PATH where necessary
+  └── Print final environment status
+  ```
+- **Intelligent Pre-Check**: Probes local environment before invoking package managers, avoiding reinstallation of pre-existing compilers or runtimes.
+- **Automated Provisioning**: Orchestrates silent installation of missing dependencies via Windows Package Manager (`winget`).
+- **Session PATH Injection & Verification**: Injects `%USERPROFILE%\.cargo\bin`, `Go\bin`, `Git\cmd`, `nodejs`, and Docker tools into the current terminal session, verifies PATH resolution for Go, Rust, and Cargo, and presents a structured terminal verification summary.
+
 ```
 
 ---
@@ -4918,6 +4968,20 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
 # VibeGuard Changelog
 
 All notable changes to the VibeGuard project are documented in this file.
+
+## [v3.1.0] — 2026-09-19
+
+### Added
+- **Automated Workstation Setup (`setup.bat`)**:
+  - One-click automated setup script for Windows developers.
+  - Automatically verifies Windows Package Manager (`winget`).
+  - Probes existing toolchain to prevent redundant downloads (Git, Go, Rust, Cargo, Node.js, Python, Docker).
+  - Installs missing dependencies silently via `winget`.
+  - Configures current terminal session PATH with tool directories.
+  - Verifies PATH resolution for Go, Rust, and Cargo.
+  - Prints clean structured status output confirming environment readiness.
+
+---
 
 ## [v3.0.0] — 2026-09-19
 
@@ -5107,6 +5171,57 @@ All notable changes to the VibeGuard project are documented in this file.
 - **Terminal Report**: High-contrast ANSI colors, summary metrics, and finding evidence.
 - **JSON Report**: Saved to `reports/scan.json` for CI/CD automation.
 - **HTML Report**: Responsive, standalone interactive dashboard saved to `reports/scan.html`.
+
+---
+
+## 6. Automated Environment Setup (`setup.bat`)
+
+### 6.1 Architecture & Workflow
+```text
+VibeGuard Setup
+│
+├── Check winget
+├── Install Git
+├── Install Go
+├── Install Rust + Cargo
+├── Install Node.js
+├── Install Python
+├── Install Docker
+├── Verify every installation
+├── Configure PATH where necessary
+└── Print final environment status
+```
+
+### 6.2 Intelligent Pre-Check Before Download
+- Automatically probes system and user PATH for existing tool installations (`where <tool>`).
+- Completely avoids redundant downloads if a prerequisite (such as Go, Rust, Git, Node, Python, Docker) is already present.
+- Uses Microsoft Windows Package Manager (`winget`) with unattended acceptance flags (`--accept-source-agreements --accept-package-agreements --silent`) to install missing prerequisites.
+
+### 6.3 Dynamic PATH Configuration & Verification
+- Ensures essential directories (e.g. `%USERPROFILE%\.cargo\bin`, `C:\Program Files\Go\bin`, `C:\Program Files\Git\cmd`, `C:\Program Files\nodejs`) are dynamically available in the running session.
+- Runs verification checks against Go, Rust, and Cargo executables.
+- Formats status output with precise version strings:
+  ```text
+  ================================
+   VibeGuard Development Setup
+  ================================
+
+  [OK] Git
+  [OK] Go 1.27.0
+  [OK] Rust 1.98.1
+  [OK] Cargo 1.98.1
+  [OK] Node.js
+  [OK] Python
+  [OK] Docker
+
+  PATH verification:
+  [OK] Go
+  [OK] Rust
+  [OK] Cargo
+
+  VibeGuard development environment ready.
+  ```
+
 ```
 
 ---
@@ -5132,6 +5247,7 @@ VibeGuard intentionally pairs **Go** and **Rust** to optimize developer ergonomi
 | **Scanner Engine** | **Rust** | Zero-cost abstractions, fearless memory safety without garbage collection pauses, blazing-fast file traversal with `walkdir`, and high-performance compiled regex matching. |
 | **Fallback Engine** | **Go** | Native Go scanner implementation maintaining 100% rule parity, ensuring VibeGuard functions out-of-the-box on developer systems where `cargo` is not installed. |
 | **Vulnerability Data** | **Google OSV** | Distributed open-source vulnerability database providing machine-readable CVEs and advisories with zero hallucinations. |
+| **Environment Provisioning** | **Batch / winget** | Automated Windows setup script (`setup.bat`) integrating Windows Package Manager (`winget`) with intelligent pre-checks to eliminate redundant re-downloads. |
 | **Data Protocol** | **JSON** | Universal, lightweight serialization format for inter-process communication and report persistence. |
 
 ---
@@ -5460,20 +5576,36 @@ cyberhackathon/
 - **Test**: Unit tests in `internal/report/progress_test.go`, full test suite `go test ./...`, self-scan test `vibeguard scan .`, and pre-push hook execution.
 - **Deploy**: VibeGuard v3.0 Release with Live Scan Progress.
 
+### Phase 16 — Automated Environment Setup (`setup.bat`) (v3.1)
+- **Step 1**: Implement automated batch script (`setup.bat`) for Windows development environments.
+- **Step 2**: Check package manager availability (`winget`).
+- **Step 3**: Check whether each dependency is already installed before attempting download:
+  - Git
+  - Go
+  - Rust + Cargo
+  - Node.js
+  - Python
+  - Docker (Docker CLI / Docker Desktop)
+- **Step 4**: Perform automated installation via `winget` only for missing prerequisites.
+- **Step 5**: Configure session PATH and verify tool directories (`.cargo\bin`, `Go\bin`, `Git\cmd`, `nodejs`).
+- **Step 6**: Verify PATH for Go, Rust, and Cargo and print structured confirmation status.
+- **Test**: Run `setup.bat` on clean and pre-configured workstations to verify zero-redundant installations and instant environment validation.
+- **Deploy**: Production-ready `setup.bat`.
+
 ---
 
 ## 8. Future Roadmap & Horizons
 
-### Phase 16 — Optional AI Remediation Layer
+### Phase 17 — Optional AI Remediation Layer
 - Interface with developer-selected AI models (Local Ollama, Anthropic, OpenAI, or Gemini).
 - Generate contextual code diff patches for identified vulnerabilities.
 - Keep core vulnerability detection 100% deterministic and non-dependent on AI.
 
-### Phase 17 — Native CI/CD Actions
+### Phase 18 — Native CI/CD Actions
 - GitHub Action: `uses: vibeguard/vibeguard-action@v1`.
 - GitLab CI template and pre-commit framework integration (`.pre-commit-hooks.yaml`).
 
-### Phase 18 — IDE Sidecar & Real-Time LSP
+### Phase 19 — IDE Sidecar & Real-Time LSP
 - Lightweight language server protocol (LSP) plugin for VS Code, JetBrains, and Neovim to highlight security issues in real-time as code is typed.
 ```
 
@@ -5486,6 +5618,22 @@ cyberhackathon/
 # VibeGuard — Development Processes & Verification Lifecycle
 
 > **Engineering Operations, Build Processes, and Quality Gates**
+
+---
+
+## 0. Development Environment Provisioning (`setup.bat`)
+
+Windows developers configure and verify their workstation environment in a single command:
+```cmd
+.\setup.bat
+```
+The script performs:
+1. Validates Windows Package Manager (`winget`).
+2. Checks for pre-installed Git, Go, Rust, Cargo, Node.js, Python, and Docker without redundant re-downloads.
+3. Installs any missing tools silently via `winget`.
+4. Dynamically injects `%USERPROFILE%\.cargo\bin`, `C:\Program Files\Go\bin`, `C:\Program Files\Git\cmd`, and `C:\Program Files\nodejs` into current session PATH.
+5. Verifies PATH resolution for Go, Rust, and Cargo.
+6. Outputs a clean, formatted status summary confirming environment readiness.
 
 ---
 
@@ -5695,11 +5843,9 @@ cyberhackathon/
 ├── .vibeguard/
 │   └── config.json              # Repository-level configuration and exclusion rules
 ├── reports/                     # Output directory for generated reports
-├── CHANGELOG.md                 # Full release and version history
-├── FEATURES.md                  # Comprehensive feature specification
-├── LANGUAGE.md                  # Technical architecture and language decisions
-├── PLAN.md                      # Development blueprint & phase tracking
-└── README.md                    # Project documentation
+├── setup.bat                    # Automated environment setup script for Windows
+├── README.md                    # Project documentation
+├── md files/                    # Core project documentation and blueprints
 ```
 
 ---
@@ -5718,10 +5864,40 @@ cyberhackathon/
 
 ## Installation & Build
 
-### Prerequisites
+### Automated Environment Setup (`setup.bat`)
+On Windows workstations, run the automated setup script to check, install, configure, and verify all development prerequisites via `winget`. Existing installations are preserved without redundant re-downloads:
+
+```cmd
+.\setup.bat
+```
+
+Example Output:
+```text
+================================
+ VibeGuard Development Setup
+================================
+
+[OK] Git
+[OK] Go 1.27.0
+[OK] Rust 1.98.1
+[OK] Cargo 1.98.1
+[OK] Node.js
+[OK] Python
+[OK] Docker
+
+PATH verification:
+[OK] Go
+[OK] Rust
+[OK] Cargo
+
+VibeGuard development environment ready.
+```
+
+### Manual Prerequisites
 - **Go** (1.21 or higher)
 - **Git** (2.20 or higher)
 - *(Optional)* **Rust & Cargo** (1.70 or higher) if rebuilding the Rust scanning engine
+- *(Optional)* **Docker CLI / Desktop** for container testing
 
 ### Build Steps
 
@@ -5746,7 +5922,7 @@ cyberhackathon/
 4. **Verify Installation**:
    ```powershell
    .\vibeguard.exe version
-   # Output: VibeGuard v2.0.0
+   # Output: VibeGuard v3.0.0
    ```
 
 ---
@@ -5951,8 +6127,8 @@ VibeGuard is designed for secure developer operations. It processes files locall
 - [x] **v0.8 — Deployment Gate**: PASS/BLOCK decision logic, exit codes (0, 1, 2, 3, 4).
 - [x] **v0.9 — Container & Config**: Dockerfile security analysis, config file security audits.
 - [x] **v1.0 — Stable MVP**: Multi-shell support, comprehensive test fixtures, end-to-end integration.
-- [x] **v2.0 — Git Pre-Push Hook**: Autonomous `.git/hooks/pre-push` gate, `vibeguard init`, `vibeguard push`, `vibeguard status`.
 - [x] **v3.0 — Live Scan Progress & Scoped Pre-Push Gate**: Real-time terminal progress bars across all scanning stages (files, dependencies, OSV queries, 100% completion indicator), pure Go `git archive` snapshot scanning, `.vibeguard/config.json` exclusions, refined SAST terminology, double-scan elimination.
+- [x] **v3.1 — Automated Environment Setup (`setup.bat`)**: Intelligent Windows environment setup verifying and installing Git, Go, Rust, Cargo, Node.js, Python, and Docker via `winget`, session PATH configuration, and PATH verification.
 
 ---
 
@@ -6261,6 +6437,13 @@ exit $?
   - **Live OSV Intelligence**: `[██████████████████░░] 90%`, OSV queries counter.
   - **Final Completion**: `[████████████████████] 100%` followed by `Security analysis complete.`
 - Developers get immediate visual feedback on long scans right in their terminal before push completes.
+
+### 2.5 Automated Development Environment Setup (`setup.bat`)
+- Windows developers run `setup.bat` to automatically verify or install:
+  - Git, Go, Rust, Cargo, Node.js, Python, Docker
+- Probes existing tools to prevent redundant downloads.
+- Dynamically configures session PATH and verifies PATH for Go, Rust, and Cargo.
+
 ```
 
 ---
@@ -6985,6 +7168,24 @@ Version: v2.1
 12. Deploy.
 
 Version: v3.0
+
+---
+
+## Phase 14 — Automated Environment Setup (`setup.bat`)
+
+1. Check Windows Package Manager (`winget`).
+2. Detect existing Git installation; install via `winget` if missing.
+3. Detect existing Go installation; install via `winget` if missing.
+4. Detect existing Rust and Cargo installation; install via `winget` if missing.
+5. Detect existing Node.js installation; install via `winget` if missing.
+6. Detect existing Python installation; install via `winget` if missing.
+7. Detect existing Docker installation; install via `winget` if missing.
+8. Verify all installations and parse versions.
+9. Configure PATH in current session and verify PATH for Go, Rust, and Cargo.
+10. Print structured status output and environment readiness.
+
+Version: v3.1
+
 ```
 
 ---
@@ -8261,6 +8462,232 @@ pub struct ScanResult {
     pub findings: Vec<Finding>,
     pub scan_time_ms: u64,
 }
+```
+
+---
+
+<a name="setupbat"></a>
+## setup.bat
+
+```bat
+@echo off
+setlocal enabledelayedexpansion
+
+:: ============================================================
+::  VibeGuard Automated Development Setup Script (setup.bat)
+:: ============================================================
+
+:: Configure local session PATH with standard tool directories if present
+if exist "%USERPROFILE%\.cargo\bin" (
+    echo !PATH! | findstr /I /C:"%USERPROFILE%\.cargo\bin" >nul 2>&1
+    if !ERRORLEVEL! neq 0 set "PATH=%USERPROFILE%\.cargo\bin;!PATH!"
+)
+if exist "C:\Program Files\Go\bin" (
+    echo !PATH! | findstr /I /C:"C:\Program Files\Go\bin" >nul 2>&1
+    if !ERRORLEVEL! neq 0 set "PATH=C:\Program Files\Go\bin;!PATH!"
+)
+if exist "C:\Program Files\Git\cmd" (
+    echo !PATH! | findstr /I /C:"C:\Program Files\Git\cmd" >nul 2>&1
+    if !ERRORLEVEL! neq 0 set "PATH=C:\Program Files\Git\cmd;!PATH!"
+)
+if exist "C:\Program Files\nodejs" (
+    echo !PATH! | findstr /I /C:"C:\Program Files\nodejs" >nul 2>&1
+    if !ERRORLEVEL! neq 0 set "PATH=C:\Program Files\nodejs;!PATH!"
+)
+if exist "C:\Program Files\Docker\Docker\resources\bin" (
+    echo !PATH! | findstr /I /C:"C:\Program Files\Docker\Docker\resources\bin" >nul 2>&1
+    if !ERRORLEVEL! neq 0 set "PATH=C:\Program Files\Docker\Docker\resources\bin;!PATH!"
+)
+
+:: Step 1: Check winget package manager
+where winget >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] Windows Package Manager winget was not found.
+    echo Please install Windows App Installer from the Microsoft Store to enable automated installs.
+    echo.
+)
+
+:: Step 2: Check / Install Git
+where git >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo [INFO] Git not found. Installing via winget...
+    winget install --id Git.Git -e --source winget --accept-source-agreements --accept-package-agreements --silent
+    if exist "C:\Program Files\Git\cmd" set "PATH=C:\Program Files\Git\cmd;!PATH!"
+)
+
+:: Step 3: Check / Install Go
+where go >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo [INFO] Go not found. Installing via winget...
+    winget install --id GoLang.Go -e --source winget --accept-source-agreements --accept-package-agreements --silent
+    if exist "C:\Program Files\Go\bin" set "PATH=C:\Program Files\Go\bin;!PATH!"
+)
+
+:: Step 4: Check / Install Rust + Cargo
+where rustc >nul 2>&1
+set RUST_STATUS=%ERRORLEVEL%
+where cargo >nul 2>&1
+set CARGO_STATUS=%ERRORLEVEL%
+
+if %RUST_STATUS% neq 0 (
+    echo [INFO] Rust not found. Installing via winget...
+    winget install --id Rustlang.Rustup -e --source winget --accept-source-agreements --accept-package-agreements --silent
+    if exist "%USERPROFILE%\.cargo\bin" set "PATH=%USERPROFILE%\.cargo\bin;!PATH!"
+) else if %CARGO_STATUS% neq 0 (
+    if exist "%USERPROFILE%\.cargo\bin\cargo.exe" set "PATH=%USERPROFILE%\.cargo\bin;!PATH!"
+)
+
+:: Step 5: Check / Install Node.js
+where node >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo [INFO] Node.js not found. Installing via winget...
+    winget install --id OpenJS.NodeJS.LTS -e --source winget --accept-source-agreements --accept-package-agreements --silent
+    if exist "C:\Program Files\nodejs" set "PATH=C:\Program Files\nodejs;!PATH!"
+)
+
+:: Step 6: Check / Install Python
+where python >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo [INFO] Python not found. Installing via winget...
+    winget install --id Python.Python.3.12 -e --source winget --accept-source-agreements --accept-package-agreements --silent
+)
+
+:: Step 7: Check / Install Docker
+where docker >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    if exist "C:\Program Files\Docker\Docker\resources\bin\docker.exe" (
+        set "PATH=C:\Program Files\Docker\Docker\resources\bin;!PATH!"
+    )
+)
+where docker >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo [INFO] Docker not found. Installing Docker CLI via winget...
+    winget install --id Docker.DockerCLI -e --source winget --accept-source-agreements --accept-package-agreements --silent >nul 2>&1
+    if exist "C:\Program Files\Docker\Docker\resources\bin\docker.exe" (
+        set "PATH=C:\Program Files\Docker\Docker\resources\bin;!PATH!"
+    )
+)
+
+:: Step 8: Parse installed versions for display
+set "GO_VER="
+where go >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    for /f "tokens=3" %%v in ('go version 2^>nul') do (
+        set "RAW_GO=%%v"
+        set "GO_VER=!RAW_GO:go=!"
+    )
+)
+
+set "RUST_VER="
+where rustc >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    for /f "tokens=2" %%v in ('rustc --version 2^>nul') do (
+        set "RUST_VER=%%v"
+    )
+)
+
+set "CARGO_VER="
+where cargo >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    for /f "tokens=2" %%v in ('cargo --version 2^>nul') do (
+        set "CARGO_VER=%%v"
+    )
+)
+
+:: Step 9: Print final environment status
+echo ================================
+echo  VibeGuard Development Setup
+echo ================================
+echo.
+
+where git >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    echo [OK] Git
+) else (
+    echo [FAIL] Git
+)
+
+where go >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    if defined GO_VER (
+        echo [OK] Go !GO_VER!
+    ) else (
+        echo [OK] Go
+    )
+) else (
+    echo [FAIL] Go
+)
+
+where rustc >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    if defined RUST_VER (
+        echo [OK] Rust !RUST_VER!
+    ) else (
+        echo [OK] Rust
+    )
+) else (
+    echo [FAIL] Rust
+)
+
+where cargo >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    if defined CARGO_VER (
+        echo [OK] Cargo !CARGO_VER!
+    ) else (
+        echo [OK] Cargo
+    )
+) else (
+    echo [FAIL] Cargo
+)
+
+where node >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    echo [OK] Node.js
+) else (
+    echo [FAIL] Node.js
+)
+
+where python >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    echo [OK] Python
+) else (
+    echo [FAIL] Python
+)
+
+where docker >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    echo [OK] Docker
+) else (
+    echo [FAIL] Docker
+)
+
+echo.
+echo PATH verification:
+
+where go >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    echo [OK] Go
+) else (
+    echo [FAIL] Go
+)
+
+where rustc >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    echo [OK] Rust
+) else (
+    echo [FAIL] Rust
+)
+
+where cargo >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    echo [OK] Cargo
+) else (
+    echo [FAIL] Cargo
+)
+
+echo.
+echo VibeGuard development environment ready.
+endlocal
 ```
 
 ---

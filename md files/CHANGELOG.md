@@ -2,6 +2,20 @@
 
 All notable changes to the VibeGuard project are documented in this file.
 
+## [v3.1.0] — 2026-09-19
+
+### Added
+- **Automated Workstation Setup (`setup.bat`)**:
+  - One-click automated setup script for Windows developers.
+  - Automatically verifies Windows Package Manager (`winget`).
+  - Probes existing toolchain to prevent redundant downloads (Git, Go, Rust, Cargo, Node.js, Python, Docker).
+  - Installs missing dependencies silently via `winget`.
+  - Configures current terminal session PATH with tool directories.
+  - Verifies PATH resolution for Go, Rust, and Cargo.
+  - Prints clean structured status output confirming environment readiness.
+
+---
+
 ## [v3.0.0] — 2026-09-19
 
 ### Added

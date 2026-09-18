@@ -110,3 +110,24 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
 - **Terminal Report**: High-visibility ANSI color output with tabular breakdown and clear PASS/BLOCK banners.
 - **JSON Report**: Comprehensive machine-readable output saved to `reports/scan.json` for CI/CD integration.
 - **HTML Report**: Standalone, CSS-styled interactive security report saved to `reports/scan.html`.
+
+### 2.7 Automated Environment Setup Subsystem (`setup.bat`)
+- **Architecture**:
+  ```text
+  VibeGuard Setup
+  │
+  ├── Check winget
+  ├── Install Git
+  ├── Install Go
+  ├── Install Rust + Cargo
+  ├── Install Node.js
+  ├── Install Python
+  ├── Install Docker
+  ├── Verify every installation
+  ├── Configure PATH where necessary
+  └── Print final environment status
+  ```
+- **Intelligent Pre-Check**: Probes local environment before invoking package managers, avoiding reinstallation of pre-existing compilers or runtimes.
+- **Automated Provisioning**: Orchestrates silent installation of missing dependencies via Windows Package Manager (`winget`).
+- **Session PATH Injection & Verification**: Injects `%USERPROFILE%\.cargo\bin`, `Go\bin`, `Git\cmd`, `nodejs`, and Docker tools into the current terminal session, verifies PATH resolution for Go, Rust, and Cargo, and presents a structured terminal verification summary.
+

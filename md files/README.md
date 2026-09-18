@@ -136,11 +136,9 @@ cyberhackathon/
 ├── .vibeguard/
 │   └── config.json              # Repository-level configuration and exclusion rules
 ├── reports/                     # Output directory for generated reports
-├── CHANGELOG.md                 # Full release and version history
-├── FEATURES.md                  # Comprehensive feature specification
-├── LANGUAGE.md                  # Technical architecture and language decisions
-├── PLAN.md                      # Development blueprint & phase tracking
-└── README.md                    # Project documentation
+├── setup.bat                    # Automated environment setup script for Windows
+├── README.md                    # Project documentation
+├── md files/                    # Core project documentation and blueprints
 ```
 
 ---
@@ -159,10 +157,40 @@ cyberhackathon/
 
 ## Installation & Build
 
-### Prerequisites
+### Automated Environment Setup (`setup.bat`)
+On Windows workstations, run the automated setup script to check, install, configure, and verify all development prerequisites via `winget`. Existing installations are preserved without redundant re-downloads:
+
+```cmd
+.\setup.bat
+```
+
+Example Output:
+```text
+================================
+ VibeGuard Development Setup
+================================
+
+[OK] Git
+[OK] Go 1.27.0
+[OK] Rust 1.98.1
+[OK] Cargo 1.98.1
+[OK] Node.js
+[OK] Python
+[OK] Docker
+
+PATH verification:
+[OK] Go
+[OK] Rust
+[OK] Cargo
+
+VibeGuard development environment ready.
+```
+
+### Manual Prerequisites
 - **Go** (1.21 or higher)
 - **Git** (2.20 or higher)
 - *(Optional)* **Rust & Cargo** (1.70 or higher) if rebuilding the Rust scanning engine
+- *(Optional)* **Docker CLI / Desktop** for container testing
 
 ### Build Steps
 
@@ -187,7 +215,7 @@ cyberhackathon/
 4. **Verify Installation**:
    ```powershell
    .\vibeguard.exe version
-   # Output: VibeGuard v2.0.0
+   # Output: VibeGuard v3.0.0
    ```
 
 ---
