@@ -301,18 +301,34 @@ cyberhackathon/
 - **Test**: Unit tests in `internal/report/progress_test.go`, full test suite `go test ./...`, self-scan test `vibeguard scan .`, and pre-push hook execution.
 - **Deploy**: VibeGuard v3.0 Release with Live Scan Progress.
 
+### Phase 16 — Automated Environment Setup (`setup.bat`) (v3.1)
+- **Step 1**: Implement automated batch script (`setup.bat`) for Windows development environments.
+- **Step 2**: Check package manager availability (`winget`).
+- **Step 3**: Check whether each dependency is already installed before attempting download:
+  - Git
+  - Go
+  - Rust + Cargo
+  - Node.js
+  - Python
+  - Docker (Docker CLI / Docker Desktop)
+- **Step 4**: Perform automated installation via `winget` only for missing prerequisites.
+- **Step 5**: Configure session PATH and verify tool directories (`.cargo\bin`, `Go\bin`, `Git\cmd`, `nodejs`).
+- **Step 6**: Verify PATH for Go, Rust, and Cargo and print structured confirmation status.
+- **Test**: Run `setup.bat` on clean and pre-configured workstations to verify zero-redundant installations and instant environment validation.
+- **Deploy**: Production-ready `setup.bat`.
+
 ---
 
 ## 8. Future Roadmap & Horizons
 
-### Phase 16 — Optional AI Remediation Layer
+### Phase 17 — Optional AI Remediation Layer
 - Interface with developer-selected AI models (Local Ollama, Anthropic, OpenAI, or Gemini).
 - Generate contextual code diff patches for identified vulnerabilities.
 - Keep core vulnerability detection 100% deterministic and non-dependent on AI.
 
-### Phase 17 — Native CI/CD Actions
+### Phase 18 — Native CI/CD Actions
 - GitHub Action: `uses: vibeguard/vibeguard-action@v1`.
 - GitLab CI template and pre-commit framework integration (`.pre-commit-hooks.yaml`).
 
-### Phase 18 — IDE Sidecar & Real-Time LSP
+### Phase 19 — IDE Sidecar & Real-Time LSP
 - Lightweight language server protocol (LSP) plugin for VS Code, JetBrains, and Neovim to highlight security issues in real-time as code is typed.

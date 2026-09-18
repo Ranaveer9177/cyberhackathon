@@ -213,3 +213,21 @@ Version: v2.1
 12. Deploy.
 
 Version: v3.0
+
+---
+
+## Phase 14 — Automated Environment Setup (`setup.bat`)
+
+1. Check Windows Package Manager (`winget`).
+2. Detect existing Git installation; install via `winget` if missing.
+3. Detect existing Go installation; install via `winget` if missing.
+4. Detect existing Rust and Cargo installation; install via `winget` if missing.
+5. Detect existing Node.js installation; install via `winget` if missing.
+6. Detect existing Python installation; install via `winget` if missing.
+7. Detect existing Docker installation; install via `winget` if missing.
+8. Verify all installations and parse versions.
+9. Configure PATH in current session and verify PATH for Go, Rust, and Cargo.
+10. Print structured status output and environment readiness.
+
+Version: v3.1
+

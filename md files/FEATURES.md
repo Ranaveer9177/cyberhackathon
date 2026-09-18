@@ -127,3 +127,54 @@
 - **Terminal Report**: High-contrast ANSI colors, summary metrics, and finding evidence.
 - **JSON Report**: Saved to `reports/scan.json` for CI/CD automation.
 - **HTML Report**: Responsive, standalone interactive dashboard saved to `reports/scan.html`.
+
+---
+
+## 6. Automated Environment Setup (`setup.bat`)
+
+### 6.1 Architecture & Workflow
+```text
+VibeGuard Setup
+│
+├── Check winget
+├── Install Git
+├── Install Go
+├── Install Rust + Cargo
+├── Install Node.js
+├── Install Python
+├── Install Docker
+├── Verify every installation
+├── Configure PATH where necessary
+└── Print final environment status
+```
+
+### 6.2 Intelligent Pre-Check Before Download
+- Automatically probes system and user PATH for existing tool installations (`where <tool>`).
+- Completely avoids redundant downloads if a prerequisite (such as Go, Rust, Git, Node, Python, Docker) is already present.
+- Uses Microsoft Windows Package Manager (`winget`) with unattended acceptance flags (`--accept-source-agreements --accept-package-agreements --silent`) to install missing prerequisites.
+
+### 6.3 Dynamic PATH Configuration & Verification
+- Ensures essential directories (e.g. `%USERPROFILE%\.cargo\bin`, `C:\Program Files\Go\bin`, `C:\Program Files\Git\cmd`, `C:\Program Files\nodejs`) are dynamically available in the running session.
+- Runs verification checks against Go, Rust, and Cargo executables.
+- Formats status output with precise version strings:
+  ```text
+  ================================
+   VibeGuard Development Setup
+  ================================
+
+  [OK] Git
+  [OK] Go 1.27.0
+  [OK] Rust 1.98.1
+  [OK] Cargo 1.98.1
+  [OK] Node.js
+  [OK] Python
+  [OK] Docker
+
+  PATH verification:
+  [OK] Go
+  [OK] Rust
+  [OK] Cargo
+
+  VibeGuard development environment ready.
+  ```
+

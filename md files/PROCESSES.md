@@ -4,6 +4,22 @@
 
 ---
 
+## 0. Development Environment Provisioning (`setup.bat`)
+
+Windows developers configure and verify their workstation environment in a single command:
+```cmd
+.\setup.bat
+```
+The script performs:
+1. Validates Windows Package Manager (`winget`).
+2. Checks for pre-installed Git, Go, Rust, Cargo, Node.js, Python, and Docker without redundant re-downloads.
+3. Installs any missing tools silently via `winget`.
+4. Dynamically injects `%USERPROFILE%\.cargo\bin`, `C:\Program Files\Go\bin`, `C:\Program Files\Git\cmd`, and `C:\Program Files\nodejs` into current session PATH.
+5. Verifies PATH resolution for Go, Rust, and Cargo.
+6. Outputs a clean, formatted status summary confirming environment readiness.
+
+---
+
 ## 1. Development & Build Lifecycle
 
 ### 1.1 Local Build Process
