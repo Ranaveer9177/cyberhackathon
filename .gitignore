@@ -1,0 +1,39 @@
+# Binaries and executables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/vibeguard
+/vibeguard.exe
+/vibeguard-scanner
+/vibeguard-scanner.exe
+
+# Build directories
+target/
+scanner/target/
+bin/
+dist/
+build/
+
+# Go build artifacts
+*.test
+*.prof
+
+# Generated scan outputs (keep reports/ directory structure)
+reports/scan.json
+reports/scan.html
+!reports/README.md
+
+# Log files and temporary artifacts
+*.log
+*.tmp
+.system_generated/
+scratch/
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

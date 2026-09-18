@@ -1,0 +1,11 @@
+{
+  "name": "test-deps",
+  "version": "1.0.0",
+  "dependencies": {
+    "lodash": "^4.17.15",
+    "minimist": "1.2.0"
+  },
+  "devDependencies": {
+    "mocha": "^8.0.1"
+  }
+}

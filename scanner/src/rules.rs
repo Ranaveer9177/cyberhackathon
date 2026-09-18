@@ -1,0 +1,157 @@
+use crate::types::{Category, Severity};
+use regex::Regex;
+
+pub struct Rule {
+    pub id: String,
+    pub name: String,
+    pub category: Category,
+    pub severity: Severity,
+    pub pattern: Regex,
+    pub description: String,
+    pub recommendation: String,
+}
+
+pub fn get_sast_rules() -> Vec<Rule> {
+    vec![
+        Rule {
+            id: "SAST-001".to_string(),
+            name: "SQL Injection".to_string(),
+            category: Category::SourceCode,
+            severity: Severity::HIGH,
+            pattern: Regex::new(r#"(?i)(fmt\.Sprintf\("SELECT|"SELECT.*"\+|query.*\+.*request|execute\("SELECT)"#).unwrap(),
+            description: "Potential SQL injection vulnerability detected.".to_string(),
+            recommendation: "Use parameterized queries or prepared statements.".to_string(),
+        },
+        Rule {
+            id: "SAST-002".to_string(),
+            name: "Command Injection".to_string(),
+            category: Category::SourceCode,
+            severity: Severity::HIGH,
+            pattern: Regex::new(r#"(?i)(exec\.Command|os\.system\(|subprocess\.call\(|child_process\.exec\(|Runtime\.getRuntime\(\)\.exec\()"#).unwrap(),
+            description: "Potential OS command injection vulnerability detected.".to_string(),
+            recommendation: "Avoid executing OS commands with user input. Use safe APIs.".to_string(),
+        },
+        Rule {
+            id: "SAST-003".to_string(),
+            name: "Dangerous Eval".to_string(),
+            category: Category::SourceCode,
+            severity: Severity::HIGH,
+            pattern: Regex::new(r#"(?i)(eval\(|Function\(|exec\()"#).unwrap(),
+            description: "Use of dangerous evaluation functions detected.".to_string(),
+            recommendation: "Avoid using eval or similar functions on untrusted input.".to_string(),
+        },
+        Rule {
+            id: "SAST-004".to_string(),
+            name: "Disabled TLS".to_string(),
+            category: Category::SourceCode,
+            severity: Severity::HIGH,
+            pattern: Regex::new(r#"(?i)(InsecureSkipVerify.*true|verify.*False|rejectUnauthorized.*false|NODE_TLS_REJECT_UNAUTHORIZED)"#).unwrap(),
+            description: "TLS verification seems to be disabled.".to_string(),
+            recommendation: "Enable TLS verification for all network connections in production.".to_string(),
+        },
+        Rule {
+            id: "SAST-005".to_string(),
+            name: "Weak Crypto".to_string(),
+            category: Category::SourceCode,
+            severity: Severity::MEDIUM,
+            pattern: Regex::new(r#"(?i)\b(md5|sha1|DES|RC4|Math\.random\(\))\b"#).unwrap(),
+            description: "Weak cryptographic algorithm or PRNG detected.".to_string(),
+            recommendation: "Use strong algorithms (e.g., SHA-256, AES) and secure PRNGs.".to_string(),
+        },
+        Rule {
+            id: "SAST-006".to_string(),
+            name: "Insecure HTTP".to_string(),
+            category: Category::SourceCode,
+            severity: Severity::MEDIUM,
+            pattern: Regex::new(r#"http://(?!localhost|127\.0\.0\.1)"#).unwrap(),
+            description: "Insecure HTTP connection detected.".to_string(),
+            recommendation: "Use HTTPS for all network communication.".to_string(),
+        },
+        Rule {
+            id: "SAST-007".to_string(),
+            name: "Hardcoded Credentials".to_string(),
+            category: Category::SourceCode,
+            severity: Severity::HIGH,
+            pattern: Regex::new(r#"(?i)password\s*=\s*"[^"]+""#).unwrap(),
+            description: "Hardcoded credentials in source code.".to_string(),
+            recommendation: "Use environment variables or a secret management service.".to_string(),
+        },
+    ]
+}
+
+pub fn get_secret_rules() -> Vec<Rule> {
+    vec![
+        Rule {
+            id: "SEC-001".to_string(),
+            name: "AWS Access Key".to_string(),
+            category: Category::Secret,
+            severity: Severity::CRITICAL,
+            pattern: Regex::new(r#"AKIA[0-9A-Z]{16}"#).unwrap(),
+            description: "AWS Access Key ID detected.".to_string(),
+            recommendation: "Revoke the key immediately and use IAM roles instead.".to_string(),
+        },
+        Rule {
+            id: "SEC-002".to_string(),
+            name: "Generic API Key".to_string(),
+            category: Category::Secret,
+            severity: Severity::CRITICAL,
+            pattern: Regex::new(r#"(?i)(api[_-]?key|apikey)\s*[:=]\s*['"][^'"]{8,}"#).unwrap(),
+            description: "Generic API Key detected.".to_string(),
+            recommendation: "Remove the key from code and use a secret manager.".to_string(),
+        },
+        Rule {
+            id: "SEC-003".to_string(),
+            name: "GitHub Token".to_string(),
+            category: Category::Secret,
+            severity: Severity::CRITICAL,
+            pattern: Regex::new(r#"ghp_[a-zA-Z0-9]{36}"#).unwrap(),
+            description: "GitHub Personal Access Token detected.".to_string(),
+            recommendation: "Revoke the token and generate a new one if needed.".to_string(),
+        },
+        Rule {
+            id: "SEC-004".to_string(),
+            name: "Slack Token".to_string(),
+            category: Category::Secret,
+            severity: Severity::CRITICAL,
+            pattern: Regex::new(r#"xox[bprs]-[a-zA-Z0-9-]+"#).unwrap(),
+            description: "Slack Token detected.".to_string(),
+            recommendation: "Revoke and rotate the Slack token.".to_string(),
+        },
+        Rule {
+            id: "SEC-005".to_string(),
+            name: "Private Key".to_string(),
+            category: Category::Secret,
+            severity: Severity::CRITICAL,
+            pattern: Regex::new(r#"-----BEGIN\s+(RSA|DSA|EC|OPENSSH)?\s*PRIVATE KEY-----"#).unwrap(),
+            description: "Private cryptographic key detected.".to_string(),
+            recommendation: "Remove private keys from the repository.".to_string(),
+        },
+        Rule {
+            id: "SEC-006".to_string(),
+            name: "Password Assignment".to_string(),
+            category: Category::Secret,
+            severity: Severity::CRITICAL,
+            pattern: Regex::new(r#"(?i)(password|passwd|pwd)\s*[:=]\s*['"][^'"]+['"]"#).unwrap(),
+            description: "Hardcoded password assignment detected.".to_string(),
+            recommendation: "Use environment variables for passwords.".to_string(),
+        },
+        Rule {
+            id: "SEC-007".to_string(),
+            name: "Token/Secret Assignment".to_string(),
+            category: Category::Secret,
+            severity: Severity::CRITICAL,
+            pattern: Regex::new(r#"(?i)(token|secret|jwt_secret)\s*[:=]\s*['"][^'"]{8,}['"]"#).unwrap(),
+            description: "Hardcoded token or secret assignment detected.".to_string(),
+            recommendation: "Move secrets to secure storage or environment variables.".to_string(),
+        },
+        Rule {
+            id: "SEC-008".to_string(),
+            name: "Generic Credential".to_string(),
+            category: Category::Secret,
+            severity: Severity::CRITICAL,
+            pattern: Regex::new(r#"(?i)(secret|credential)\s*[:=]\s*['"][^'"]{8,}['"]"#).unwrap(),
+            description: "Generic secret or credential detected.".to_string(),
+            recommendation: "Securely manage all credentials outside of source control.".to_string(),
+        },
+    ]
+}
