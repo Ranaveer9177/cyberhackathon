@@ -301,7 +301,7 @@ cyberhackathon/
 - **Test**: Unit tests in `internal/report/progress_test.go`, full test suite `go test ./...`, self-scan test `vibeguard scan .`, and pre-push hook execution.
 - **Deploy**: VibeGuard v3.0 Release with Live Scan Progress.
 
-### Phase 16 — Automated Environment Setup (`setup.bat`) (v3.1)
+### Phase 16 — Automated Environment Setup & Global CLI (`setup.bat`) (v3.1)
 - **Step 1**: Implement automated batch script (`setup.bat`) for Windows development environments.
 - **Step 2**: Check package manager availability (`winget`).
 - **Step 3**: Check whether each dependency is already installed before attempting download:
@@ -312,10 +312,13 @@ cyberhackathon/
   - Python
   - Docker (Docker CLI / Docker Desktop)
 - **Step 4**: Perform automated installation via `winget` only for missing prerequisites.
-- **Step 5**: Configure session PATH and verify tool directories (`.cargo\bin`, `Go\bin`, `Git\cmd`, `nodejs`).
-- **Step 6**: Verify PATH for Go, Rust, and Cargo and print structured confirmation status.
+- **Step 5**: Permanently install `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin`.
+- **Step 6**: Add `%LOCALAPPDATA%\VibeGuard\bin` permanently to Windows User `PATH` via PowerShell.
+- **Step 7**: Configure session PATH and verify tool directories (`%LOCALAPPDATA%\VibeGuard\bin`, `.cargo\bin`, `Go\bin`, `Git\cmd`, `nodejs`).
+- **Step 8**: Verify PATH for Go, Rust, Cargo, and VibeGuard and print structured confirmation status.
 - **Test**: Run `setup.bat` on clean and pre-configured workstations to verify zero-redundant installations and instant environment validation.
-- **Deploy**: Production-ready `setup.bat`.
+- **Deploy**: Production-ready `setup.bat` with permanent global CLI distribution.
+
 
 ---
 

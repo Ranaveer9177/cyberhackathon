@@ -6,6 +6,10 @@ setlocal enabledelayedexpansion
 :: ============================================================
 
 :: Configure local session PATH with standard tool directories if present
+if exist "%LOCALAPPDATA%\VibeGuard\bin" (
+    echo !PATH! | findstr /I /C:"%LOCALAPPDATA%\VibeGuard\bin" >nul 2>&1
+    if !ERRORLEVEL! neq 0 set "PATH=%LOCALAPPDATA%\VibeGuard\bin;!PATH!"
+)
 if exist "%USERPROFILE%\.cargo\bin" (
     echo !PATH! | findstr /I /C:"%USERPROFILE%\.cargo\bin" >nul 2>&1
     if !ERRORLEVEL! neq 0 set "PATH=%USERPROFILE%\.cargo\bin;!PATH!"
@@ -96,7 +100,26 @@ if %ERRORLEVEL% neq 0 (
     )
 )
 
-:: Step 8: Parse installed versions for display
+:: Step 8: Install VibeGuard CLI Permanently
+set "VIBEGUARD_HOME=%LOCALAPPDATA%\VibeGuard\bin"
+
+if not exist "!VIBEGUARD_HOME!" (
+    mkdir "!VIBEGUARD_HOME!" >nul 2>&1
+)
+
+if exist "%~dp0vibeguard.exe" (
+    copy /Y "%~dp0vibeguard.exe" "!VIBEGUARD_HOME!\vibeguard.exe" >nul
+)
+
+if exist "%~dp0vibeguard-scanner.exe" (
+    copy /Y "%~dp0vibeguard-scanner.exe" "!VIBEGUARD_HOME!\vibeguard-scanner.exe" >nul
+)
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$u=[Environment]::GetEnvironmentVariable('Path','User'); $d=[IO.Path]::Combine($env:LOCALAPPDATA,'VibeGuard','bin'); if (($u -split ';') -notcontains $d) { [Environment]::SetEnvironmentVariable('Path', (($u.TrimEnd(';')+';'+$d).TrimStart(';')), 'User') }" >nul 2>&1
+
+set "PATH=!VIBEGUARD_HOME!;!PATH!"
+
+:: Step 9: Parse installed versions for display
 set "GO_VER="
 where go >nul 2>&1
 if %ERRORLEVEL% equ 0 (
@@ -122,7 +145,7 @@ if %ERRORLEVEL% equ 0 (
     )
 )
 
-:: Step 9: Print final environment status
+:: Step 10: Print final environment status
 echo ================================
 echo  VibeGuard Development Setup
 echo ================================
@@ -190,6 +213,10 @@ if %ERRORLEVEL% equ 0 (
 )
 
 echo.
+echo [OK] VibeGuard CLI installed permanently: !VIBEGUARD_HOME!
+echo [OK] Global Command: vibeguard
+
+echo.
 echo PATH verification:
 
 where go >nul 2>&1
@@ -213,6 +240,13 @@ if %ERRORLEVEL% equ 0 (
     echo [FAIL] Cargo
 )
 
+where vibeguard >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    echo [OK] VibeGuard
+) else (
+    echo [FAIL] VibeGuard
+)
+
 echo.
 echo VibeGuard development environment ready.
-endlocal
+endlocal & set "PATH=%LOCALAPPDATA%\VibeGuard\bin;%USERPROFILE%\.cargo\bin;C:\Program Files\Go\bin;C:\Program Files\Git\cmd;C:\Program Files\nodejs;%PATH%"

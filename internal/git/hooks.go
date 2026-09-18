@@ -39,6 +39,10 @@ if [ -f "$REPO_ROOT/vibeguard.exe" ]; then
     VIBEGUARD_BIN="$REPO_ROOT/vibeguard.exe"
 elif [ -f "$REPO_ROOT/vibeguard" ]; then
     VIBEGUARD_BIN="$REPO_ROOT/vibeguard"
+elif [ -n "$LOCALAPPDATA" ] && [ -f "$LOCALAPPDATA/VibeGuard/bin/vibeguard.exe" ]; then
+    VIBEGUARD_BIN="$LOCALAPPDATA/VibeGuard/bin/vibeguard.exe"
+elif [ -n "$USERPROFILE" ] && [ -f "$USERPROFILE/AppData/Local/VibeGuard/bin/vibeguard.exe" ]; then
+    VIBEGUARD_BIN="$USERPROFILE/AppData/Local/VibeGuard/bin/vibeguard.exe"
 elif command -v vibeguard.exe >/dev/null 2>&1; then
     VIBEGUARD_BIN="vibeguard.exe"
 elif command -v vibeguard >/dev/null 2>&1; then

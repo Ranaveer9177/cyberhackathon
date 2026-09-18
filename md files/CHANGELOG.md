@@ -5,13 +5,16 @@ All notable changes to the VibeGuard project are documented in this file.
 ## [v3.1.0] — 2026-09-19
 
 ### Added
-- **Automated Workstation Setup (`setup.bat`)**:
+- **Automated Workstation Setup & Global CLI (`setup.bat`)**:
   - One-click automated setup script for Windows developers.
   - Automatically verifies Windows Package Manager (`winget`).
   - Probes existing toolchain to prevent redundant downloads (Git, Go, Rust, Cargo, Node.js, Python, Docker).
   - Installs missing dependencies silently via `winget`.
+  - Permanently installs `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin`.
+  - Appends `%LOCALAPPDATA%\VibeGuard\bin` to Windows User `PATH` via PowerShell registry update.
   - Configures current terminal session PATH with tool directories.
-  - Verifies PATH resolution for Go, Rust, and Cargo.
+  - Verifies PATH resolution for Go, Rust, Cargo, and VibeGuard.
+  - Pre-push hooks in any repository automatically resolve and execute the globally installed VibeGuard CLI.
   - Prints clean structured status output confirming environment readiness.
 
 ---

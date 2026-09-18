@@ -116,18 +116,21 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
   ```text
   VibeGuard Setup
   │
-  ├── Check winget
-  ├── Install Git
-  ├── Install Go
-  ├── Install Rust + Cargo
-  ├── Install Node.js
-  ├── Install Python
-  ├── Install Docker
-  ├── Verify every installation
-  ├── Configure PATH where necessary
-  └── Print final environment status
+  ├── Check/install Git
+  ├── Check/install Go
+  ├── Check/install Rust + Cargo
+  ├── Check/install Node.js
+  ├── Check/install Python
+  ├── Check/install Docker
+  │
+  └── Install VibeGuard CLI Permanently
+         ├── Copy vibeguard.exe
+         ├── Copy vibeguard-scanner.exe
+         └── Add %LOCALAPPDATA%\VibeGuard\bin to User PATH
   ```
 - **Intelligent Pre-Check**: Probes local environment before invoking package managers, avoiding reinstallation of pre-existing compilers or runtimes.
 - **Automated Provisioning**: Orchestrates silent installation of missing dependencies via Windows Package Manager (`winget`).
-- **Session PATH Injection & Verification**: Injects `%USERPROFILE%\.cargo\bin`, `Go\bin`, `Git\cmd`, `nodejs`, and Docker tools into the current terminal session, verifies PATH resolution for Go, Rust, and Cargo, and presents a structured terminal verification summary.
+- **Permanent CLI Installation**: Installs `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin` and permanently appends it to Windows User `PATH` via PowerShell registry update.
+- **Session PATH Injection & Verification**: Injects `%LOCALAPPDATA%\VibeGuard\bin`, `%USERPROFILE%\.cargo\bin`, `Go\bin`, `Git\cmd`, and `nodejs` into the active terminal session, verifies PATH resolution for Go, Rust, Cargo, and VibeGuard, and presents a structured terminal verification summary.
+
 
