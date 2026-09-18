@@ -143,9 +143,11 @@ VibeGuard Setup
 ├── Install Node.js
 ├── Install Python
 ├── Install Docker
-├── Verify every installation
-├── Configure PATH where necessary
-└── Print final environment status
+│
+└── Install VibeGuard CLI Permanently
+       ├── Copy vibeguard.exe
+       ├── Copy vibeguard-scanner.exe
+       └── Add %LOCALAPPDATA%\VibeGuard\bin to User PATH
 ```
 
 ### 6.2 Intelligent Pre-Check Before Download
@@ -154,8 +156,8 @@ VibeGuard Setup
 - Uses Microsoft Windows Package Manager (`winget`) with unattended acceptance flags (`--accept-source-agreements --accept-package-agreements --silent`) to install missing prerequisites.
 
 ### 6.3 Dynamic PATH Configuration & Verification
-- Ensures essential directories (e.g. `%USERPROFILE%\.cargo\bin`, `C:\Program Files\Go\bin`, `C:\Program Files\Git\cmd`, `C:\Program Files\nodejs`) are dynamically available in the running session.
-- Runs verification checks against Go, Rust, and Cargo executables.
+- Ensures essential directories (e.g. `%USERPROFILE%\.cargo\bin`, `C:\Program Files\Go\bin`, `C:\Program Files\Git\cmd`, `C:\Program Files\nodejs`, `%LOCALAPPDATA%\VibeGuard\bin`) are dynamically available in the running session.
+- Runs verification checks against Go, Rust, Cargo, and VibeGuard executables.
 - Formats status output with precise version strings:
   ```text
   ================================
@@ -170,11 +172,21 @@ VibeGuard Setup
   [OK] Python
   [OK] Docker
 
+  [OK] VibeGuard CLI installed permanently: C:\Users\ranua\AppData\Local\VibeGuard\bin
+  [OK] Global Command: vibeguard
+
   PATH verification:
   [OK] Go
   [OK] Rust
   [OK] Cargo
+  [OK] VibeGuard
 
   VibeGuard development environment ready.
   ```
+
+### 6.4 Universal Global Execution
+- Installs `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin`.
+- Adds `%LOCALAPPDATA%\VibeGuard\bin` permanently to the Windows User `PATH` registry environment.
+- Developers can immediately execute `vibeguard scan .`, `vibeguard init`, `vibeguard push`, and `vibeguard status` from any directory on the workstation without needing binary copies inside individual repositories.
+- The Git pre-push hook in any repository automatically resolves and executes the global `vibeguard` installation.
 

@@ -216,7 +216,7 @@ Version: v3.0
 
 ---
 
-## Phase 14 — Automated Environment Setup (`setup.bat`)
+## Phase 14 — Automated Environment Setup & Global CLI (`setup.bat`)
 
 1. Check Windows Package Manager (`winget`).
 2. Detect existing Git installation; install via `winget` if missing.
@@ -225,9 +225,12 @@ Version: v3.0
 5. Detect existing Node.js installation; install via `winget` if missing.
 6. Detect existing Python installation; install via `winget` if missing.
 7. Detect existing Docker installation; install via `winget` if missing.
-8. Verify all installations and parse versions.
-9. Configure PATH in current session and verify PATH for Go, Rust, and Cargo.
-10. Print structured status output and environment readiness.
+8. Install VibeGuard CLI into `%LOCALAPPDATA%\VibeGuard\bin\` (`vibeguard.exe` and `vibeguard-scanner.exe`).
+9. Permanently add `%LOCALAPPDATA%\VibeGuard\bin` to Windows User `PATH` via PowerShell.
+10. Verify all installations and parse versions.
+11. Configure session PATH and verify PATH for Go, Rust, Cargo, and VibeGuard.
+12. Print structured status output and environment readiness.
 
 Version: v3.1
+
 

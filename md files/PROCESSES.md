@@ -4,7 +4,7 @@
 
 ---
 
-## 0. Development Environment Provisioning (`setup.bat`)
+## 0. Development Environment Provisioning & CLI Installation (`setup.bat`)
 
 Windows developers configure and verify their workstation environment in a single command:
 ```cmd
@@ -14,9 +14,11 @@ The script performs:
 1. Validates Windows Package Manager (`winget`).
 2. Checks for pre-installed Git, Go, Rust, Cargo, Node.js, Python, and Docker without redundant re-downloads.
 3. Installs any missing tools silently via `winget`.
-4. Dynamically injects `%USERPROFILE%\.cargo\bin`, `C:\Program Files\Go\bin`, `C:\Program Files\Git\cmd`, and `C:\Program Files\nodejs` into current session PATH.
-5. Verifies PATH resolution for Go, Rust, and Cargo.
-6. Outputs a clean, formatted status summary confirming environment readiness.
+4. Copies `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin`.
+5. Permanently registers `%LOCALAPPDATA%\VibeGuard\bin` in the Windows User `PATH`.
+6. Dynamically injects `%LOCALAPPDATA%\VibeGuard\bin`, `%USERPROFILE%\.cargo\bin`, `C:\Program Files\Go\bin`, `C:\Program Files\Git\cmd`, and `C:\Program Files\nodejs` into the current session PATH.
+7. Verifies PATH resolution for Go, Rust, Cargo, and VibeGuard.
+8. Outputs a clean, formatted status summary confirming environment readiness.
 
 ---
 

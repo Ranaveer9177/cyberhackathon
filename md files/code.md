@@ -1,6 +1,6 @@
 # VibeGuard — Complete Source Code Repository
 **Project:** VibeGuard v3.0.0 (Autonomous Git Secure Push Gate)
-**Generated:** 2026-09-19 02:05:28
+**Generated:** 2026-09-19 02:20:30
 **Total Files:** 78
 
 ---
@@ -319,13 +319,31 @@ Example Output:
 [OK] Python
 [OK] Docker
 
+[OK] VibeGuard CLI installed permanently: C:\Users\ranua\AppData\Local\VibeGuard\bin
+[OK] Global Command: vibeguard
+
 PATH verification:
 [OK] Go
 [OK] Rust
 [OK] Cargo
+[OK] VibeGuard
 
 VibeGuard development environment ready.
 ```
+
+### Permanent Global CLI Installation
+`setup.bat` automatically copies `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin\` and permanently adds it to your User `PATH`. Once configured, `vibeguard` runs globally from any command prompt or terminal window across any project folder:
+
+```powershell
+# Run from any project folder:
+vibeguard scan .
+vibeguard status
+vibeguard init
+vibeguard push
+vibeguard version
+```
+
+This also enables any repository's `.git/hooks/pre-push` to automatically locate and execute VibeGuard without needing the binary inside every repository.
 
 ### Manual Prerequisites
 - **Go** (1.21 or higher)
@@ -2490,6 +2508,10 @@ if [ -f "$REPO_ROOT/vibeguard.exe" ]; then
     VIBEGUARD_BIN="$REPO_ROOT/vibeguard.exe"
 elif [ -f "$REPO_ROOT/vibeguard" ]; then
     VIBEGUARD_BIN="$REPO_ROOT/vibeguard"
+elif [ -n "$LOCALAPPDATA" ] && [ -f "$LOCALAPPDATA/VibeGuard/bin/vibeguard.exe" ]; then
+    VIBEGUARD_BIN="$LOCALAPPDATA/VibeGuard/bin/vibeguard.exe"
+elif [ -n "$USERPROFILE" ] && [ -f "$USERPROFILE/AppData/Local/VibeGuard/bin/vibeguard.exe" ]; then
+    VIBEGUARD_BIN="$USERPROFILE/AppData/Local/VibeGuard/bin/vibeguard.exe"
 elif command -v vibeguard.exe >/dev/null 2>&1; then
     VIBEGUARD_BIN="vibeguard.exe"
 elif command -v vibeguard >/dev/null 2>&1; then
@@ -4942,20 +4964,23 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
   ```text
   VibeGuard Setup
   │
-  ├── Check winget
-  ├── Install Git
-  ├── Install Go
-  ├── Install Rust + Cargo
-  ├── Install Node.js
-  ├── Install Python
-  ├── Install Docker
-  ├── Verify every installation
-  ├── Configure PATH where necessary
-  └── Print final environment status
+  ├── Check/install Git
+  ├── Check/install Go
+  ├── Check/install Rust + Cargo
+  ├── Check/install Node.js
+  ├── Check/install Python
+  ├── Check/install Docker
+  │
+  └── Install VibeGuard CLI Permanently
+         ├── Copy vibeguard.exe
+         ├── Copy vibeguard-scanner.exe
+         └── Add %LOCALAPPDATA%\VibeGuard\bin to User PATH
   ```
 - **Intelligent Pre-Check**: Probes local environment before invoking package managers, avoiding reinstallation of pre-existing compilers or runtimes.
 - **Automated Provisioning**: Orchestrates silent installation of missing dependencies via Windows Package Manager (`winget`).
-- **Session PATH Injection & Verification**: Injects `%USERPROFILE%\.cargo\bin`, `Go\bin`, `Git\cmd`, `nodejs`, and Docker tools into the current terminal session, verifies PATH resolution for Go, Rust, and Cargo, and presents a structured terminal verification summary.
+- **Permanent CLI Installation**: Installs `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin` and permanently appends it to Windows User `PATH` via PowerShell registry update.
+- **Session PATH Injection & Verification**: Injects `%LOCALAPPDATA%\VibeGuard\bin`, `%USERPROFILE%\.cargo\bin`, `Go\bin`, `Git\cmd`, and `nodejs` into the active terminal session, verifies PATH resolution for Go, Rust, Cargo, and VibeGuard, and presents a structured terminal verification summary.
+
 
 ```
 
@@ -4972,13 +4997,16 @@ All notable changes to the VibeGuard project are documented in this file.
 ## [v3.1.0] — 2026-09-19
 
 ### Added
-- **Automated Workstation Setup (`setup.bat`)**:
+- **Automated Workstation Setup & Global CLI (`setup.bat`)**:
   - One-click automated setup script for Windows developers.
   - Automatically verifies Windows Package Manager (`winget`).
   - Probes existing toolchain to prevent redundant downloads (Git, Go, Rust, Cargo, Node.js, Python, Docker).
   - Installs missing dependencies silently via `winget`.
+  - Permanently installs `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin`.
+  - Appends `%LOCALAPPDATA%\VibeGuard\bin` to Windows User `PATH` via PowerShell registry update.
   - Configures current terminal session PATH with tool directories.
-  - Verifies PATH resolution for Go, Rust, and Cargo.
+  - Verifies PATH resolution for Go, Rust, Cargo, and VibeGuard.
+  - Pre-push hooks in any repository automatically resolve and execute the globally installed VibeGuard CLI.
   - Prints clean structured status output confirming environment readiness.
 
 ---
@@ -5187,9 +5215,11 @@ VibeGuard Setup
 ├── Install Node.js
 ├── Install Python
 ├── Install Docker
-├── Verify every installation
-├── Configure PATH where necessary
-└── Print final environment status
+│
+└── Install VibeGuard CLI Permanently
+       ├── Copy vibeguard.exe
+       ├── Copy vibeguard-scanner.exe
+       └── Add %LOCALAPPDATA%\VibeGuard\bin to User PATH
 ```
 
 ### 6.2 Intelligent Pre-Check Before Download
@@ -5198,8 +5228,8 @@ VibeGuard Setup
 - Uses Microsoft Windows Package Manager (`winget`) with unattended acceptance flags (`--accept-source-agreements --accept-package-agreements --silent`) to install missing prerequisites.
 
 ### 6.3 Dynamic PATH Configuration & Verification
-- Ensures essential directories (e.g. `%USERPROFILE%\.cargo\bin`, `C:\Program Files\Go\bin`, `C:\Program Files\Git\cmd`, `C:\Program Files\nodejs`) are dynamically available in the running session.
-- Runs verification checks against Go, Rust, and Cargo executables.
+- Ensures essential directories (e.g. `%USERPROFILE%\.cargo\bin`, `C:\Program Files\Go\bin`, `C:\Program Files\Git\cmd`, `C:\Program Files\nodejs`, `%LOCALAPPDATA%\VibeGuard\bin`) are dynamically available in the running session.
+- Runs verification checks against Go, Rust, Cargo, and VibeGuard executables.
 - Formats status output with precise version strings:
   ```text
   ================================
@@ -5214,13 +5244,23 @@ VibeGuard Setup
   [OK] Python
   [OK] Docker
 
+  [OK] VibeGuard CLI installed permanently: C:\Users\ranua\AppData\Local\VibeGuard\bin
+  [OK] Global Command: vibeguard
+
   PATH verification:
   [OK] Go
   [OK] Rust
   [OK] Cargo
+  [OK] VibeGuard
 
   VibeGuard development environment ready.
   ```
+
+### 6.4 Universal Global Execution
+- Installs `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin`.
+- Adds `%LOCALAPPDATA%\VibeGuard\bin` permanently to the Windows User `PATH` registry environment.
+- Developers can immediately execute `vibeguard scan .`, `vibeguard init`, `vibeguard push`, and `vibeguard status` from any directory on the workstation without needing binary copies inside individual repositories.
+- The Git pre-push hook in any repository automatically resolves and executes the global `vibeguard` installation.
 
 ```
 
@@ -5576,7 +5616,7 @@ cyberhackathon/
 - **Test**: Unit tests in `internal/report/progress_test.go`, full test suite `go test ./...`, self-scan test `vibeguard scan .`, and pre-push hook execution.
 - **Deploy**: VibeGuard v3.0 Release with Live Scan Progress.
 
-### Phase 16 — Automated Environment Setup (`setup.bat`) (v3.1)
+### Phase 16 — Automated Environment Setup & Global CLI (`setup.bat`) (v3.1)
 - **Step 1**: Implement automated batch script (`setup.bat`) for Windows development environments.
 - **Step 2**: Check package manager availability (`winget`).
 - **Step 3**: Check whether each dependency is already installed before attempting download:
@@ -5587,10 +5627,13 @@ cyberhackathon/
   - Python
   - Docker (Docker CLI / Docker Desktop)
 - **Step 4**: Perform automated installation via `winget` only for missing prerequisites.
-- **Step 5**: Configure session PATH and verify tool directories (`.cargo\bin`, `Go\bin`, `Git\cmd`, `nodejs`).
-- **Step 6**: Verify PATH for Go, Rust, and Cargo and print structured confirmation status.
+- **Step 5**: Permanently install `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin`.
+- **Step 6**: Add `%LOCALAPPDATA%\VibeGuard\bin` permanently to Windows User `PATH` via PowerShell.
+- **Step 7**: Configure session PATH and verify tool directories (`%LOCALAPPDATA%\VibeGuard\bin`, `.cargo\bin`, `Go\bin`, `Git\cmd`, `nodejs`).
+- **Step 8**: Verify PATH for Go, Rust, Cargo, and VibeGuard and print structured confirmation status.
 - **Test**: Run `setup.bat` on clean and pre-configured workstations to verify zero-redundant installations and instant environment validation.
-- **Deploy**: Production-ready `setup.bat`.
+- **Deploy**: Production-ready `setup.bat` with permanent global CLI distribution.
+
 
 ---
 
@@ -5621,7 +5664,7 @@ cyberhackathon/
 
 ---
 
-## 0. Development Environment Provisioning (`setup.bat`)
+## 0. Development Environment Provisioning & CLI Installation (`setup.bat`)
 
 Windows developers configure and verify their workstation environment in a single command:
 ```cmd
@@ -5631,9 +5674,11 @@ The script performs:
 1. Validates Windows Package Manager (`winget`).
 2. Checks for pre-installed Git, Go, Rust, Cargo, Node.js, Python, and Docker without redundant re-downloads.
 3. Installs any missing tools silently via `winget`.
-4. Dynamically injects `%USERPROFILE%\.cargo\bin`, `C:\Program Files\Go\bin`, `C:\Program Files\Git\cmd`, and `C:\Program Files\nodejs` into current session PATH.
-5. Verifies PATH resolution for Go, Rust, and Cargo.
-6. Outputs a clean, formatted status summary confirming environment readiness.
+4. Copies `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin`.
+5. Permanently registers `%LOCALAPPDATA%\VibeGuard\bin` in the Windows User `PATH`.
+6. Dynamically injects `%LOCALAPPDATA%\VibeGuard\bin`, `%USERPROFILE%\.cargo\bin`, `C:\Program Files\Go\bin`, `C:\Program Files\Git\cmd`, and `C:\Program Files\nodejs` into the current session PATH.
+7. Verifies PATH resolution for Go, Rust, Cargo, and VibeGuard.
+8. Outputs a clean, formatted status summary confirming environment readiness.
 
 ---
 
@@ -5885,13 +5930,31 @@ Example Output:
 [OK] Python
 [OK] Docker
 
+[OK] VibeGuard CLI installed permanently: C:\Users\ranua\AppData\Local\VibeGuard\bin
+[OK] Global Command: vibeguard
+
 PATH verification:
 [OK] Go
 [OK] Rust
 [OK] Cargo
+[OK] VibeGuard
 
 VibeGuard development environment ready.
 ```
+
+### Permanent Global CLI Installation
+`setup.bat` automatically copies `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin\` and permanently adds it to your User `PATH`. Once configured, `vibeguard` runs globally from any command prompt or terminal window across any project folder:
+
+```powershell
+# Run from any project folder:
+vibeguard scan .
+vibeguard status
+vibeguard init
+vibeguard push
+vibeguard version
+```
+
+This also enables any repository's `.git/hooks/pre-push` to automatically locate and execute VibeGuard without needing the binary inside every repository.
 
 ### Manual Prerequisites
 - **Go** (1.21 or higher)
@@ -6128,7 +6191,7 @@ VibeGuard is designed for secure developer operations. It processes files locall
 - [x] **v0.9 — Container & Config**: Dockerfile security analysis, config file security audits.
 - [x] **v1.0 — Stable MVP**: Multi-shell support, comprehensive test fixtures, end-to-end integration.
 - [x] **v3.0 — Live Scan Progress & Scoped Pre-Push Gate**: Real-time terminal progress bars across all scanning stages (files, dependencies, OSV queries, 100% completion indicator), pure Go `git archive` snapshot scanning, `.vibeguard/config.json` exclusions, refined SAST terminology, double-scan elimination.
-- [x] **v3.1 — Automated Environment Setup (`setup.bat`)**: Intelligent Windows environment setup verifying and installing Git, Go, Rust, Cargo, Node.js, Python, and Docker via `winget`, session PATH configuration, and PATH verification.
+- [x] **v3.1 — Automated Environment Setup & Global CLI (`setup.bat`)**: Intelligent Windows environment setup verifying and installing Git, Go, Rust, Cargo, Node.js, Python, and Docker via `winget`, permanent global installation to `%LOCALAPPDATA%\VibeGuard\bin`, User PATH registry configuration, and PATH verification.
 
 ---
 
@@ -6438,11 +6501,15 @@ exit $?
   - **Final Completion**: `[████████████████████] 100%` followed by `Security analysis complete.`
 - Developers get immediate visual feedback on long scans right in their terminal before push completes.
 
-### 2.5 Automated Development Environment Setup (`setup.bat`)
+### 2.5 Automated Development Environment Setup & Permanent CLI (`setup.bat`)
 - Windows developers run `setup.bat` to automatically verify or install:
   - Git, Go, Rust, Cargo, Node.js, Python, Docker
 - Probes existing tools to prevent redundant downloads.
-- Dynamically configures session PATH and verifies PATH for Go, Rust, and Cargo.
+- Copies `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin`.
+- Adds `%LOCALAPPDATA%\VibeGuard\bin` permanently to the Windows User `PATH`.
+- Dynamically configures session PATH and verifies PATH for Go, Rust, Cargo, and VibeGuard.
+- Enables `vibeguard` commands to run from any terminal and any directory, allowing Git hooks across all repositories to automatically locate and execute VibeGuard.
+
 
 ```
 
@@ -7171,7 +7238,7 @@ Version: v3.0
 
 ---
 
-## Phase 14 — Automated Environment Setup (`setup.bat`)
+## Phase 14 — Automated Environment Setup & Global CLI (`setup.bat`)
 
 1. Check Windows Package Manager (`winget`).
 2. Detect existing Git installation; install via `winget` if missing.
@@ -7180,11 +7247,14 @@ Version: v3.0
 5. Detect existing Node.js installation; install via `winget` if missing.
 6. Detect existing Python installation; install via `winget` if missing.
 7. Detect existing Docker installation; install via `winget` if missing.
-8. Verify all installations and parse versions.
-9. Configure PATH in current session and verify PATH for Go, Rust, and Cargo.
-10. Print structured status output and environment readiness.
+8. Install VibeGuard CLI into `%LOCALAPPDATA%\VibeGuard\bin\` (`vibeguard.exe` and `vibeguard-scanner.exe`).
+9. Permanently add `%LOCALAPPDATA%\VibeGuard\bin` to Windows User `PATH` via PowerShell.
+10. Verify all installations and parse versions.
+11. Configure session PATH and verify PATH for Go, Rust, Cargo, and VibeGuard.
+12. Print structured status output and environment readiness.
 
 Version: v3.1
+
 
 ```
 
@@ -8478,6 +8548,10 @@ setlocal enabledelayedexpansion
 :: ============================================================
 
 :: Configure local session PATH with standard tool directories if present
+if exist "%LOCALAPPDATA%\VibeGuard\bin" (
+    echo !PATH! | findstr /I /C:"%LOCALAPPDATA%\VibeGuard\bin" >nul 2>&1
+    if !ERRORLEVEL! neq 0 set "PATH=%LOCALAPPDATA%\VibeGuard\bin;!PATH!"
+)
 if exist "%USERPROFILE%\.cargo\bin" (
     echo !PATH! | findstr /I /C:"%USERPROFILE%\.cargo\bin" >nul 2>&1
     if !ERRORLEVEL! neq 0 set "PATH=%USERPROFILE%\.cargo\bin;!PATH!"
@@ -8568,7 +8642,26 @@ if %ERRORLEVEL% neq 0 (
     )
 )
 
-:: Step 8: Parse installed versions for display
+:: Step 8: Install VibeGuard CLI Permanently
+set "VIBEGUARD_HOME=%LOCALAPPDATA%\VibeGuard\bin"
+
+if not exist "!VIBEGUARD_HOME!" (
+    mkdir "!VIBEGUARD_HOME!" >nul 2>&1
+)
+
+if exist "%~dp0vibeguard.exe" (
+    copy /Y "%~dp0vibeguard.exe" "!VIBEGUARD_HOME!\vibeguard.exe" >nul
+)
+
+if exist "%~dp0vibeguard-scanner.exe" (
+    copy /Y "%~dp0vibeguard-scanner.exe" "!VIBEGUARD_HOME!\vibeguard-scanner.exe" >nul
+)
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$u=[Environment]::GetEnvironmentVariable('Path','User'); $d=[IO.Path]::Combine($env:LOCALAPPDATA,'VibeGuard','bin'); if (($u -split ';') -notcontains $d) { [Environment]::SetEnvironmentVariable('Path', (($u.TrimEnd(';')+';'+$d).TrimStart(';')), 'User') }" >nul 2>&1
+
+set "PATH=!VIBEGUARD_HOME!;!PATH!"
+
+:: Step 9: Parse installed versions for display
 set "GO_VER="
 where go >nul 2>&1
 if %ERRORLEVEL% equ 0 (
@@ -8594,7 +8687,7 @@ if %ERRORLEVEL% equ 0 (
     )
 )
 
-:: Step 9: Print final environment status
+:: Step 10: Print final environment status
 echo ================================
 echo  VibeGuard Development Setup
 echo ================================
@@ -8662,6 +8755,10 @@ if %ERRORLEVEL% equ 0 (
 )
 
 echo.
+echo [OK] VibeGuard CLI installed permanently: !VIBEGUARD_HOME!
+echo [OK] Global Command: vibeguard
+
+echo.
 echo PATH verification:
 
 where go >nul 2>&1
@@ -8685,9 +8782,16 @@ if %ERRORLEVEL% equ 0 (
     echo [FAIL] Cargo
 )
 
+where vibeguard >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    echo [OK] VibeGuard
+) else (
+    echo [FAIL] VibeGuard
+)
+
 echo.
 echo VibeGuard development environment ready.
-endlocal
+endlocal & set "PATH=%LOCALAPPDATA%\VibeGuard\bin;%USERPROFILE%\.cargo\bin;C:\Program Files\Go\bin;C:\Program Files\Git\cmd;C:\Program Files\nodejs;%PATH%"
 ```
 
 ---

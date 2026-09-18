@@ -178,13 +178,31 @@ Example Output:
 [OK] Python
 [OK] Docker
 
+[OK] VibeGuard CLI installed permanently: C:\Users\ranua\AppData\Local\VibeGuard\bin
+[OK] Global Command: vibeguard
+
 PATH verification:
 [OK] Go
 [OK] Rust
 [OK] Cargo
+[OK] VibeGuard
 
 VibeGuard development environment ready.
 ```
+
+### Permanent Global CLI Installation
+`setup.bat` automatically copies `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin\` and permanently adds it to your User `PATH`. Once configured, `vibeguard` runs globally from any command prompt or terminal window across any project folder:
+
+```powershell
+# Run from any project folder:
+vibeguard scan .
+vibeguard status
+vibeguard init
+vibeguard push
+vibeguard version
+```
+
+This also enables any repository's `.git/hooks/pre-push` to automatically locate and execute VibeGuard without needing the binary inside every repository.
 
 ### Manual Prerequisites
 - **Go** (1.21 or higher)
