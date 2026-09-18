@@ -43,13 +43,14 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
     let bad_filenames = [".env", "id_rsa", "id_dsa", ".htpasswd"];
     let bad_exts = ["pem", "key"];
 
-    let mut is_bad_file = bad_filenames.contains(&file_name) || file_name.starts_with("credentials.") || file_name.starts_with("secrets.");
-    
-    if !is_bad_file {
-        if let Some(ext) = std::path::Path::new(file_path).extension().and_then(|e| e.to_str()) {
-            if bad_exts.contains(&ext) {
-                is_bad_file = true;
-            }
+    let ext = std::path::Path::new(file_path).extension().and_then(|e| e.to_str()).unwrap_or("");
+    let source_exts = ["go", "js", "ts", "py", "java", "rs", "rb", "php", "c", "cpp", "cs"];
+
+    let mut is_bad_file = false;
+    if !source_exts.contains(&ext) {
+        is_bad_file = bad_filenames.contains(&file_name) || file_name.starts_with("credentials.") || file_name.starts_with("secrets.");
+        if !is_bad_file && bad_exts.contains(&ext) {
+            is_bad_file = true;
         }
     }
 

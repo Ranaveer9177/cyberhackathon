@@ -114,7 +114,12 @@ const htmlTemplateStr = `<!DOCTYPE html>
 </html>`
 
 func WriteHTMLReport(r *Report, outputPath string) error {
-	dir := filepath.Dir(outputPath)
+	absPath, err := filepath.Abs(filepath.Clean(outputPath))
+	if err != nil {
+		absPath = filepath.Clean(outputPath)
+	}
+
+	dir := filepath.Dir(absPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
@@ -141,7 +146,8 @@ func WriteHTMLReport(r *Report, outputPath string) error {
 		return err
 	}
 
-	f, err := os.Create(outputPath)
+	var f *os.File
+	f, err = os.Create(absPath)
 	if err != nil {
 		return err
 	}
