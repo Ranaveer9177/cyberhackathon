@@ -2,8 +2,8 @@
 
 **Project Name:** VibeGuard  
 **Tagline:** Pre-Deployment Security Verification & Git Secure Push Gate  
-**Version:** v2.0.0  
-**Date:** 2026-09-18  
+**Version:** v3.0.0  
+**Date:** 2026-09-19  
 **Repository:** `C:\Users\ranua\Music\cyberhackathon`  
 
 ---
@@ -12,7 +12,7 @@
 
 **VibeGuard** is an independent pre-deployment security verification CLI and Git pre-push security gate. It acts as an automated barrier between code development and deployment/publishing, ensuring that secrets, known CVEs, SAST security vulnerabilities, container misconfigurations, and sensitive repository files are detected and blocked before code ever leaves the developer's workstation or enters production pipelines.
 
-VibeGuard V2 introduces native Git pre-push hook integration (`.git/hooks/pre-push`), interactive secure commit-and-push workflows (`vibeguard push`), repository-level configuration (`.vibeguard/config.json`), and comprehensive reporting across Terminal, JSON, and standalone HTML formats.
+VibeGuard v3.0 introduces real-time terminal progress indicators for long scans (file scanning, dependency analysis, and OSV queries), native Git pre-push hook integration (`.git/hooks/pre-push`), interactive secure commit-and-push workflows (`vibeguard push`), repository-level configuration (`.vibeguard/config.json`), and comprehensive reporting across Terminal, JSON, and standalone HTML formats.
 
 ---
 
@@ -405,7 +405,8 @@ go test ./...
 ```
 
 - **CLI Compilation:** `go build -buildvcs=false -o vibeguard.exe ./cmd/vibeguard` — **SUCCESS (0 warnings)**
-- **Binary Version:** `vibeguard.exe version` — **`VibeGuard v2.0.0`**
+- **Binary Version:** `vibeguard.exe version` — **`VibeGuard v3.0.0`**
+- **Live Progress Indicators:** Verified across file scanning, dependency checks, and live OSV queries.
 - **Hook Lifecycle:** `vibeguard init` $\rightarrow$ `status` $\rightarrow$ `uninstall` verified on clean repositories.
 - **Controlled Push:** `vibeguard push` successfully prompts, stages, commits, verifies, and protects pushes.
 
@@ -413,4 +414,4 @@ go test ./...
 
 ## 9. Conclusion
 
-VibeGuard v2.0 provides an end-to-end security verification gate for developers. By combining the speed of Rust, the ergonomics and ecosystem integration of Go, live OSV intelligence, and non-destructive Git hook automation, VibeGuard fulfills its design purpose: **"Make security verification a simple, reliable step between writing software and deploying software."**
+VibeGuard v3.0 provides an end-to-end security verification gate for developers with rich real-time visual progress feedback. By combining the speed of Rust, the ergonomics and ecosystem integration of Go, live OSV intelligence, and non-destructive Git hook automation, VibeGuard fulfills its design purpose: **"Make security verification a simple, reliable step between writing software and deploying software."**

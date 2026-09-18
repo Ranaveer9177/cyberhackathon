@@ -20,7 +20,7 @@ import (
 	"github.com/vibeguard/vibeguard/internal/scanner"
 )
 
-const version = "2.0.0"
+const version = "3.0.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -620,7 +620,11 @@ func runScan(projectPath string, format string, customOutput string, isHook bool
 
 	// Step 1: Run security scanner
 	fmt.Println("[1/4] Running security scanner...")
-	scanResult, err := scanner.RunScanner(targetScanPath)
+	pb := report.NewProgressBar(20, os.Stdout)
+	scanResult, err := scanner.RunScannerWithProgress(targetScanPath, func(cur, tot int, curFile string) {
+		pb.Render(cur, tot, fmt.Sprintf("Files: %d/%d", cur, tot), fmt.Sprintf("Current: %s", curFile))
+	})
+	pb.Reset()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Scanner error: %v\n", err)
 		if cfg.FailClosed {
@@ -650,6 +654,13 @@ func runScan(projectPath string, format string, customOutput string, isHook bool
 			fmt.Fprintf(os.Stderr, "Warning: Dependency detection error: %v\n", err)
 			deps = []dependencies.Dependency{}
 		}
+		if len(deps) > 0 {
+			for idx, d := range deps {
+				pb.Render(idx+1, len(deps), fmt.Sprintf("Dependencies: %d/%d", idx+1, len(deps)), fmt.Sprintf("Current: %s@%s", d.Name, d.Version))
+				time.Sleep(5 * time.Millisecond)
+			}
+			pb.Reset()
+		}
 		fmt.Printf("  Dependencies found: %d\n", len(deps))
 
 		var osvDeps []osv.DependencyInfo
@@ -664,7 +675,10 @@ func runScan(projectPath string, format string, customOutput string, isHook bool
 
 		fmt.Println("[3/4] Querying vulnerability database (OSV)...")
 		var osvErr error
-		vulnResults, osvErr = osv.CheckAllDependenciesWithStatus(osvDeps)
+		vulnResults, osvErr = osv.CheckAllDependenciesWithProgress(osvDeps, func(cur, tot int) {
+			pb.Render(cur, tot, fmt.Sprintf("OSV queries: %d/%d", cur, tot), "")
+		})
+		pb.Reset()
 		if osvErr != nil && len(osvDeps) > 0 {
 			fmt.Fprintf(os.Stderr, "Warning: OSV vulnerability database unavailable: %v\n", osvErr)
 			if cfg.FailClosed {
@@ -708,10 +722,16 @@ func runScan(projectPath string, format string, customOutput string, isHook bool
 		var currentFile string
 		for _, dLine := range diffLines {
 			if strings.HasPrefix(dLine, "diff --git a/") {
-				parts := strings.Fields(dLine)
-				if len(parts) >= 3 {
-					currentFile = strings.TrimPrefix(parts[2], "a/")
+				rest := strings.TrimPrefix(dLine, "diff --git a/")
+				if idx := strings.LastIndex(rest, " b/"); idx != -1 {
+					currentFile = rest[:idx]
+				} else {
+					currentFile = rest
 				}
+				currentFile = strings.Trim(currentFile, "\"")
+			}
+			if currentFile != "" && cfg.IsExcluded(currentFile) {
+				continue
 			}
 			if strings.HasPrefix(dLine, "+") && !strings.HasPrefix(dLine, "+++") {
 				added := dLine[1:]
@@ -800,7 +820,7 @@ func runScan(projectPath string, format string, customOutput string, isHook bool
 		}
 	}
 
-	// Step 3: Calculate risk score
+	// Step 4: Calculate risk score
 	fmt.Println("[4/4] Calculating risk score...")
 	var findingInfos []risk.FindingInfo
 	for _, f := range allFindings {
@@ -809,6 +829,9 @@ func runScan(projectPath string, format string, customOutput string, isHook bool
 		})
 	}
 	scoreResult := risk.CalculateScore(findingInfos)
+
+	// Final Stage: scan complete indicator
+	pb.Finish("Security analysis complete.")
 
 	// Evaluate deployment gate with config policy
 	blockPolicy := []string{"critical", "high"}
