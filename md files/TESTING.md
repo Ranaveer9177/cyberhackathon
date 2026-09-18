@@ -17,7 +17,7 @@ go test -v ./...
 - `internal/dependencies`: Manifest parsing (Go, npm, Python, Cargo) and exclusion filtering.
 - `internal/gate`: Policy threshold evaluation and exit code mapping.
 - `internal/git`: Hook installation/uninstallation, user hook preservation, ref tuple parsing, and snapshot creation.
-- `internal/report`: JSON and HTML report generation.
+- `internal/report`: JSON and HTML report generation, dynamic terminal progress bar rendering, and ANSI cursor control tests (`progress_test.go`).
 - `internal/risk`: Deterministic mathematical risk scoring calculations.
 - `internal/scanner`: Dual-engine scanner execution, exclusion skipping, and rule matching.
 - `tests/integration`: End-to-end integration workflows.
@@ -64,3 +64,22 @@ Ensures zero suspicious constructs, correct printf formatting, and code standard
 # Verify hook script exists
 Get-Content .git/hooks/pre-push
 ```
+
+### 3.4 Live Terminal Progress Indicator Verification (v3.0)
+```powershell
+.\vibeguard.exe scan .
+```
+- **File Scan Progress**: Real-time counter and file path:
+  `[██████████████░░░░░░] 70%`  
+  `Files: 56/80`  
+  `Current: internal/scanner/runner.go`
+- **Dependency Scan Progress**: Real-time package indicator:
+  `[████████████████░░░░] 80%`  
+  `Dependencies: 36/45`  
+  `Current: lodash@4.17.20`
+- **OSV Query Progress**: Real-time query counter:
+  `[██████████████████░░] 90%`  
+  `OSV queries: 41/45`
+- **Final Completion Indicator**: Full 100% completion bar:
+  `[████████████████████] 100%`  
+  `Security analysis complete.`

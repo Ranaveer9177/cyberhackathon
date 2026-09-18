@@ -22,13 +22,17 @@ go build -buildvcs=false -o vibeguard.exe ./cmd/vibeguard
 
 ### 1.2 Automated Verification Pipeline
 ```powershell
-# Step 1: Run Go package unit & integration tests
+# Step 1: Run Go package unit & integration tests (including progress bar tests)
 go test ./...
 
 # Step 2: Run Go static analysis
 go vet ./...
 
-# Step 3: Verify clean self-scan (must return Exit 0, PASSED, 100/100)
+# Step 3: Verify clean self-scan with real-time progress indicators (Exit 0, PASSED, 100/100)
+# - Displays File Scan progress: [██████████████░░░░░░] 70%
+# - Displays Dependency Scan progress: [████████████████░░░░] 80%
+# - Displays OSV Query progress: [██████████████████░░] 90%
+# - Displays Final 100% Completion: [████████████████████] 100%
 .\vibeguard.exe scan .
 
 # Step 4: Verify vulnerable test fixture detection (must return Exit 1, BLOCKED)

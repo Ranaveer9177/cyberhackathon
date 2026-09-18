@@ -1,8 +1,8 @@
 # VibeGuard Test Output
 
-**Date:** 2026-09-18  
+**Date:** 2026-09-19  
 **Project:** `C:\Users\ranua\Music\cyberhackathon`  
-**Version:** VibeGuard v2.0.0 (Git Secure Push Gate)
+**Version:** VibeGuard v3.0.0 (Git Secure Push Gate & Live Progress)
 
 ---
 
@@ -22,7 +22,7 @@ Passing packages:
 - `internal/dependencies`
 - `internal/gate`
 - `internal/git`
-- `internal/report`
+- `internal/report` (includes `progress_test.go`: `TestBuildBar`, `TestProgressBarRender`, `TestProgressBarFinish`)
 - `internal/risk`
 - `internal/scanner`
 - `tests/integration`
@@ -60,7 +60,7 @@ Result: **PASS** (exit code `0`)
 Output:
 
 ```text
-VibeGuard v2.0.0
+VibeGuard v3.0.0
 ```
 
 ---

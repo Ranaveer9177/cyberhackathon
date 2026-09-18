@@ -88,7 +88,39 @@
 
 ---
 
-## 4. Reporting & Scoring
+## 4. Live Scan Progress Feedback (v3.0)
+
+### 4.1 Real-Time Progress Engine
+- Terminal progress bars rendered dynamically during scans across all 4 stages:
+  1. **File Scanning**: Percentage, files scanned / total files, and currently active file path:
+     ```text
+     [██████████████░░░░░░] 70%
+     Files: 56/80
+     Current: internal/scanner/runner.go
+     ```
+  2. **Dependency Scanning**: Percentage, dependencies checked / total dependencies, and current package name and version:
+     ```text
+     [████████████████░░░░] 80%
+     Dependencies: 36/45
+     Current: lodash@4.17.20
+     ```
+  3. **Vulnerability Database (OSV) Lookup**: Percentage of live vulnerability queries completed / total queries:
+     ```text
+     [██████████████████░░] 90%
+     OSV queries: 41/45
+     ```
+  4. **Final Stage**: 100% completion bar followed by completion confirmation:
+     ```text
+     [████████████████████] 100%
+
+     Security analysis complete.
+     ```
+- **ANSI Terminal Control**: In-place multi-line overwriting with `\033[%dA\r` and line clearing `\033[K`.
+- **Non-TTY Fallback**: Clean sequential output on headless CI runners, pipes, or non-terminal redirected output streams.
+
+---
+
+## 5. Reporting & Scoring
 
 - **Deterministic Scoring**:
   $$\text{Score} = \max\left(0, 100 - (15 \times C + 8 \times H + 3 \times M + 1 \times L)\right)$$
