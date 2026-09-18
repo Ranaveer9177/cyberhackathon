@@ -1,0 +1,12 @@
+{
+  "block_on": [
+    "critical",
+    "high"
+  ],
+  "scan_mode": "full",
+  "dependency_scan": true,
+  "secret_scan": true,
+  "source_scan": true,
+  "report_format": "terminal",
+  "fail_closed": true
+}

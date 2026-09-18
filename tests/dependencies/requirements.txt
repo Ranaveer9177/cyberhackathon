@@ -1,0 +1,6 @@
+# Python dependencies fixture
+flask==1.1.2
+jinja2==2.11.2
+requests>=2.20.0
+# Comment line
+werkzeug==1.0.1

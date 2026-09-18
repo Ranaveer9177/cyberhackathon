@@ -1,0 +1,9 @@
+[package]
+name = "test-deps"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = "1.0.100"
+regex = "1.4.0"
+tokio = { version = "1.0.0", features = ["full"] }
