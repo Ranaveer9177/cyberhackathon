@@ -17,8 +17,16 @@ pub fn scan_source_code(file_path: &str, content: &str, finding_counter: &mut us
         let line_num = line_idx + 1;
         for rule in &rules {
             if rule.pattern.is_match(line) {
+                if line.contains("Regex::new") || line.contains("regexp.MustCompile") || line.contains("pattern:") {
+                    continue;
+                }
                 if rule.id == "SAST-002" {
                     if line.contains(r#"exec.Command("git""#) || line.contains("exec.CommandContext") {
+                        continue;
+                    }
+                }
+                if rule.id == "SAST-006" {
+                    if line.contains("http://localhost") || line.contains("http://127.0.0.1") {
                         continue;
                     }
                 }

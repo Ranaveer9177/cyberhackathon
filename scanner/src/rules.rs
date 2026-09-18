@@ -63,7 +63,7 @@ pub fn get_sast_rules() -> Vec<Rule> {
             name: "Potential Insecure HTTP Connection".to_string(),
             category: Category::SourceCode,
             severity: Severity::MEDIUM,
-            pattern: Regex::new(r#"http://(?!localhost|127\.0\.0\.1)"#).unwrap(),
+            pattern: Regex::new(r#"http://[^\s"'>]+"#).unwrap(),
             description: "Insecure HTTP connection detected.".to_string(),
             recommendation: "Use HTTPS for all network communication.".to_string(),
         },

@@ -87,8 +87,9 @@ fn main() {
             all_findings.append(&mut docker_findings);
         }
 
+        let source_exts = ["go", "js", "ts", "py", "java", "rs", "rb", "php", "c", "cpp", "cs"];
         let config_exts = ["yaml", "yml", "toml", "ini", "conf", "cfg", "json"];
-        if config_exts.contains(&ext) || filename.starts_with("config.") {
+        if config_exts.contains(&ext) || (filename.starts_with("config.") && !source_exts.contains(&ext)) {
             let mut config_findings = config::scan_config(file_path, &content, &mut finding_counter);
             all_findings.append(&mut config_findings);
         }
