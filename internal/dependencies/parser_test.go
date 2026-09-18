@@ -103,3 +103,28 @@ tokio = { version = "1.0", features = ["full"] }
 		t.Errorf("expected to find serde 1.0.104")
 	}
 }
+
+func TestDetectDependenciesExclusions(t *testing.T) {
+	root := "../../"
+	deps, err := DetectDependencies(root)
+	if err != nil {
+		t.Fatalf("DetectDependencies failed: %v", err)
+	}
+
+	for _, d := range deps {
+		cleanSource := d.SourceFile
+		if cleanSource != "" && (containsSubstr(cleanSource, "tests/dependencies") || containsSubstr(cleanSource, "tests\\dependencies")) {
+			t.Errorf("dependency from excluded tests/ was detected: %s (%s)", d.Name, d.SourceFile)
+		}
+	}
+}
+
+func containsSubstr(s, sub string) bool {
+	for i := 0; i+len(sub) <= len(s); i++ {
+		if s[i:i+len(sub)] == sub {
+			return true
+		}
+	}
+	return false
+}
+

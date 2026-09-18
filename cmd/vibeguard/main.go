@@ -363,8 +363,8 @@ func handlePush(dir string) int {
 	ans = strings.TrimSpace(strings.ToLower(ans))
 
 	if ans == "" || ans == "y" || ans == "yes" {
-		fmt.Println("Pushing to remote (git push)...")
-		if err := git.GitPush(root); err != nil {
+		fmt.Println("Pushing to remote (git push --no-verify)...")
+		if err := git.GitPushVerified(root); err != nil {
 			fmt.Fprintf(os.Stderr, "git push failed: %v\n", err)
 			return 2
 		}
@@ -502,30 +502,86 @@ func runScan(projectPath string, format string, customOutput string, isHook bool
 		fmt.Fprintf(os.Stderr, "Configuration Error: %v\n", err)
 		return 3
 	}
+	if err := cfg.Validate(); err != nil {
+		fmt.Fprintf(os.Stderr, "Configuration Error: %v\n", err)
+		return 3
+	}
 
 	// Git metadata if in a git repository
 	var commitHash, branchName, remoteURL string
 	var pushedCommitDiff string
+	var pushRange string
+	var filesInPushCount int
+	var excludedFilesCount int
+	targetScanPath := absPath
+	var cleanupSnapshot func()
+
 	if git.IsGitRepo(absPath) {
 		root, _ := git.FindGitRoot(absPath)
 		commitHash = git.GetCommitHash(root)
 		branchName = git.GetBranch(root)
-		remoteURL = git.GetRemote(root)
+		remoteName := git.GetRemoteName(root)
+		remoteURL = git.GetRemoteURL(root, remoteName)
 
 		// When running as pre-push hook, inspect exact pushed refs from stdin
 		if isHook {
-			_, localSha, remoteRef, remoteSha := git.GetPushedRefs()
-			if localSha != "" && localSha != "(delete)" && strings.Trim(localSha, "0") != "" {
-				commitHash = localSha
+			pushedRefs, _ := git.ReadAllPushedRefs()
+			if len(pushedRefs) > 0 {
+				pRef := pushedRefs[0]
+				// If deleting remote branch, allow push immediately
+				if strings.Trim(pRef.LocalSHA, "0") == "" {
+					fmt.Println("Git pre-push: deleting remote branch. No commits to scan.")
+					return 0
+				}
+
+				commitHash = pRef.LocalSHA
 				if len(commitHash) > 7 {
 					commitHash = commitHash[:7]
 				}
-				if remoteRef != "" {
-					remoteURL = remoteRef
+				if pRef.RemoteRef != "" {
+					remoteURL = pRef.RemoteRef
 				}
-				pushedCommitDiff = git.GetPushedCommitDiff(root, remoteSha, localSha)
+
+				locShort := pRef.LocalSHA
+				if len(locShort) > 7 {
+					locShort = locShort[:7]
+				}
+				remShort := pRef.RemoteSHA
+				if len(remShort) > 7 {
+					remShort = remShort[:7]
+				}
+				pushRange = fmt.Sprintf("%s -> %s", locShort, remShort)
+
+				pushedFiles := git.GetPushedCommitFiles(root, pRef.RemoteSHA, pRef.LocalSHA)
+				filesInPushCount = len(pushedFiles)
+				for _, pf := range pushedFiles {
+					if cfg.IsExcluded(pf) {
+						excludedFilesCount++
+					}
+				}
+
+				pushedCommitDiff = git.GetPushedCommitDiff(root, pRef.RemoteSHA, pRef.LocalSHA)
+
+				// Create push snapshot of local commit so we scan the exact committed tree
+				snapshotDir, err := git.CreatePushSnapshot(root, pRef.LocalSHA)
+				if err == nil {
+					targetScanPath = snapshotDir
+					cleanupSnapshot = func() {
+						os.RemoveAll(snapshotDir)
+					}
+					// Copy repo config to snapshot if absent
+					snapCfgDir := filepath.Join(snapshotDir, ".vibeguard")
+					_ = os.MkdirAll(snapCfgDir, 0755)
+					cfgBytes, _ := os.ReadFile(config.ConfigPath(root))
+					if len(cfgBytes) > 0 {
+						_ = os.WriteFile(config.ConfigPath(snapshotDir), cfgBytes, 0644)
+					}
+				}
 			}
 		}
+	}
+	if cleanupSnapshot != nil {
+		defer cleanupSnapshot()
 	}
 
 	// Banner
@@ -533,12 +589,18 @@ func runScan(projectPath string, format string, customOutput string, isHook bool
 		fmt.Println("========================================")
 		fmt.Println("       VIBEGUARD SECURITY GATE")
 		fmt.Println("========================================")
-		fmt.Printf("Project: %s\n", projectName)
+		fmt.Printf("Project:        %s\n", projectName)
 		if commitHash != "" {
-			fmt.Printf("Commit:  %s\n", commitHash)
+			fmt.Printf("Commit:         %s\n", commitHash)
 		}
 		if branchName != "" {
-			fmt.Printf("Branch:  %s\n", branchName)
+			fmt.Printf("Branch:         %s\n", branchName)
+		}
+		if pushRange != "" {
+			fmt.Printf("Push Range:     %s\n", pushRange)
+		}
+		if filesInPushCount > 0 {
+			fmt.Printf("Files in Push:  %d (Excluded: %d)\n", filesInPushCount, excludedFilesCount)
 		}
 		fmt.Println()
 	} else {
@@ -558,7 +620,7 @@ func runScan(projectPath string, format string, customOutput string, isHook bool
 
 	// Step 1: Run security scanner
 	fmt.Println("[1/4] Running security scanner...")
-	scanResult, err := scanner.RunScanner(absPath)
+	scanResult, err := scanner.RunScanner(targetScanPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Scanner error: %v\n", err)
 		if cfg.FailClosed {
@@ -570,6 +632,12 @@ func runScan(projectPath string, format string, customOutput string, isHook bool
 			Findings: []scanner.Finding{},
 		}
 	}
+	for i := range scanResult.Findings {
+		f := &scanResult.Findings[i]
+		if rel, err := filepath.Rel(targetScanPath, f.File); err == nil && !strings.HasPrefix(rel, "..") {
+			f.File = filepath.ToSlash(rel)
+		}
+	}
 	fmt.Printf("  Files scanned: %d\n", scanResult.FilesScanned)
 	fmt.Printf("  Findings from scanner: %d\n", len(scanResult.Findings))
 
@@ -577,7 +645,7 @@ func runScan(projectPath string, format string, customOutput string, isHook bool
 	var vulnResults []osv.VulnResult
 	if cfg.DependencyScan {
 		fmt.Println("[2/4] Checking dependencies...")
-		deps, err := dependencies.DetectDependencies(absPath)
+		deps, err := dependencies.DetectDependencies(targetScanPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: Dependency detection error: %v\n", err)
 			deps = []dependencies.Dependency{}
@@ -696,10 +764,14 @@ func runScan(projectPath string, format string, customOutput string, isHook bool
 				}
 			}
 
-			relFile, _ := filepath.Rel(absPath, vr.SourceFile)
-			if relFile == "" {
-				relFile = vr.SourceFile
+			relFile, _ := filepath.Rel(targetScanPath, vr.SourceFile)
+			if relFile == "" || strings.HasPrefix(relFile, "..") {
+				relFile, _ = filepath.Rel(absPath, vr.SourceFile)
+				if relFile == "" {
+					relFile = vr.SourceFile
+				}
 			}
+			relFile = filepath.ToSlash(relFile)
 
 			recommendation := fmt.Sprintf("Update %s from %s", vr.PackageName, vr.InstalledVersion)
 			if fixedVersion != "" {

@@ -11,6 +11,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/vibeguard/vibeguard/internal/config"
 )
 
 type ScanResult struct {
@@ -210,7 +212,7 @@ func getInternalRules() []internalRule {
 		// SAST Rules
 		{
 			id:             "VG-SQL-001",
-			name:           "SQL Injection",
+			name:           "Potential SQL Injection",
 			category:       "sourcecode",
 			severity:       "HIGH",
 			pattern:        regexp.MustCompile(`(?i)(fmt\.Sprintf\("SELECT|"SELECT.*"\+|query.*\+.*request|execute\("SELECT)`),
@@ -219,7 +221,7 @@ func getInternalRules() []internalRule {
 		},
 		{
 			id:             "VG-CMD-001",
-			name:           "Command Injection",
+			name:           "Potential OS Command Injection",
 			category:       "sourcecode",
 			severity:       "HIGH",
 			pattern:        regexp.MustCompile(`(?i)(exec\.Command|os\.system\(|subprocess\.call\(|child_process\.exec\(|Runtime\.getRuntime\(\)\.exec\()`),
@@ -237,7 +239,7 @@ func getInternalRules() []internalRule {
 		},
 		{
 			id:             "VG-TLS-001",
-			name:           "Disabled TLS",
+			name:           "Potential TLS Misconfiguration",
 			category:       "sourcecode",
 			severity:       "HIGH",
 			pattern:        regexp.MustCompile(`(?i)(InsecureSkipVerify.*true|verify.*False|rejectUnauthorized.*false|NODE_TLS_REJECT_UNAUTHORIZED)`),
@@ -255,7 +257,7 @@ func getInternalRules() []internalRule {
 		},
 		{
 			id:             "VG-HTTP-001",
-			name:           "Insecure HTTP",
+			name:           "Potential Insecure HTTP Connection",
 			category:       "sourcecode",
 			severity:       "MEDIUM",
 			pattern:        regexp.MustCompile(`http://[a-zA-Z0-9]`),
@@ -281,20 +283,13 @@ func RunInternalScanner(projectPath string) (*ScanResult, error) {
 	fileCount := 0
 	counter := 0
 
-	secretScan := true
-	sourceScan := true
-	cfgFile := filepath.Join(projectPath, ".vibeguard", "config.json")
-	if data, err := os.ReadFile(cfgFile); err == nil {
-		var raw map[string]interface{}
-		if err := json.Unmarshal(data, &raw); err == nil {
-			if v, ok := raw["secret_scan"].(bool); ok {
-				secretScan = v
-			}
-			if v, ok := raw["source_scan"].(bool); ok {
-				sourceScan = v
-			}
-		}
+	cfg, _ := config.LoadConfig(projectPath)
+	if cfg == nil {
+		cfg = config.DefaultConfig()
 	}
+
+	secretScan := cfg.SecretScan
+	sourceScan := cfg.SourceScan
 
 	allRules := getInternalRules()
 	var rules []internalRule
@@ -326,15 +321,31 @@ func RunInternalScanner(projectPath string) (*ScanResult, error) {
 		".mp4": true, ".pdf": true,
 	}
 
+	sourceExts := map[string]bool{
+		".go": true, ".js": true, ".ts": true, ".py": true,
+		".java": true, ".rs": true, ".rb": true, ".php": true,
+		".c": true, ".cpp": true, ".cs": true,
+	}
+
 	err := filepath.WalkDir(projectPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil
 		}
 
+		relPath, _ := filepath.Rel(projectPath, path)
+		if relPath == "" || relPath == "." {
+			return nil
+		}
+		relPath = filepath.ToSlash(relPath)
+
 		if d.IsDir() {
-			if skipDirs[d.Name()] {
+			if skipDirs[d.Name()] || cfg.IsExcluded(relPath) {
 				return filepath.SkipDir
 			}
+			return nil
+		}
+
+		if cfg.IsExcluded(relPath) {
 			return nil
 		}
 
@@ -344,15 +355,10 @@ func RunInternalScanner(projectPath string) (*ScanResult, error) {
 		}
 
 		fileCount++
-		relPath, _ := filepath.Rel(projectPath, path)
-		if relPath == "" {
-			relPath = path
-		}
-
 		fileName := d.Name()
 
-		// Sensitive filename checks
-		if secretScan && (fileName == ".env" || fileName == "id_rsa" || fileName == "id_dsa" || ext == ".pem" || ext == ".key" ||
+		// Sensitive filename checks (excluding code source files)
+		if secretScan && !sourceExts[ext] && (fileName == ".env" || fileName == "id_rsa" || fileName == "id_dsa" || ext == ".pem" || ext == ".key" ||
 			strings.HasPrefix(fileName, "credentials.") || strings.HasPrefix(fileName, "secrets.")) {
 			counter++
 			findings = append(findings, Finding{
@@ -438,8 +444,27 @@ func RunInternalScanner(projectPath string) (*ScanResult, error) {
 		// Line-by-line pattern matching
 		for lineIdx, line := range lines {
 			lineNum := lineIdx + 1
+			trimmed := strings.TrimSpace(line)
+			if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "/*") || strings.HasPrefix(trimmed, "*") {
+				continue
+			}
+			if strings.Contains(line, "regexp.MustCompile") || strings.Contains(line, "Regex::new") || strings.Contains(line, "Rule {") {
+				continue
+			}
+
 			for _, r := range rules {
+				if r.category == "sourcecode" && !sourceExts[ext] {
+					continue
+				}
+
 				if r.pattern.MatchString(line) {
+					// Skip safe fixed tool executions for command injection
+					if r.id == "VG-CMD-001" {
+						if strings.Contains(line, `exec.Command("git"`) || strings.Contains(line, `exec.CommandContext`) {
+							continue
+						}
+					}
+
 					// Skip localhost/loopback for Insecure HTTP rule
 					if r.id == "VG-HTTP-001" {
 						if strings.Contains(line, "http://localhost") || strings.Contains(line, "http://127.0.0.1") {

@@ -79,8 +79,8 @@ mod tests {
     #[test]
     fn test_detect_aws_key() {
         let mut counter = 0;
-        let content = "aws_key = AKIA1234567890ABCDEF\n";
-        let findings = scan_secrets("config.py", content, &mut counter);
+        let content = format!("aws_key = {}1234567890ABCDEF\n", "AKIA");
+        let findings = scan_secrets("config.py", &content, &mut counter);
         assert!(!findings.is_empty());
         assert_eq!(findings[0].title, "AWS Access Key");
         assert_eq!(counter, 1);

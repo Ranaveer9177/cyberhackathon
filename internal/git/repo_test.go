@@ -3,6 +3,7 @@ package git
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -62,5 +63,25 @@ func TestGetChangedFilesAndStagedChanges(t *testing.T) {
 	files := GetChangedFiles(repo)
 	if len(files) != 0 {
 		t.Errorf("expected empty changed files, got %v", files)
+	}
+}
+
+func TestReadPrePushRefs(t *testing.T) {
+	input := `refs/heads/main 1a2b3c4d refs/heads/main 5e6f7a8b
+refs/heads/feature 9999aaaa refs/heads/feature 00000000
+`
+	refs, err := ReadPrePushRefs(strings.NewReader(input))
+	if err != nil {
+		t.Fatalf("ReadPrePushRefs failed: %v", err)
+	}
+	if len(refs) != 2 {
+		t.Fatalf("expected 2 refs, got %d", len(refs))
+	}
+
+	if refs[0].LocalRef != "refs/heads/main" || refs[0].LocalSHA != "1a2b3c4d" {
+		t.Errorf("unexpected first ref: %+v", refs[0])
+	}
+	if refs[1].RemoteSHA != "00000000" {
+		t.Errorf("unexpected second ref: %+v", refs[1])
 	}
 }
