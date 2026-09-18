@@ -74,6 +74,8 @@ func TestIsExcluded(t *testing.T) {
 		{"output2.md", true},
 		{"test output.md", true},
 		{"test3.md", true},
+		{"test4.md", true},
+		{"test5.md", true},
 		{"test-project/main.go", false},
 		{"src/main.rs", false},
 		{"internal/scanner/runner.go", false},

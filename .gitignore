@@ -21,8 +21,8 @@ build/
 *.prof
 
 # Generated scan outputs (keep reports/ directory structure)
-reports/scan.json
-reports/scan.html
+reports/*.json
+reports/*.html
 !reports/README.md
 
 # Log files and temporary artifacts

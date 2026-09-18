@@ -42,6 +42,8 @@ func DefaultConfig() *Config {
 			"output2.md",
 			"test output.md",
 			"test3.md",
+			"test4.md",
+			"test5.md",
 		},
 	}
 }
