@@ -9,9 +9,11 @@
 
 ## Executive Result
 
-**100% RESOLVED & VERIFIED.**
+**RETEST VERIFIED.**
 
-All Go tests, static analysis, CLI builds, and fixture scans pass cleanly. Both issues identified in the initial Test 5 run have been fully diagnosed and resolved:
+All Go tests, static analysis, CLI builds, Rust unit tests, fixture scanning, and JSON/HTML report persistence passed their intended checks. The fixture remains correctly blocked because it is intentionally vulnerable. The current retest also fixed the duplicate `dir :=` declaration in `internal/report/html.go`, which had prevented the CLI from compiling.
+
+Both issues identified in the initial Test 5 run have been fully diagnosed and resolved:
 1. **Rust Scanner Compilation & Tests**: Resolved by pointing Cargo to an isolated target directory (`$env:CARGO_TARGET_DIR = "$env:TEMP\cargo-target"`) to bypass Windows Music folder media indexing locks, and correcting a regex lookaround in `rules.rs`. All 4 Rust tests pass, and the compiled `vibeguard-scanner.exe` runs in 151ms with 0 false positives.
 2. **Report Generation Persistence**: Resolved by adding `filepath.Abs(filepath.Clean(outputPath))` and recursive parent directory creation (`os.MkdirAll`) in `internal/report/json.go` and `internal/report/html.go`. Both JSON (`test5-scan.json`, 1.2 MB) and HTML (`test5-scan.html`, 153 KB) write cleanly and reliably.
 
@@ -108,6 +110,8 @@ test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 Result: **PASS**
 
+Cargo emitted five non-fatal warnings about unused variables, unused assignments, and unused enum fields/variants. No Rust tests failed.
+
 ### 6. Rust Release Build & Standalone Execution (RESOLVED)
 
 Command:
@@ -140,7 +144,8 @@ Output:
 - Dependency Scan: `[████████████████████] 100%` (`Dependencies: 12/12`)
 - OSV Queries: `[████████████████████] 100%` (`OSV queries: 12/12`)
 - Final Stage: `[████████████████████] 100%` followed by `Security analysis complete.`
-- Findings: 22 critical, 69 high
+- Findings: 208 total (`7` secrets, `13` source-code, `185` dependency, `3` Docker)
+- Gate reason: `22` critical and `69` high findings
 - Deployment Status: **BLOCKED** (exit code `1`)
 
 Result: **PASS**
