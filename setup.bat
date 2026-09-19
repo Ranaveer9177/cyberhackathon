@@ -2,47 +2,48 @@
 setlocal enabledelayedexpansion
 
 :: ============================================================
-::  VibeGuard Automated Setup Script (setup.bat)
-::  Portability: Runs on any Windows laptop using prebuilt binaries
+::  VibeGuard Automated Global Setup Script (setup.bat)
+::  Portability: Runs on any Windows machine using prebuilt binaries
+::  Installs to %LOCALAPPDATA%\VibeGuard and configures User PATH
 ::  Does NOT require Go, Rust, or Visual Studio Build Tools
 :: ============================================================
 
-:: 1. Detect repository root dynamically from script location
+:: Step 1 — Find repository root dynamically from script location
 set "ROOT=%~dp0"
 cd /d "%ROOT%"
 
 echo ========================================
-echo       VIBEGUARD LAPTOP SETUP
+echo        VIBEGUARD SETUP
 echo ========================================
-echo Project Root: %ROOT%
+echo Source Location: %ROOT%
 echo.
 
-:: 2. Prebuilt binary check
-set "CLI_BIN=%ROOT%vibeguard.exe"
-set "SCANNER_BIN=%ROOT%vibeguard-scanner.exe"
+:: Step 2 — Locate source binaries
+set "CLI_SRC=%ROOT%vibeguard.exe"
+set "SCANNER_SRC=%ROOT%vibeguard-scanner.exe"
 
-if not exist "%SCANNER_BIN%" (
+if not exist "%SCANNER_SRC%" (
     if exist "%ROOT%scanner\scanner.exe" (
-        set "SCANNER_BIN=%ROOT%scanner\scanner.exe"
+        set "SCANNER_SRC=%ROOT%scanner\scanner.exe"
     ) else if exist "%ROOT%scanner\vibeguard-scanner.exe" (
-        set "SCANNER_BIN=%ROOT%scanner\vibeguard-scanner.exe"
+        set "SCANNER_SRC=%ROOT%scanner\vibeguard-scanner.exe"
     )
 )
 
-if not exist "%CLI_BIN%" (
-    echo [ERROR] Required VibeGuard binary was not found.
+if not exist "%CLI_SRC%" (
+    echo [ERROR] vibeguard.exe was not found.
     echo.
     echo Expected:
-    echo     %CLI_BIN%
+    echo     %CLI_SRC%
     echo.
     echo Run build.bat on a developer machine or obtain the official release package.
     exit /b 1
 )
 
-echo [OK] VibeGuard CLI found: %CLI_BIN%
+echo [OK] VibeGuard executable found: %CLI_SRC%
 
-if not exist "%SCANNER_BIN%" (
-    echo [ERROR] Required VibeGuard scanner binary was not found.
+if not exist "%SCANNER_SRC%" (
+    echo [ERROR] Rust scanner executable was not found.
     echo.
     echo Expected:
     echo     %ROOT%vibeguard-scanner.exe or %ROOT%scanner\scanner.exe
@@ -51,112 +52,104 @@ if not exist "%SCANNER_BIN%" (
     exit /b 1
 )
 
-echo [OK] Rust scanner found: %SCANNER_BIN%
+echo [OK] Scanner executable found: %SCANNER_SRC%
 
-:: Ensure scanner binary exists in both standard locations
+:: Step 3 — Create stable user installation directory
+set "INSTALL_DIR=%LOCALAPPDATA%\VibeGuard"
+if not exist "%INSTALL_DIR%" (
+    mkdir "%INSTALL_DIR%" >nul 2>&1
+)
+if not exist "%INSTALL_DIR%\bin" (
+    mkdir "%INSTALL_DIR%\bin" >nul 2>&1
+)
+
+:: Step 4 — Copy / update VibeGuard CLI and Rust scanner
+copy /Y "%CLI_SRC%" "%INSTALL_DIR%\vibeguard.exe" >nul 2>&1
+copy /Y "%CLI_SRC%" "%INSTALL_DIR%\bin\vibeguard.exe" >nul 2>&1
+
+copy /Y "%SCANNER_SRC%" "%INSTALL_DIR%\scanner.exe" >nul 2>&1
+copy /Y "%SCANNER_SRC%" "%INSTALL_DIR%\vibeguard-scanner.exe" >nul 2>&1
+copy /Y "%SCANNER_SRC%" "%INSTALL_DIR%\bin\scanner.exe" >nul 2>&1
+copy /Y "%SCANNER_SRC%" "%INSTALL_DIR%\bin\vibeguard-scanner.exe" >nul 2>&1
+
+:: Also keep local copies in repo for local workflows
 if not exist "%ROOT%vibeguard-scanner.exe" (
-    copy /Y "%SCANNER_BIN%" "%ROOT%vibeguard-scanner.exe" >nul 2>&1
+    copy /Y "%SCANNER_SRC%" "%ROOT%vibeguard-scanner.exe" >nul 2>&1
 )
 if not exist "%ROOT%scanner\scanner.exe" (
     if not exist "%ROOT%scanner" mkdir "%ROOT%scanner"
-    copy /Y "%SCANNER_BIN%" "%ROOT%scanner\scanner.exe" >nul 2>&1
+    copy /Y "%SCANNER_SRC%" "%ROOT%scanner\scanner.exe" >nul 2>&1
 )
 
-:: 3. Required Directory Checks (verify or create)
-echo.
-echo Checking required directories...
-if not exist "%ROOT%.vibeguard" (
-    mkdir "%ROOT%.vibeguard"
-    echo [OK] Created .vibeguard\ directory
-) else (
-    echo [OK] .vibeguard\ directory verified
+:: Step 5 — Copy runtime rules / configuration data
+if exist "%ROOT%rules" (
+    if not exist "%INSTALL_DIR%\rules" mkdir "%INSTALL_DIR%\rules" >nul 2>&1
+    xcopy /E /I /Y /Q "%ROOT%rules" "%INSTALL_DIR%\rules" >nul 2>&1
 )
 
-if not exist "%ROOT%reports" (
-    mkdir "%ROOT%reports"
-    echo [OK] Created reports\ directory
-) else (
-    echo [OK] reports\ directory verified
-)
+:: Step 6 — Required directories in current repository
+if not exist "%ROOT%.vibeguard" mkdir "%ROOT%.vibeguard" >nul 2>&1
+if not exist "%ROOT%reports" mkdir "%ROOT%reports" >nul 2>&1
+if not exist "%ROOT%rules" mkdir "%ROOT%rules" >nul 2>&1
+if not exist "%ROOT%tests" mkdir "%ROOT%tests" >nul 2>&1
 
-if not exist "%ROOT%rules" (
-    mkdir "%ROOT%rules"
-    echo [OK] Created rules\ directory
-) else (
-    echo [OK] rules\ directory verified
-)
-
-if not exist "%ROOT%tests" (
-    mkdir "%ROOT%tests"
-    echo [OK] Created tests\ directory
-) else (
-    echo [OK] tests\ directory verified
-)
-
-:: 4. Verify or generate default configuration
 if not exist "%ROOT%.vibeguard\config.json" (
-    echo Generating default configuration...
-    call "%CLI_BIN%" init >nul 2>&1
-    if exist "%ROOT%.vibeguard\config.json" (
-        echo [OK] Default configuration created: .vibeguard\config.json
-    )
-) else (
-    echo [OK] Configuration verified: .vibeguard\config.json
+    call "%INSTALL_DIR%\vibeguard.exe" init >nul 2>&1
 )
 
-:: 5. Install Git pre-push hook if inside a git repository
-echo.
-echo Configuring Git security gate...
+:: Configure Git pre-push hook if inside a git repository
 if exist "%ROOT%.git" (
-    call "%CLI_BIN%" init
-    echo [OK] Git pre-push hook configured
-) else (
-    echo [INFO] No .git directory found. Skipping Git hook installation.
+    call "%INSTALL_DIR%\vibeguard.exe" init >nul 2>&1
 )
 
-:: 6. Install VibeGuard CLI to User PATH for global execution
-echo.
-echo Installing VibeGuard CLI for global terminal use...
-set "VIBEGUARD_HOME=%LOCALAPPDATA%\VibeGuard\bin"
+:: Step 7 — Add %LOCALAPPDATA%\VibeGuard to USER PATH idempotently
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$target = [IO.Path]::Combine($env:LOCALAPPDATA, 'VibeGuard'); " ^
+  "$userPath = [Environment]::GetEnvironmentVariable('Path', 'User'); " ^
+  "$parts = if ($userPath) { $userPath -split ';' } else { @() }; " ^
+  "$cleanParts = @(); foreach ($p in $parts) { $tp = $p.Trim(); if ($tp -and $cleanParts -notcontains $tp) { $cleanParts += $tp } }; " ^
+  "$found = $false; foreach ($p in $cleanParts) { if ($p.ToLower().TrimEnd('\') -eq $target.ToLower().TrimEnd('\')) { $found = $true; break } }; " ^
+  "if (-not $found) { $newPath = ($cleanParts + $target) -join ';'; [Environment]::SetEnvironmentVariable('Path', $newPath, 'User') }" >nul 2>&1
 
-if not exist "%VIBEGUARD_HOME%" (
-    mkdir "%VIBEGUARD_HOME%" >nul 2>&1
+:: Also update current session PATH
+set "PATH=%INSTALL_DIR%;%INSTALL_DIR%\bin;%PATH%"
+
+:: Step 8 — Verify installation
+if not exist "%INSTALL_DIR%\vibeguard.exe" (
+    echo [ERROR] Installation failed: %INSTALL_DIR%\vibeguard.exe missing.
+    exit /b 1
 )
-
-copy /Y "%CLI_BIN%" "%VIBEGUARD_HOME%\vibeguard.exe" >nul 2>&1
-copy /Y "%SCANNER_BIN%" "%VIBEGUARD_HOME%\vibeguard-scanner.exe" >nul 2>&1
-copy /Y "%SCANNER_BIN%" "%VIBEGUARD_HOME%\scanner.exe" >nul 2>&1
-
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$u=[Environment]::GetEnvironmentVariable('Path','User'); $d=[IO.Path]::Combine($env:LOCALAPPDATA,'VibeGuard','bin'); if (($u -split ';') -notcontains $d) { [Environment]::SetEnvironmentVariable('Path', (($u.TrimEnd(';')+';'+$d).TrimStart(';')), 'User') }" >nul 2>&1
-
-set "PATH=%VIBEGUARD_HOME%;%PATH%"
-
-echo [OK] VibeGuard CLI installed to: %VIBEGUARD_HOME%
-echo [OK] Global Command: vibeguard
-
-:: 7. Version verification test
-echo.
-echo Testing VibeGuard CLI...
-call "%CLI_BIN%" version
-if %ERRORLEVEL% neq 0 (
-    echo [ERROR] Version verification failed.
+if not exist "%INSTALL_DIR%\scanner.exe" (
+    echo [ERROR] Installation failed: %INSTALL_DIR%\scanner.exe missing.
     exit /b 1
 )
 
 echo.
 echo ========================================
-echo       VIBEGUARD SETUP COMPLETE
+echo        VIBEGUARD INSTALLATION
 echo ========================================
 echo.
-echo [OK] Prebuilt binaries verified
-echo [OK] Required directories verified
-echo [OK] Configuration active
-echo [OK] CLI ready for use
+echo [OK] Installation directory
+echo [OK] VibeGuard executable
+echo [OK] Rust scanner
+echo [OK] Runtime files
+echo [OK] User PATH configured
 echo.
-echo You can now run:
-echo   vibeguard version
-echo   vibeguard scan .\test-project
-echo   run_test.bat
+echo Installation:
+echo %INSTALL_DIR%
 echo.
-echo VibeGuard development environment ready.
-endlocal & set "PATH=%LOCALAPPDATA%\VibeGuard\bin;%PATH%"
+echo Current Session:
+call "%INSTALL_DIR%\vibeguard.exe" version
+echo.
+echo ============================================================
+echo  Please close this terminal and open a NEW CMD/PowerShell
+echo  window so the updated User PATH is recognized.
+echo.
+echo  Then you can run from ANY directory:
+echo      vibeguard version
+echo      vibeguard scan ^<project-path^>
+echo      vibeguard help
+echo ============================================================
+echo.
+
+endlocal & set "PATH=%LOCALAPPDATA%\VibeGuard;%LOCALAPPDATA%\VibeGuard\bin;%PATH%"

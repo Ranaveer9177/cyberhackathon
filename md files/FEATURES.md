@@ -130,11 +130,14 @@
 
 ---
 
-## 6. Portable Windows Distribution & Automation Suite (`NEW_LAPTOP_SETUP.md`)
+## 6. Global CLI Installation & Windows Distribution Suite (`GLOBAL_CLI_SETUP.md`)
 
 ### 6.1 Distribution Architecture
-- **Mode A (Demo / User Mode)**: Runs from prebuilt binaries (`vibeguard.exe` and `vibeguard-scanner.exe`). Never requires Go, Rust, or MSVC Build Tools.
+- **Global User Installation**: Self-locating CLI installed to `%LOCALAPPDATA%\VibeGuard`, added to Windows User `PATH` idempotently.
+- **Mode A (Demo / User Mode)**: Runs from prebuilt binaries (`vibeguard.exe` and `scanner.exe`). Never requires Go, Rust, or MSVC Build Tools.
 - **Mode B (Developer Mode)**: Full source rebuilds using `build.bat`, verifying Go, Rust, and Microsoft C++ linker (`link.exe`).
+- **Dynamic Self-Locating Engine**: Prioritizes executable path and `%LOCALAPPDATA%\VibeGuard` so `vibeguard scan <path>` executes anywhere.
+- **Hardened Git Pre-Push Hook**: Prefers global `%LOCALAPPDATA%\VibeGuard` installation over untrusted repository-local executables (Section 19 Security Policy).
 
 ### 6.2 Automation Scripts
 1. **`setup.bat` (Mode A Setup)**:
@@ -143,17 +146,16 @@
    - Automatically creates `.vibeguard\`, `reports\`, `rules\`, and `tests\`.
    - Generates default `.vibeguard\config.json`.
    - Installs Git pre-push hook into `.git\hooks\pre-push`.
-   - Copies binaries to `%LOCALAPPDATA%\VibeGuard\bin` and configures User `PATH`.
-   - Safe and idempotent.
+   - Copies binaries to `%LOCALAPPDATA%\VibeGuard` and registers User `PATH`.
+   - Safe, idempotent, and non-destructive.
 2. **`build.bat` (Mode B Source Build)**:
    - Verifies Go compiler, Rust compiler, and MSVC `link.exe`.
    - Recompiles Rust scanner in release mode and copies binary to root and `scanner/`.
-   - Recompiles Go orchestrator CLI.
-   - Updates `%LOCALAPPDATA%\VibeGuard\bin`.
+   - Recompiles Go orchestrator CLI from repository root.
+   - Refreshes `%LOCALAPPDATA%\VibeGuard`.
 3. **`run_test.bat` (Health Check & Fixture Validation)**:
-   - Validates CLI and scanner binaries.
-   - Executes security scan against intentionally vulnerable `test-project`.
-   - Confirms exit code `1` (BLOCKED) with formatted test banners.
+   - Validates CLI, Scanner, Version, Test Project Scan, HTML Report Generation, and Security Gate Blocking.
+   - Formatted `[PASS]` status output across all 6 core criteria.
 4. **`install_hook.bat` & `uninstall_hook.bat`**:
    - Single-command lifecycle management for the Git pre-push hook.
 

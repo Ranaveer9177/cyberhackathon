@@ -160,21 +160,32 @@ cyberhackathon/
 VibeGuard supports two distinct distribution modes for zero-friction portability:
 
 ### Mode A — Demo / User Mode (No Compilers Required)
-Prebuilt Windows binaries (`vibeguard.exe` and `vibeguard-scanner.exe`) are bundled directly with the repository. You **do not need Go, Rust, or Visual Studio Build Tools** to run VibeGuard on a demo laptop:
+Prebuilt Windows binaries (`vibeguard.exe` and `vibeguard-scanner.exe`) are bundled directly with the repository. You **do not need Go, Rust, or Visual Studio Build Tools** to run VibeGuard:
 
-1. **One-Command Setup**:
+1. **One-Command Global Setup**:
    ```cmd
    setup.bat
    ```
-   *Verifies prebuilt binaries, checks required directories (`.vibeguard`, `reports`, `rules`, `tests`), installs the Git pre-push hook, copies the CLI to `%LOCALAPPDATA%\VibeGuard\bin`, and registers User `PATH` for universal terminal access.*
+   *Installs VibeGuard into `%LOCALAPPDATA%\VibeGuard`, verifies the Rust scanner, installs runtime rules, configures the Git pre-push hook, and registers `%LOCALAPPDATA%\VibeGuard` in the Current User `PATH`.*
 
-2. **Verify Health & Scan Test Project**:
+2. **Open a NEW Terminal & Verify Global Access**:
+   Close your current CMD or PowerShell window and open a new one. `vibeguard` is now available globally from **any directory**:
+   ```cmd
+   cd %USERPROFILE%
+   vibeguard version
+   # Output: VibeGuard v3.0.0
+
+   cd C:\
+   vibeguard help
+   ```
+
+3. **Verify Health & Scan Test Project**:
    ```cmd
    run_test.bat
    ```
-   *Executes a full self-test against the intentionally vulnerable fixture `test-project`, verifying that security findings are correctly detected and blocked.*
+   *Executes a full self-test against the intentionally vulnerable fixture `test-project`, verifying CLI, scanner, version, scan, HTML report generation, and security gate blocking.*
 
-3. **Hook Management Scripts**:
+4. **Hook Management Scripts**:
    ```cmd
    install_hook.bat     # Installs the pre-push hook in .git/hooks/pre-push
    uninstall_hook.bat   # Cleanly removes the pre-push hook
@@ -183,7 +194,7 @@ Prebuilt Windows binaries (`vibeguard.exe` and `vibeguard-scanner.exe`) are bund
 ---
 
 ### Mode B — Developer / Source Build Mode
-Developers who want to recompile VibeGuard from source:
+Developers rebuilding VibeGuard from source:
 
 1. **Prerequisites**:
    - **Go** (1.21 or higher)
@@ -195,7 +206,7 @@ Developers who want to recompile VibeGuard from source:
    ```cmd
    build.bat
    ```
-   *Verifies Go, Rust, and `link.exe`, compiles the release Rust scanner (`cargo build --release`), compiles the Go orchestrator CLI (`go build ./cmd/vibeguard`), and updates the local binaries.*
+   *Verifies Go, Rust, and `link.exe`, compiles the release Rust scanner (`cargo build --release`), compiles the Go orchestrator CLI (`go build ./cmd/vibeguard`), updates local binaries, and refreshes the global `%LOCALAPPDATA%\VibeGuard` installation.*
 
 3. **Manual CLI Build**:
    ```powershell
@@ -207,25 +218,21 @@ Developers who want to recompile VibeGuard from source:
 
 ---
 
-### Permanent Global CLI Installation
-`setup.bat` automatically copies `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin\` and permanently adds it to your User `PATH`. Once configured, `vibeguard` runs globally from any command prompt or terminal window across any project folder:
+### Global Execution & Independent Target Scanning
+Because VibeGuard dynamically determines its executable directory at runtime (`FindScannerExecutable()`), you can scan any external repository or project folder from anywhere on your machine:
 
 ```powershell
-# Run from any project folder:
-vibeguard scan .
+# Scan external projects from any directory:
+vibeguard scan C:\Users\pooji\Projects\my-app
+vibeguard scan D:\Repositories\backend --format html --output reports\audit.html
+
+# Run within any Git repository:
 vibeguard status
 vibeguard init
 vibeguard push
-vibeguard version
 ```
 
-This also enables any repository's `.git/hooks/pre-push` to automatically locate and execute VibeGuard without needing the binary inside every repository.
-
-4. **Verify Installation**:
-   ```powershell
-   .\vibeguard.exe version
-   # Output: VibeGuard v3.0.0
-   ```
+The Git pre-push hook prioritizes the trusted `%LOCALAPPDATA%\VibeGuard\vibeguard.exe` binary over untrusted repository-local executables, preventing rogue scripts from circumventing gate policies.
 
 ---
 
@@ -234,7 +241,7 @@ This also enables any repository's `.git/hooks/pre-push` to automatically locate
 ### 1. `vibeguard init` — Install Git Pre-Push Hook
 Installs the automatic pre-push hook into `.git/hooks/pre-push` and creates default configuration `.vibeguard/config.json`. Existing user hooks are automatically preserved and chained.
 ```powershell
-.\vibeguard.exe init
+vibeguard init
 ```
 
 ### 2. `vibeguard status` — Check Security Gate Status

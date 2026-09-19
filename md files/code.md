@@ -1,101 +1,9 @@
-# VibeGuard — Complete Source Code Repository
-**Project:** VibeGuard v3.0.0 (Autonomous Git Secure Push Gate)
-**Generated:** 2026-09-19 10:35:42
-**Total Files:** 85
+# VibeGuard Codebase — Complete Source Files
+
+Total files: 86
 
 ---
 
-## Table of Contents
-
-1. [.gitignore](#gitignore)
-2. [NEW_LAPTOP_SETUP.md](#newlaptopsetupmd)
-3. [README.md](#readmemd)
-4. [build.bat](#buildbat)
-5. [cmd/vibeguard/main.go](#cmdvibeguardmaingo)
-6. [go.mod](#gomod)
-7. [install_hook.bat](#installhookbat)
-8. [internal/config/config.go](#internalconfigconfiggo)
-9. [internal/config/config_test.go](#internalconfigconfigtestgo)
-10. [internal/dependencies/detector.go](#internaldependenciesdetectorgo)
-11. [internal/dependencies/parser.go](#internaldependenciesparsergo)
-12. [internal/dependencies/parser_test.go](#internaldependenciesparsertestgo)
-13. [internal/gate/gate.go](#internalgategatego)
-14. [internal/gate/gate_test.go](#internalgategatetestgo)
-15. [internal/git/hooks.go](#internalgithooksgo)
-16. [internal/git/hooks_test.go](#internalgithookstestgo)
-17. [internal/git/repo.go](#internalgitrepogo)
-18. [internal/git/repo_test.go](#internalgitrepotestgo)
-19. [internal/osv/client.go](#internalosvclientgo)
-20. [internal/osv/types.go](#internalosvtypesgo)
-21. [internal/report/html.go](#internalreporthtmlgo)
-22. [internal/report/json.go](#internalreportjsongo)
-23. [internal/report/progress.go](#internalreportprogressgo)
-24. [internal/report/progress_test.go](#internalreportprogresstestgo)
-25. [internal/report/report_test.go](#internalreportreporttestgo)
-26. [internal/report/terminal.go](#internalreportterminalgo)
-27. [internal/risk/scorer.go](#internalriskscorergo)
-28. [internal/risk/scorer_test.go](#internalriskscorertestgo)
-29. [internal/scanner/runner.go](#internalscannerrunnergo)
-30. [internal/scanner/runner_test.go](#internalscannerrunnertestgo)
-31. [md files/ARCHITECTURE.md](#mdfilesarchitecturemd)
-32. [md files/CHANGELOG.md](#mdfileschangelogmd)
-33. [md files/FEATURES.md](#mdfilesfeaturesmd)
-34. [md files/LANGUAGE.md](#mdfileslanguagemd)
-35. [md files/NEW_LAPTOP_SETUP.md](#mdfilesnewlaptopsetupmd)
-36. [md files/PLAN.md](#mdfilesplanmd)
-37. [md files/PROCESSES.md](#mdfilesprocessesmd)
-38. [md files/README.md](#mdfilesreadmemd)
-39. [md files/ROADMAP.md](#mdfilesroadmapmd)
-40. [md files/TESTING.md](#mdfilestestingmd)
-41. [md files/TEST_OUTPUT.md](#mdfilestestoutputmd)
-42. [md files/V2.md](#mdfilesv2md)
-43. [md files/finalreport.md](#mdfilesfinalreportmd)
-44. [md files/report.md](#mdfilesreportmd)
-45. [md files/steps.md](#mdfilesstepsmd)
-46. [output.md](#outputmd)
-47. [output2.md](#output2md)
-48. [rules/README.md](#rulesreadmemd)
-49. [run_test.bat](#runtestbat)
-50. [scanner/Cargo.lock](#scannercargolock)
-51. [scanner/Cargo.toml](#scannercargotoml)
-52. [scanner/src/config.rs](#scannersrcconfigrs)
-53. [scanner/src/docker.rs](#scannersrcdockerrs)
-54. [scanner/src/git.rs](#scannersrcgitrs)
-55. [scanner/src/main.rs](#scannersrcmainrs)
-56. [scanner/src/rules.rs](#scannersrcrulesrs)
-57. [scanner/src/sast.rs](#scannersrcsastrs)
-58. [scanner/src/scanner.rs](#scannersrcscannerrs)
-59. [scanner/src/secrets.rs](#scannersrcsecretsrs)
-60. [scanner/src/types.rs](#scannersrctypesrs)
-61. [setup.bat](#setupbat)
-62. [src/README.md](#srcreadmemd)
-63. [test output.md](#testoutputmd)
-64. [test-project/.env](#testprojectenv)
-65. [test-project/Dockerfile](#testprojectdockerfile)
-66. [test-project/README.md](#testprojectreadmemd)
-67. [test-project/go.mod](#testprojectgomod)
-68. [test-project/package.json](#testprojectpackagejson)
-69. [test-project/requirements.txt](#testprojectrequirementstxt)
-70. [test-project/src/auth.js](#testprojectsrcauthjs)
-71. [test-project/src/config.go](#testprojectsrcconfiggo)
-72. [test-project/src/database.go](#testprojectsrcdatabasego)
-73. [test3.md](#test3md)
-74. [test4.md](#test4md)
-75. [test5.md](#test5md)
-76. [tests/dependencies/Cargo.toml](#testsdependenciescargotoml)
-77. [tests/dependencies/go.mod](#testsdependenciesgomod)
-78. [tests/dependencies/package.json](#testsdependenciespackagejson)
-79. [tests/dependencies/requirements.txt](#testsdependenciesrequirementstxt)
-80. [tests/integration/integration_test.go](#testsintegrationintegrationtestgo)
-81. [tests/sast/safe.go](#testssastsafego)
-82. [tests/sast/vulnerable.go](#testssastvulnerablego)
-83. [tests/secrets/clean_text.txt](#testssecretscleantexttxt)
-84. [tests/secrets/fake_keys.txt](#testssecretsfakekeystxt)
-85. [uninstall_hook.bat](#uninstallhookbat)
-
----
-
-<a name="gitignore"></a>
 ## .gitignore
 
 ```
@@ -142,1179 +50,6 @@ Thumbs.db
 
 ---
 
-<a name="newlaptopsetupmd"></a>
-## NEW_LAPTOP_SETUP.md
-
-```markdown
-# VibeGuard — New Laptop Setup & Portability Plan
-
-## Purpose
-
-This document defines how VibeGuard must be packaged and how the setup scripts must behave on a **new Windows laptop**.
-
-The goal is:
-
-> Clone/copy the repository to a new Windows laptop, run one setup command, and avoid confusing build errors caused by missing Go, Rust, MSVC, PATH configuration, or incorrect working directories.
-
-The hackathon/demo laptop should **not need Go, Rust, or Visual Studio Build Tools just to run the already-built VibeGuard application**.
-
----
-
-# 1. Recommended Final Distribution
-
-The repository should support two modes.
-
-## Mode A — Demo / User Mode
-
-Use prebuilt binaries.
-
-```text
-cyberhackathon/
-├── vibeguard.exe
-├── scanner/
-│   └── scanner.exe
-├── rules/
-├── reports/
-├── test-project/
-├── .vibeguard/
-├── setup.bat
-├── run_test.bat
-└── README.md
-```
-
-In this mode:
-
-```cmd
-setup.bat
-```
-
-should configure VibeGuard and verify the installation.
-
-The user should then be able to run:
-
-```cmd
-vibeguard version
-```
-
-and:
-
-```cmd
-vibeguard scan .\test-project
-```
-
-No Rust compiler is required.
-
-No Go compiler is required.
-
-No Visual Studio Build Tools are required.
-
----
-
-# 2. Mode B — Developer / Source Build Mode
-
-Developers who want to rebuild VibeGuard from source may install:
-
-```text
-Git
-Go
-Rust
-Visual Studio Build Tools
-Desktop development with C++
-```
-
-Then the project can be rebuilt using the source-build script.
-
-Example:
-
-```cmd
-build.bat
-```
-
-The important rule is:
-
-> The normal setup script must not assume that a compiler is installed.
-
----
-
-# 3. Required Scripts
-
-The repository should eventually contain:
-
-```text
-setup.bat
-build.bat
-run_test.bat
-install_hook.bat
-uninstall_hook.bat
-```
-
-## setup.bat
-
-Responsible for:
-
-1. Detecting the repository root.
-2. Checking that VibeGuard binaries exist.
-3. Creating required directories.
-4. Checking required files.
-5. Configuring PATH if required.
-6. Installing the Git pre-push hook.
-7. Running a basic version test.
-8. Printing clear success/failure messages.
-
-It should NOT automatically run `cargo build` or `go build` unless explicitly requested.
-
----
-
-# 4. Repository Root Detection
-
-Every BAT script must work regardless of the directory from which it is launched.
-
-Do NOT assume the user is already inside the repository.
-
-Use the BAT file's own location as the project root.
-
-Conceptually:
-
-```bat
-set "ROOT=%~dp0"
-cd /d "%ROOT%"
-```
-
-This prevents errors such as:
-
-```text
-scanner\cmd\vibeguard not found
-```
-
-caused by running a root-level Go command from inside the `scanner` directory.
-
----
-
-# 5. Prebuilt Binary Check
-
-Before doing anything else, `setup.bat` should check:
-
-```text
-vibeguard.exe
-scanner\scanner.exe
-```
-
-If they exist:
-
-```text
-[OK] VibeGuard CLI found
-[OK] Rust scanner found
-```
-
-If one is missing:
-
-```text
-[ERROR] Required VibeGuard binary was not found.
-
-Expected:
-    <project>\vibeguard.exe
-
-Run build.bat on a developer machine or obtain the official release package.
-```
-
-Do not silently continue.
-
----
-
-# 6. Do Not Require Rust on Demo Laptop
-
-This is critical.
-
-The current problem was:
-
-```text
-error: linker `link.exe` not found
-```
-
-This happens because Rust was trying to compile using the Windows MSVC target but the Microsoft C++ linker was not installed.
-
-The final demo package should avoid this entirely.
-
-The demo laptop should run:
-
-```text
-vibeguard.exe
-```
-
-and:
-
-```text
-scanner.exe
-```
-
-instead of compiling Rust.
-
----
-
-# 7. Developer Build Requirements
-
-`build.bat` should check:
-
-```text
-go
-cargo
-rustc
-link.exe
-```
-
-Example checks:
-
-```bat
-where go
-where cargo
-where rustc
-where link
-```
-
-If `link.exe` is missing, show:
-
-```text
-[ERROR] Microsoft C++ linker (link.exe) was not found.
-
-Install:
-Visual Studio Build Tools
-→ Desktop development with C++
-
-Then open a new terminal and run build.bat again.
-```
-
-Do not display a long Rust compiler error when a simple prerequisite explanation is possible.
-
----
-
-# 8. Correct Build Order
-
-The source build should be:
-
-```text
-1. Detect project root
-2. Check Go
-3. Check Rust
-4. Check MSVC linker
-5. Build Rust scanner
-6. Build Go CLI
-7. Verify generated binaries
-8. Run version test
-9. Report success
-```
-
-Rust:
-
-```cmd
-cd scanner
-cargo build --release
-```
-
-Return to root:
-
-```cmd
-cd ..
-```
-
-Go:
-
-```cmd
-go build -buildvcs=false -o vibeguard.exe ./cmd/vibeguard
-```
-
-The Go command MUST be executed from the repository root.
-
----
-
-# 9. Never Use Documentation Comments as Commands
-
-Do not copy lines such as:
-
-```text
-# Output: VibeGuard v3.0.0
-```
-
-into CMD.
-
-For BAT files use:
-
-```bat
-REM Output: VibeGuard v3.0.0
-```
-
-or simply print output with:
-
-```bat
-echo Output: VibeGuard v3.0.0
-```
-
----
-
-# 10. PATH Configuration
-
-VibeGuard should work from the project directory even if PATH is not modified.
-
-Example:
-
-```cmd
-.\vibeguard.exe version
-```
-
-If global CLI usage is desired, setup may add the VibeGuard installation directory to the user's PATH.
-
-Prefer **User PATH**, not System PATH.
-
-After changing PATH, tell the user:
-
-```text
-PATH updated.
-Please open a new terminal before using `vibeguard`.
-```
-
-Do not assume the current CMD automatically receives the newly modified PATH.
-
----
-
-# 11. Git Pre-Push Hook
-
-The project must install a Git pre-push hook.
-
-Expected location:
-
-```text
-.git\hooks\pre-push
-```
-
-The hook should call the VibeGuard executable using an absolute/project-relative path rather than assuming `vibeguard` is globally available.
-
-Conceptually:
-
-```text
-git push
-    ↓
-.git/hooks/pre-push
-    ↓
-vibeguard scan
-    ↓
-PASS → exit 0
-BLOCK → exit 1
-```
-
-The hook must return a non-zero exit code when VibeGuard blocks the push.
-
----
-
-# 12. Git Hook Portability
-
-Do not hardcode a developer's personal path such as:
-
-```text
-C:\Users\ranua\...
-```
-
-Never use:
-
-```text
-C:\Users\pooji\...
-```
-
-Never use:
-
-```text
-C:\Users\ranua\...
-```
-
-The hook must determine the repository/project location dynamically.
-
-This is essential when moving the project between laptops.
-
----
-
-# 13. Required Directory Checks
-
-`setup.bat` should verify or create:
-
-```text
-.vibeguard\
-reports\
-rules\
-tests\
-```
-
-If a directory is required by the current implementation, it should be created automatically.
-
-Example:
-
-```bat
-if not exist ".vibeguard" mkdir ".vibeguard"
-if not exist "reports" mkdir "reports"
-```
-
-Do not overwrite existing configuration unnecessarily.
-
----
-
-# 14. Test Command
-
-Create:
-
-```text
-run_test.bat
-```
-
-It should:
-
-1. Detect project root.
-2. Check `vibeguard.exe`.
-3. Check scanner executable.
-4. Run the version command.
-5. Scan `test-project`.
-6. Display the final result.
-7. Return a useful exit code.
-
-Example:
-
-```cmd
-run_test.bat
-```
-
-Expected:
-
-```text
-========================================
-        VIBEGUARD TEST
-========================================
-
-[OK] CLI
-[OK] Scanner
-[OK] Version
-[OK] Test project
-
-Running security scan...
-
-========================================
-TEST COMPLETED
-========================================
-```
-
----
-
-# 15. Setup Should Be Safe to Run Multiple Times
-
-Running:
-
-```cmd
-setup.bat
-```
-
-more than once must not break the project.
-
-It should:
-
-- not duplicate PATH entries
-- not overwrite user configuration unnecessarily
-- not create duplicate Git hooks
-- not delete existing reports
-- not delete source code
-- not reinstall working components unnecessarily
-
-The setup process should be **idempotent**.
-
----
-
-# 16. Error Handling
-
-Every important command should be checked.
-
-Conceptually:
-
-```bat
-some-command
-if errorlevel 1 (
-    echo [ERROR] Command failed.
-    exit /b 1
-)
-```
-
-Do not allow setup to continue after a critical failure.
-
-For example:
-
-```text
-Rust scanner missing
-        ↓
-STOP
-```
-
-rather than:
-
-```text
-Rust scanner missing
-        ↓
-continue
-        ↓
-Go build
-        ↓
-confusing later error
-```
-
----
-
-# 17. Offline Demo Consideration
-
-The hackathon demonstration should preferably work even if Internet access is unavailable.
-
-The core scanner should still run.
-
-Dependency vulnerability lookup can be designed as:
-
-```text
-Online:
-Project → VibeGuard → OSV API
-
-Offline future:
-Project → VibeGuard → Local vulnerability database
-```
-
-For the current MVP, if OSV cannot be reached, VibeGuard should clearly report:
-
-```text
-[WARNING] Vulnerability intelligence service unavailable.
-
-Dependency CVE verification could not be completed.
-```
-
-Do not report:
-
-```text
-PASS
-```
-
-when the dependency vulnerability check was never performed.
-
-The final policy should decide whether this condition blocks the push.
-
----
-
-# 18. Fresh Laptop Test Procedure
-
-Before submitting the project, test it on another Windows laptop.
-
-### Test 1 — Clean environment
-
-Use a laptop without:
-
-```text
-Go
-Rust
-Visual Studio Build Tools
-```
-
-if possible.
-
-Copy/clone the project.
-
-Run:
-
-```cmd
-setup.bat
-```
-
-The demo package should still work if prebuilt binaries are included.
-
-### Test 2 — Version
-
-```cmd
-vibeguard version
-```
-
-Expected:
-
-```text
-VibeGuard v3.0.0
-```
-
-### Test 3 — Scan
-
-```cmd
-vibeguard scan .\test-project
-```
-
-### Test 4 — Git hook
-
-Create a controlled test finding.
-
-Run:
-
-```cmd
-git add .
-git commit -m "test"
-git push
-```
-
-Expected:
-
-```text
-VibeGuard Security Gate
-...
-STATUS: BLOCKED
-```
-
-Then remove/fix the test finding and repeat:
-
-```cmd
-git push
-```
-
-Expected:
-
-```text
-STATUS: SAFE TO PUSH
-```
-
----
-
-# 19. Final Packaging Rule
-
-For the hackathon submission, prefer distributing:
-
-```text
-VibeGuard/
-├── vibeguard.exe
-├── scanner/
-│   └── scanner.exe
-├── .vibeguard/
-├── rules/
-├── reports/
-├── tests/
-├── test-project/
-├── setup.bat
-├── build.bat
-├── run_test.bat
-├── install_hook.bat
-├── uninstall_hook.bat
-├── README.md
-└── NEW_LAPTOP_SETUP.md
-```
-
-Source code should remain available for academic/source-code submission.
-
-The important distinction is:
-
-```text
-Source package
-    ↓
-For developers who want to build
-
-Release/demo package
-    ↓
-For judges/users who just want to run
-```
-
----
-
-# 20. Final Acceptance Criteria
-
-VibeGuard setup is considered portable when all of these are true:
-
-- [x] No hardcoded `C:\Users\<name>` paths.
-- [x] Scripts automatically find their project root.
-- [x] `setup.bat` works from any current directory.
-- [x] Demo laptop does not need Rust to run VibeGuard.
-- [x] Demo laptop does not need Go to run VibeGuard.
-- [x] Demo laptop does not need Visual Studio Build Tools to run VibeGuard.
-- [x] `build.bat` detects missing developer prerequisites.
-- [x] `link.exe` requirement is explained clearly for source builds.
-- [x] Go build is executed from the repository root.
-- [x] Rust build is executed from the scanner directory.
-- [x] Required directories are created automatically.
-- [x] Git pre-push hook uses portable paths.
-- [x] Setup can safely be run multiple times.
-- [x] `run_test.bat` provides a complete health check.
-- [x] Version command works.
-- [x] Test scan works.
-- [x] Git push is blocked when the security policy fails.
-- [x] Git push proceeds when the security policy passes.
-- [x] No real credentials are included in test data.
-- [x] The project can be demonstrated on a second Windows laptop.
-
----
-
-# 21. Priority for Hackathon
-
-Because the project is being demonstrated today, implement in this order:
-
-### P0 — Required immediately
-
-1. Build working Rust scanner.
-2. Build working Go CLI.
-3. Produce `vibeguard.exe`.
-4. Produce Rust scanner `.exe`.
-5. Update `setup.bat`.
-6. Add `run_test.bat`.
-7. Make Git hook portable.
-8. Test on the second laptop.
-
-### P1 — Important
-
-9. Clear prerequisite detection.
-10. Better error messages.
-11. PATH handling.
-12. Final README instructions.
-
-### P2 — Future
-
-13. Automatic vulnerability database synchronization.
-14. Offline vulnerability database.
-15. CI/CD integration.
-16. AI provider integration.
-17. Linux/macOS release packages.
-
----
-
-# Final Goal
-
-A new Windows laptop should be able to receive the VibeGuard project and reach:
-
-```text
-setup.bat
-    ↓
-VibeGuard ready
-    ↓
-vibeguard version
-    ↓
-vibeguard scan .
-    ↓
-git push
-    ↓
-VibeGuard Security Gate
-    ↓
-┌───────────────────────┐
-│ SAFE TO PUSH          │
-│          OR           │
-│ PUSH BLOCKED          │
-└───────────────────────┘
-```
-
-without requiring the user to manually understand Rust, Cargo, Go module paths, MSVC linker configuration, or the developer's original Windows username.
-```
-
----
-
-<a name="readmemd"></a>
-## README.md
-
-```markdown
-# VibeGuard v3.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
-
-> **The Autonomous Pre-Push Security Firewall for Engineering Teams**  
-> *"Make security verification an automatic, non-negotiable step before code ever leaves your machine."*
-
----
-
-## Overview
-
-**VibeGuard v3.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST), vulnerable third-party dependencies (SCA via Google OSV), Dockerfile misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
-
-VibeGuard operates directly in developer terminal workflows and CI/CD pipelines:
-- **Live Interactive Scan Progress**: Real-time terminal progress bars during file scanning, dependency resolution, and OSV database queries.
-- **Autonomous Git Pre-Push Gate**: Intercepts `git push` via standard pre-push hooks. Scans only the exact commits being pushed using pure Go `git archive` snapshotting.
-- **Deterministic 0–100 Security Score**: Evaluates risk using weighted mathematical severity scoring.
-- **Strict Policy Enforcement**: Standardized exit codes (`0` SAFE, `1` BLOCKED, `2` ERROR, `3` CONFIG ERROR, `4` OSV UNAVAILABLE) to reliably integrate with git hooks, GitHub Actions, and deployment pipelines.
-- **Zero Cloud Uploads / 100% On-Machine Privacy**: Code and files never leave your workstation. Discovered credentials are automatically masked (`sk-demo-****`).
-- **Multi-Engine Speed & Precision**: High-performance Rust scanner coupled with Go orchestrator and fallback engine.
-
----
-
-## Architecture
-
-```
-                    Developer Shell / Git CLI
-                               │
-               ┌───────────────┴───────────────┐
-               ▼                               ▼
-       git push / vibeguard push        vibeguard scan
-               │                               │
-               ▼                               │
-        Git Pre-Push Hook                      │
-  (stdin: local & remote refs)                 │
-               │                               │
-               ▼                               │
-     Commit Tree Snapshot                      │
-   (git archive -> tar reader)                 │
-               │                               │
-               └───────────────┬───────────────┘
-                               ▼
-                        VibeGuard CLI (Go)
-                               │
-               ┌───────────────┴───────────────┐
-               ▼                               ▼
-      Rust Scanner Engine              OSV Vulnerability API
-   (Secrets, SAST, Docker, Git)      (Real CVEs / Advisories)
-               │                               │
-               └───────────────┬───────────────┘
-                               ▼
-                         Finding Engine
-                               │
-                               ▼
-                       Risk Scoring Engine
-                               │
-               ┌───────────────┼───────────────┐
-               ▼               ▼               ▼
-        Terminal Report   JSON Report     HTML Report
-               │
-               ▼
-       PASS / BLOCK Gate
-  (SAFE -> Push Continues | BLOCKED -> Push Aborted)
-```
-
-- **Go Orchestrator (`cmd/vibeguard`, `internal/`)**: CLI UX, Git hook lifecycle management, commit snapshot extraction, dependency detection & manifest parsing, OSV REST API communication, finding aggregation, risk scoring, report generation, and gate evaluation.
-- **Rust Engine (`scanner/`)**: High-performance recursive filesystem walker, secret pattern matching with evidence masking, static analysis (SAST) rule evaluation, Dockerfile scanning, configuration auditing, and JSON IPC stream.
-- **Google OSV Intelligence**: Authoritative, real-time vulnerability data for Go, npm, PyPI, and crates.io packages (no hallucinated CVEs).
-
----
-
-## Repository Structure
-
-```text
-cyberhackathon/
-├── cmd/
-│   └── vibeguard/               # CLI application entry point
-│       └── main.go              # Commands: init, status, uninstall, push, scan, report
-├── internal/
-│   ├── config/                  # Repository configuration (.vibeguard/config.json) & exclusions
-│   │   ├── config.go
-│   │   └── config_test.go
-│   ├── dependencies/            # Manifest parsers (go.mod, package.json, requirements.txt, Cargo.toml)
-│   │   ├── detector.go
-│   │   ├── parser.go
-│   │   └── parser_test.go
-│   ├── gate/                    # PASS / BLOCK security gate decision engine
-│   │   ├── gate.go
-│   │   └── gate_test.go
-│   ├── git/                     # Git integration, pre-push hook manager, snapshot scanner
-│   │   ├── hooks.go
-│   │   ├── hooks_test.go
-│   │   ├── repo.go
-│   │   └── repo_test.go
-│   ├── osv/                     # Google OSV API client & batch query engine
-│   │   ├── client.go
-│   │   └── types.go
-│   ├── report/                  # Terminal ANSI, JSON, HTML generators & live progress bars
-│   │   ├── html.go
-│   │   ├── json.go
-│   │   ├── progress.go
-│   │   ├── progress_test.go
-│   │   ├── report_test.go
-│   │   └── terminal.go
-│   ├── risk/                    # Deterministic 0-100 risk scoring algorithm
-│   │   ├── scorer.go
-│   │   └── scorer_test.go
-│   └── scanner/                 # Dual-engine scanner runner (Rust binary + Go fallback)
-│       ├── runner.go
-│       └── runner_test.go
-├── scanner/                     # Rust Scanner Engine
-│   ├── Cargo.toml
-│   └── src/
-│       ├── config.rs            # Configuration auditing (debug mode, CORS wildcard, 0.0.0.0)
-│       ├── docker.rs            # Dockerfile analysis (root user, ENV secrets, COPY .)
-│       ├── git.rs               # Repository sensitive file checks
-│       ├── main.rs              # Scanner entry point and JSON output serializer
-│       ├── rules.rs             # Built-in regex rule definitions
-│       ├── sast.rs              # SAST source code scanner
-│       ├── scanner.rs           # Fast recursive directory traversal with exclusion filters
-│       ├── secrets.rs           # High-entropy secret detection & masking
-│       └── types.rs             # Core shared data structures
-├── test-project/                # Controlled intentionally vulnerable demo project
-│   ├── .env                     # Demo test secrets
-│   ├── Dockerfile               # Vulnerable container file (root user, ENV secrets)
-│   ├── go.mod                   # Outdated dependencies
-│   ├── package.json             # Outdated npm packages
-│   ├── requirements.txt         # Outdated Python dependencies
-│   └── src/
-│       ├── auth.js              # eval(), command injection, hardcoded JWT
-│       ├── config.go            # Hardcoded credentials, disabled TLS
-│       └── database.go          # SQL injection, command injection, weak MD5
-├── tests/                       # Test suites & fixtures
-│   ├── dependencies/            # Mock manifest files
-│   ├── integration/             # End-to-end integration tests
-│   ├── sast/                    # Vulnerable code samples for SAST verification
-│   └── secrets/                 # Test credential patterns
-├── .vibeguard/
-│   └── config.json              # Repository-level configuration and exclusion rules
-├── reports/                     # Output directory for generated reports
-├── setup.bat                    # Automated environment setup script for Windows
-├── README.md                    # Project documentation
-├── md files/                    # Core project documentation and blueprints
-```
-
----
-
-## Detection Capabilities
-
-| Category | Checks & Rules | Default Severity |
-| :--- | :--- | :---: |
-| **Secrets & Keys** | AWS Access Keys (`AKIA...`), GitHub PATs (`ghp_...`), Slack Tokens (`xox...`), Private Cryptographic Keys (`BEGIN RSA/OPENSSH PRIVATE KEY`), Hardcoded Passwords & Tokens, Sensitive Files (`.env`, `*.pem`, `*.key`, `id_rsa`) | `CRITICAL` |
-| **SAST — Code Analysis** | Potential OS Command Injection, Potential SQL Injection, Potential TLS Misconfiguration (`InsecureSkipVerify: true`), Potential Insecure HTTP Connection, Dangerous `eval()` / `Function()`, Weak Cryptography (`MD5`, `SHA1`, `DES`, `RC4`), Hardcoded Credentials | `HIGH` / `MEDIUM` |
-| **Container & Docker** | Container running as `root` (missing non-root `USER`), Secrets stored in `ENV` instructions, Unbounded `COPY . .` without `.dockerignore` | `CRITICAL` / `HIGH` / `MEDIUM` |
-| **SCA — Dependencies** | Direct & transitive package CVE lookup against live Google OSV database (`go.mod`, `package.json`, `package-lock.json`, `requirements.txt`, `Cargo.toml`, `Cargo.lock`) | `CRITICAL` to `LOW` |
-| **Configuration** | Insecure CORS (`Access-Control-Allow-Origin: *`), Exposed Debug Mode (`debug: true`), Insecure host binding (`0.0.0.0`) | `MEDIUM` / `LOW` |
-
----
-
-## Installation & Distribution Modes
-
-VibeGuard supports two distinct distribution modes for zero-friction portability:
-
-### Mode A — Demo / User Mode (No Compilers Required)
-Prebuilt Windows binaries (`vibeguard.exe` and `vibeguard-scanner.exe`) are bundled directly with the repository. You **do not need Go, Rust, or Visual Studio Build Tools** to run VibeGuard on a demo laptop:
-
-1. **One-Command Setup**:
-   ```cmd
-   setup.bat
-   ```
-   *Verifies prebuilt binaries, checks required directories (`.vibeguard`, `reports`, `rules`, `tests`), installs the Git pre-push hook, copies the CLI to `%LOCALAPPDATA%\VibeGuard\bin`, and registers User `PATH` for universal terminal access.*
-
-2. **Verify Health & Scan Test Project**:
-   ```cmd
-   run_test.bat
-   ```
-   *Executes a full self-test against the intentionally vulnerable fixture `test-project`, verifying that security findings are correctly detected and blocked.*
-
-3. **Hook Management Scripts**:
-   ```cmd
-   install_hook.bat     # Installs the pre-push hook in .git/hooks/pre-push
-   uninstall_hook.bat   # Cleanly removes the pre-push hook
-   ```
-
----
-
-### Mode B — Developer / Source Build Mode
-Developers who want to recompile VibeGuard from source:
-
-1. **Prerequisites**:
-   - **Go** (1.21 or higher)
-   - **Git** (2.20 or higher)
-   - **Rust & Cargo** (1.70 or higher)
-   - **Visual Studio Build Tools** (Desktop development with C++ for `link.exe`)
-
-2. **One-Command Source Build**:
-   ```cmd
-   build.bat
-   ```
-   *Verifies Go, Rust, and `link.exe`, compiles the release Rust scanner (`cargo build --release`), compiles the Go orchestrator CLI (`go build ./cmd/vibeguard`), and updates the local binaries.*
-
-3. **Manual CLI Build**:
-   ```powershell
-   cd scanner
-   cargo build --release
-   cd ..
-   go build -buildvcs=false -o vibeguard.exe ./cmd/vibeguard
-   ```
-
----
-
-### Permanent Global CLI Installation
-`setup.bat` automatically copies `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin\` and permanently adds it to your User `PATH`. Once configured, `vibeguard` runs globally from any command prompt or terminal window across any project folder:
-
-```powershell
-# Run from any project folder:
-vibeguard scan .
-vibeguard status
-vibeguard init
-vibeguard push
-vibeguard version
-```
-
-This also enables any repository's `.git/hooks/pre-push` to automatically locate and execute VibeGuard without needing the binary inside every repository.
-
-4. **Verify Installation**:
-   ```powershell
-   .\vibeguard.exe version
-   # Output: VibeGuard v3.0.0
-   ```
-
----
-
-## Command Reference & Usage
-
-### 1. `vibeguard init` — Install Git Pre-Push Hook
-Installs the automatic pre-push hook into `.git/hooks/pre-push` and creates default configuration `.vibeguard/config.json`. Existing user hooks are automatically preserved and chained.
-```powershell
-.\vibeguard.exe init
-```
-
-### 2. `vibeguard status` — Check Security Gate Status
-Displays the repository status, active Git branch, remote origin, commit hash, hook installation state, and loaded security policies.
-```powershell
-.\vibeguard.exe status
-```
-
-### 3. `vibeguard push` — Guided Interactive Push Workflow
-An interactive command that detects staged/modified files, prompts for commit message, executes the security gate verification, and pushes to remote only if the scan passes cleanly.
-```powershell
-.\vibeguard.exe push
-```
-
-### 4. `vibeguard scan` — Scan Repository or Target Directory
-Performs security verification on any path.
-```powershell
-# Scan current repository
-.\vibeguard.exe scan .
-
-# Scan specific directory (e.g. intentionally vulnerable test project)
-.\vibeguard.exe scan .\test-project
-
-# Run in Git pre-push hook mode (evaluates exact pushed commits)
-.\vibeguard.exe scan --hook .
-```
-
-### 5. `vibeguard report` — Generate HTML or JSON Reports
-```powershell
-# Interactive HTML Report (saved to reports/scan.html)
-.\vibeguard.exe report .\test-project --format html
-
-# Machine-readable JSON Report (saved to reports/scan.json)
-.\vibeguard.exe report .\test-project --format json
-```
-
-### 6. `vibeguard uninstall` — Remove Git Pre-Push Hook
-Cleanly removes the VibeGuard pre-push hook and restores any previous user hook backup.
-```powershell
-.\vibeguard.exe uninstall
-```
-
----
-
-## Live Scan Progress (v3.0)
-
-During scans, VibeGuard renders terminal progress indicators with real-time feedback across all 4 stages:
-
-### 1. File Scanning
-```text
-[██████████████░░░░░░] 70%
-Files: 56/80
-Current: internal/scanner/runner.go
-```
-
-### 2. Dependency Scanning
-```text
-[████████████████░░░░] 80%
-Dependencies: 36/45
-Current: lodash@4.17.20
-```
-
-### 3. Vulnerability Database (OSV) Lookup
-```text
-[██████████████████░░] 90%
-OSV queries: 41/45
-```
-
-### 4. Final Completion Stage
-```text
-[████████████████████] 100%
-
-Security analysis complete.
-```
-
----
-
-## Configuration (`.vibeguard/config.json`)
-
-VibeGuard is configured via `.vibeguard/config.json` at the root of your project:
-
-```json
-{
-  "block_on": [
-    "critical",
-    "high"
-  ],
-  "scan_mode": "full",
-  "dependency_scan": true,
-  "secret_scan": true,
-  "source_scan": true,
-  "report_format": "terminal",
-  "fail_closed": true,
-  "exclude": [
-    ".git",
-    ".vibeguard",
-    "reports",
-    "md files",
-    "tests",
-    "test-project",
-    "code.md",
-    "finalreport.md",
-    "output.md",
-    "output2.md",
-    "test output.md",
-    "test3.md"
-  ]
-}
-```
-
-### Configuration Options:
-- `block_on`: List of severities that trigger a `BLOCK` gate decision (`"critical"`, `"high"`, `"medium"`, `"low"`).
-- `scan_mode`: `"full"` scans all files; `"changed"` scans only modified/staged files.
-- `fail_closed`: If `true`, aborts `git push` if the vulnerability database or scanner fails (prevents bypassing security during network failures).
-- `exclude`: Subtrees, directories, and filenames excluded from security analysis.
-
----
-
-## Exit Codes
-
-| Exit Code | Classification | Meaning |
-| :---: | :--- | :--- |
-| `0` | **SAFE TO PUSH / PASSED** | All security checks passed; no blocking findings. Push continues. |
-| `1` | **PUSH BLOCKED** | Critical or high-severity vulnerabilities detected. Git push aborted. |
-| `2` | **ERROR** | Runtime or scanning error occurred. |
-| `3` | **CONFIG ERROR** | Malformed or invalid `.vibeguard/config.json`. |
-| `4` | **OSV UNAVAILABLE** | OSV API unreachable with `fail_closed: true`. Push aborted safely. |
-
----
-
-## Security Scoring Formula
-
-VibeGuard calculates a deterministic score from **0** to **100**:
-
-$$\text{Score} = \max\left(0, 100 - (15 \times C + 8 \times H + 3 \times M + 1 \times L)\right)$$
-
-- $C$ = Critical severity findings
-- $H$ = High severity findings
-- $M$ = Medium severity findings
-- $L$ = Low severity findings
-
-A clean project receives a score of **100/100 (`STATUS: SAFE TO PUSH`)**.
-
----
-
-## Verification & Testing
-
-Run the full test suite:
-
-```powershell
-# Run all Go package unit and integration tests
-go test ./...
-
-# Run static analysis check
-go vet ./...
-
-# Self-scan verification (must report 100/100, PASSED, Exit 0)
-.\vibeguard.exe scan .
-
-# Target verification on test fixture (must report BLOCKED, Exit 1)
-.\vibeguard.exe scan .\test-project
-```
-
----
-
-## License & Security Policy
-
-VibeGuard is designed for secure developer operations. It processes files locally in-memory and communicates strictly with official vulnerability advisories (OSV.dev).
-```
-
----
-
-<a name="buildbat"></a>
 ## build.bat
 
 ```bat
@@ -1441,13 +176,21 @@ if %ERRORLEVEL% neq 0 (
 )
 echo [OK] Go CLI built successfully: %ROOT%vibeguard.exe
 
-:: 7. Update installed copy in LocalAppData if it exists
-if exist "%LOCALAPPDATA%\VibeGuard\bin" (
-    copy /Y "%ROOT%vibeguard.exe" "%LOCALAPPDATA%\VibeGuard\bin\vibeguard.exe" >nul 2>&1
-    copy /Y "%ROOT%vibeguard-scanner.exe" "%LOCALAPPDATA%\VibeGuard\bin\vibeguard-scanner.exe" >nul 2>&1
-    copy /Y "%ROOT%vibeguard-scanner.exe" "%LOCALAPPDATA%\VibeGuard\bin\scanner.exe" >nul 2>&1
-    echo [OK] Updated global CLI in: %LOCALAPPDATA%\VibeGuard\bin
+:: 7. Update installed copy in LocalAppData
+if not exist "%LOCALAPPDATA%\VibeGuard" mkdir "%LOCALAPPDATA%\VibeGuard" >nul 2>&1
+if not exist "%LOCALAPPDATA%\VibeGuard\bin" mkdir "%LOCALAPPDATA%\VibeGuard\bin" >nul 2>&1
+
+copy /Y "%ROOT%vibeguard.exe" "%LOCALAPPDATA%\VibeGuard\vibeguard.exe" >nul 2>&1
+copy /Y "%ROOT%vibeguard.exe" "%LOCALAPPDATA%\VibeGuard\bin\vibeguard.exe" >nul 2>&1
+copy /Y "%ROOT%vibeguard-scanner.exe" "%LOCALAPPDATA%\VibeGuard\scanner.exe" >nul 2>&1
+copy /Y "%ROOT%vibeguard-scanner.exe" "%LOCALAPPDATA%\VibeGuard\vibeguard-scanner.exe" >nul 2>&1
+copy /Y "%ROOT%vibeguard-scanner.exe" "%LOCALAPPDATA%\VibeGuard\bin\scanner.exe" >nul 2>&1
+copy /Y "%ROOT%vibeguard-scanner.exe" "%LOCALAPPDATA%\VibeGuard\bin\vibeguard-scanner.exe" >nul 2>&1
+if exist "%ROOT%rules" (
+    if not exist "%LOCALAPPDATA%\VibeGuard\rules" mkdir "%LOCALAPPDATA%\VibeGuard\rules" >nul 2>&1
+    xcopy /E /I /Y /Q "%ROOT%rules" "%LOCALAPPDATA%\VibeGuard\rules" >nul 2>&1
 )
+echo [OK] Updated global CLI in: %LOCALAPPDATA%\VibeGuard
 
 :: 8. Verify generated binaries
 echo.
@@ -1473,7 +216,6 @@ endlocal
 
 ---
 
-<a name="cmdvibeguardmaingo"></a>
 ## cmd/vibeguard/main.go
 
 ```go
@@ -2414,10 +1156,9 @@ func runScan(projectPath string, format string, customOutput string, isHook bool
 
 ---
 
-<a name="gomod"></a>
 ## go.mod
 
-```mod
+```
 module github.com/vibeguard/vibeguard
 
 go 1.21
@@ -2425,7 +1166,6 @@ go 1.21
 
 ---
 
-<a name="installhookbat"></a>
 ## install_hook.bat
 
 ```bat
@@ -2467,7 +1207,6 @@ endlocal
 
 ---
 
-<a name="internalconfigconfiggo"></a>
 ## internal/config/config.go
 
 ```go
@@ -2659,7 +1398,6 @@ func SaveConfig(projectPath string, cfg *Config) error {
 
 ---
 
-<a name="internalconfigconfigtestgo"></a>
 ## internal/config/config_test.go
 
 ```go
@@ -2798,7 +1536,6 @@ func TestConfigValidate(t *testing.T) {
 
 ---
 
-<a name="internaldependenciesdetectorgo"></a>
 ## internal/dependencies/detector.go
 
 ```go
@@ -2893,7 +1630,6 @@ func DetectDependencies(projectPath string) ([]Dependency, error) {
 
 ---
 
-<a name="internaldependenciesparsergo"></a>
 ## internal/dependencies/parser.go
 
 ```go
@@ -3144,7 +1880,6 @@ func ParseCargoLock(content string, sourceFile string) []Dependency {
 
 ---
 
-<a name="internaldependenciesparsertestgo"></a>
 ## internal/dependencies/parser_test.go
 
 ```go
@@ -3282,7 +2017,6 @@ func containsSubstr(s, sub string) bool {
 
 ---
 
-<a name="internalgategatego"></a>
 ## internal/gate/gate.go
 
 ```go
@@ -3347,7 +2081,6 @@ func EvaluateGateWithPolicy(criticalCount, highCount, mediumCount, lowCount int,
 
 ---
 
-<a name="internalgategatetestgo"></a>
 ## internal/gate/gate_test.go
 
 ```go
@@ -3425,7 +2158,6 @@ func TestEvaluateGateWithPolicy(t *testing.T) {
 
 ---
 
-<a name="internalgithooksgo"></a>
 ## internal/git/hooks.go
 
 ```go
@@ -3464,24 +2196,26 @@ if [ -z "$REPO_ROOT" ]; then
     REPO_ROOT=$(pwd)
 fi
 
-# 3. Locate VibeGuard binary
+# 3. Locate trusted VibeGuard binary (prioritizes global install over repo-local)
 VIBEGUARD_BIN=""
-if [ -f "$REPO_ROOT/vibeguard.exe" ]; then
-    VIBEGUARD_BIN="$REPO_ROOT/vibeguard.exe"
-elif [ -f "$REPO_ROOT/vibeguard" ]; then
-    VIBEGUARD_BIN="$REPO_ROOT/vibeguard"
+if [ -n "$LOCALAPPDATA" ] && [ -f "$LOCALAPPDATA/VibeGuard/vibeguard.exe" ]; then
+    VIBEGUARD_BIN="$LOCALAPPDATA/VibeGuard/vibeguard.exe"
 elif [ -n "$LOCALAPPDATA" ] && [ -f "$LOCALAPPDATA/VibeGuard/bin/vibeguard.exe" ]; then
     VIBEGUARD_BIN="$LOCALAPPDATA/VibeGuard/bin/vibeguard.exe"
-elif [ -n "$USERPROFILE" ] && [ -f "$USERPROFILE/AppData/Local/VibeGuard/bin/vibeguard.exe" ]; then
-    VIBEGUARD_BIN="$USERPROFILE/AppData/Local/VibeGuard/bin/vibeguard.exe"
+elif [ -n "$USERPROFILE" ] && [ -f "$USERPROFILE/AppData/Local/VibeGuard/vibeguard.exe" ]; then
+    VIBEGUARD_BIN="$USERPROFILE/AppData/Local/VibeGuard/vibeguard.exe"
 elif command -v vibeguard.exe >/dev/null 2>&1; then
     VIBEGUARD_BIN="vibeguard.exe"
 elif command -v vibeguard >/dev/null 2>&1; then
     VIBEGUARD_BIN="vibeguard"
+elif [ -f "$REPO_ROOT/vibeguard.exe" ]; then
+    VIBEGUARD_BIN="$REPO_ROOT/vibeguard.exe"
+elif [ -f "$REPO_ROOT/vibeguard" ]; then
+    VIBEGUARD_BIN="$REPO_ROOT/vibeguard"
 fi
 
 if [ -z "$VIBEGUARD_BIN" ]; then
-    echo "Notice: VibeGuard binary not found in repository root or PATH. Allowing push."
+    echo "Notice: VibeGuard binary not found in %LOCALAPPDATA%\\VibeGuard or PATH. Allowing push."
     exit 0
 fi
 
@@ -3579,7 +2313,6 @@ func UninstallHook(repoPath string) error {
 
 ---
 
-<a name="internalgithookstestgo"></a>
 ## internal/git/hooks_test.go
 
 ```go
@@ -3682,7 +2415,6 @@ func TestPreserveUserHook(t *testing.T) {
 
 ---
 
-<a name="internalgitrepogo"></a>
 ## internal/git/repo.go
 
 ```go
@@ -4088,7 +2820,6 @@ func GetPushedCommitDiff(repoPath, remoteSha, localSha string) string {
 
 ---
 
-<a name="internalgitrepotestgo"></a>
 ## internal/git/repo_test.go
 
 ```go
@@ -4183,7 +2914,6 @@ refs/heads/feature 9999aaaa refs/heads/feature 00000000
 
 ---
 
-<a name="internalosvclientgo"></a>
 ## internal/osv/client.go
 
 ```go
@@ -4323,7 +3053,6 @@ func CheckAllDependenciesWithProgress(deps []DependencyInfo, progress OSVProgres
 
 ---
 
-<a name="internalosvtypesgo"></a>
 ## internal/osv/types.go
 
 ```go
@@ -4390,7 +3119,6 @@ type Reference struct {
 
 ---
 
-<a name="internalreporthtmlgo"></a>
 ## internal/report/html.go
 
 ```go
@@ -4555,7 +3283,6 @@ func WriteHTMLReport(r *Report, outputPath string) error {
 
 ---
 
-<a name="internalreportjsongo"></a>
 ## internal/report/json.go
 
 ```go
@@ -4589,7 +3316,6 @@ func WriteJSONReport(r *Report, outputPath string) error {
 
 ---
 
-<a name="internalreportprogressgo"></a>
 ## internal/report/progress.go
 
 ```go
@@ -4743,7 +3469,6 @@ func (p *ProgressBar) Reset() {
 
 ---
 
-<a name="internalreportprogresstestgo"></a>
 ## internal/report/progress_test.go
 
 ```go
@@ -4824,7 +3549,6 @@ func TestProgressBarFinish(t *testing.T) {
 
 ---
 
-<a name="internalreportreporttestgo"></a>
 ## internal/report/report_test.go
 
 ```go
@@ -4901,7 +3625,6 @@ func TestReportGeneration(t *testing.T) {
 
 ---
 
-<a name="internalreportterminalgo"></a>
 ## internal/report/terminal.go
 
 ```go
@@ -5022,7 +3745,6 @@ func PrintTerminalReport(r *Report) {
 
 ---
 
-<a name="internalriskscorergo"></a>
 ## internal/risk/scorer.go
 
 ```go
@@ -5076,7 +3798,6 @@ func CalculateScore(findings []FindingInfo) ScoreResult {
 
 ---
 
-<a name="internalriskscorertestgo"></a>
 ## internal/risk/scorer_test.go
 
 ```go
@@ -5158,7 +3879,6 @@ func TestCalculateScore(t *testing.T) {
 
 ---
 
-<a name="internalscannerrunnergo"></a>
 ## internal/scanner/runner.go
 
 ```go
@@ -5200,6 +3920,8 @@ type Finding struct {
 }
 
 // FindScannerExecutable attempts to locate the Rust scanner binary across multiple candidate paths.
+// It prioritizes the running executable's directory and %LOCALAPPDATA%\VibeGuard so that
+// the scanner is always found regardless of what directory the user runs VibeGuard from.
 func FindScannerExecutable() (string, bool) {
 	// 1. Explicit environment variable
 	if envPath := os.Getenv("VIBEGUARD_SCANNER_PATH"); envPath != "" {
@@ -5214,23 +3936,39 @@ func FindScannerExecutable() (string, bool) {
 		exeDir = filepath.Dir(exePath)
 	}
 
+	var localAppDataDir string
+	if la := os.Getenv("LOCALAPPDATA"); la != "" {
+		localAppDataDir = filepath.Join(la, "VibeGuard")
+	} else if up := os.Getenv("USERPROFILE"); up != "" {
+		localAppDataDir = filepath.Join(up, "AppData", "Local", "VibeGuard")
+	}
+
 	cwd, _ := os.Getwd()
 
 	candidates := []string{
-		// Beside the current Go binary
+		// 1. In the same directory as the running VibeGuard executable
+		filepath.Join(exeDir, "scanner.exe"),
 		filepath.Join(exeDir, "vibeguard-scanner.exe"),
 		filepath.Join(exeDir, "vibeguard-scanner"),
-		filepath.Join(exeDir, "scanner.exe"),
 		filepath.Join(exeDir, "scanner", "scanner.exe"),
 		filepath.Join(exeDir, "scanner", "vibeguard-scanner.exe"),
-		// In current working directory
+
+		// 2. In the global %LOCALAPPDATA%\VibeGuard installation directory
+		filepath.Join(localAppDataDir, "scanner.exe"),
+		filepath.Join(localAppDataDir, "vibeguard-scanner.exe"),
+		filepath.Join(localAppDataDir, "bin", "scanner.exe"),
+		filepath.Join(localAppDataDir, "bin", "vibeguard-scanner.exe"),
+
+		// 3. In the current working directory / repo root
+		filepath.Join(cwd, "scanner.exe"),
 		filepath.Join(cwd, "vibeguard-scanner.exe"),
 		filepath.Join(cwd, "vibeguard-scanner"),
-		filepath.Join(cwd, "scanner.exe"),
 		filepath.Join(cwd, "scanner", "scanner.exe"),
 		filepath.Join(cwd, "scanner", "vibeguard-scanner.exe"),
-		// In scanner target directories
+
+		// 4. In build output directories (cargo target release/debug)
 		filepath.Join(cwd, "scanner", "target", "release", "vibeguard-scanner.exe"),
+		filepath.Join(cwd, "scanner", "target", "release", "scanner.exe"),
 		filepath.Join(cwd, "scanner", "target", "release", "vibeguard-scanner"),
 		filepath.Join(cwd, "scanner", "target", "debug", "vibeguard-scanner.exe"),
 		filepath.Join(cwd, "scanner", "target", "debug", "vibeguard-scanner"),
@@ -5731,7 +4469,6 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 
 ---
 
-<a name="internalscannerrunnertestgo"></a>
 ## internal/scanner/runner_test.go
 
 ```go
@@ -5810,7 +4547,6 @@ func TestInternalScannerExclusions(t *testing.T) {
 
 ---
 
-<a name="mdfilesarchitecturemd"></a>
 ## md files/ARCHITECTURE.md
 
 ```markdown
@@ -5927,7 +4663,7 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
 - **JSON Report**: Comprehensive machine-readable output saved to `reports/scan.json` for CI/CD integration.
 - **HTML Report**: Standalone, CSS-styled interactive security report saved to `reports/scan.html`.
 
-### 2.7 Dual Distribution & Portability Subsystem (`NEW_LAPTOP_SETUP.md`)
+### 2.7 Global CLI Installation & Hardened Pre-Push Subsystem (`GLOBAL_CLI_SETUP.md`)
 - **Distribution Architecture**:
   ```text
   cyberhackathon/
@@ -5940,18 +4676,18 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
   ├── reports/                   # Output scan reports directory
   ├── tests/                     # Test fixtures and integration suites
   ├── test-project/              # Intentionally vulnerable validation fixture
-  ├── setup.bat                  # Mode A: One-command demo/laptop setup (no compilers needed)
+  ├── setup.bat                  # Mode A: One-command global setup (%LOCALAPPDATA%\VibeGuard)
   ├── build.bat                  # Mode B: Developer source compilation (Go + Rust + link.exe)
   ├── run_test.bat               # Automated self-test & test-project scan validation
   ├── install_hook.bat           # Dedicated pre-push hook installer
   ├── uninstall_hook.bat         # Clean pre-push hook remover
   ├── README.md                  # Project documentation & quickstart
-  └── NEW_LAPTOP_SETUP.md        # Complete laptop portability plan & acceptance criteria
+  └── NEW_LAPTOP_SETUP.md        # Laptop portability plan & acceptance criteria
   ```
-- **Mode A (Demo / User Mode)**: Uses prebuilt binaries (`vibeguard.exe` and `vibeguard-scanner.exe`). Never requires Go, Rust, or MSVC Build Tools. Safe, idempotent, and runs instantly on any Windows laptop.
-- **Mode B (Developer Mode)**: Compiles from source via `build.bat`, checking Go, Rust, Cargo, and Microsoft C++ linker (`link.exe`).
-- **Universal PATH Management**: Automatically registers `%LOCALAPPDATA%\VibeGuard\bin` in the Windows User `PATH` registry environment and configures current session PATH.
-- **Portable Git Pre-Push Hook**: Dynamic root discovery via `git rev-parse --show-toplevel` without hardcoded user directories, automatically resolving VibeGuard from repo root, `%LOCALAPPDATA%`, or PATH.
+- **Global User Installation**: Installs to `%LOCALAPPDATA%\VibeGuard\`, copying `vibeguard.exe`, `scanner.exe`, `rules/`, and legacy `bin/` fallback.
+- **Idempotent User PATH Management**: Adds `%LOCALAPPDATA%\VibeGuard` to the Windows User `PATH` registry environment without duplicates or admin rights, enabling `vibeguard` from any terminal session.
+- **Dynamic Self-Locating Engine (`FindScannerExecutable`)**: Prioritizes `os.Executable()` directory and `%LOCALAPPDATA%\VibeGuard` before current working directory, allowing `vibeguard scan <target>` to run from any folder.
+- **Hardened Git Pre-Push Hook**: Hook prioritizes trusted `%LOCALAPPDATA%\VibeGuard\vibeguard.exe` and global PATH over repository-local binaries to prevent rogue executable substitution attacks (Section 19 Security Policy).
 
 
 
@@ -5959,7 +4695,6 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
 
 ---
 
-<a name="mdfileschangelogmd"></a>
 ## md files/CHANGELOG.md
 
 ```markdown
@@ -6039,7 +4774,6 @@ All notable changes to the VibeGuard project are documented in this file.
 
 ---
 
-<a name="mdfilesfeaturesmd"></a>
 ## md files/FEATURES.md
 
 ```markdown
@@ -6175,11 +4909,14 @@ All notable changes to the VibeGuard project are documented in this file.
 
 ---
 
-## 6. Portable Windows Distribution & Automation Suite (`NEW_LAPTOP_SETUP.md`)
+## 6. Global CLI Installation & Windows Distribution Suite (`GLOBAL_CLI_SETUP.md`)
 
 ### 6.1 Distribution Architecture
-- **Mode A (Demo / User Mode)**: Runs from prebuilt binaries (`vibeguard.exe` and `vibeguard-scanner.exe`). Never requires Go, Rust, or MSVC Build Tools.
+- **Global User Installation**: Self-locating CLI installed to `%LOCALAPPDATA%\VibeGuard`, added to Windows User `PATH` idempotently.
+- **Mode A (Demo / User Mode)**: Runs from prebuilt binaries (`vibeguard.exe` and `scanner.exe`). Never requires Go, Rust, or MSVC Build Tools.
 - **Mode B (Developer Mode)**: Full source rebuilds using `build.bat`, verifying Go, Rust, and Microsoft C++ linker (`link.exe`).
+- **Dynamic Self-Locating Engine**: Prioritizes executable path and `%LOCALAPPDATA%\VibeGuard` so `vibeguard scan <path>` executes anywhere.
+- **Hardened Git Pre-Push Hook**: Prefers global `%LOCALAPPDATA%\VibeGuard` installation over untrusted repository-local executables (Section 19 Security Policy).
 
 ### 6.2 Automation Scripts
 1. **`setup.bat` (Mode A Setup)**:
@@ -6188,17 +4925,16 @@ All notable changes to the VibeGuard project are documented in this file.
    - Automatically creates `.vibeguard\`, `reports\`, `rules\`, and `tests\`.
    - Generates default `.vibeguard\config.json`.
    - Installs Git pre-push hook into `.git\hooks\pre-push`.
-   - Copies binaries to `%LOCALAPPDATA%\VibeGuard\bin` and configures User `PATH`.
-   - Safe and idempotent.
+   - Copies binaries to `%LOCALAPPDATA%\VibeGuard` and registers User `PATH`.
+   - Safe, idempotent, and non-destructive.
 2. **`build.bat` (Mode B Source Build)**:
    - Verifies Go compiler, Rust compiler, and MSVC `link.exe`.
    - Recompiles Rust scanner in release mode and copies binary to root and `scanner/`.
-   - Recompiles Go orchestrator CLI.
-   - Updates `%LOCALAPPDATA%\VibeGuard\bin`.
+   - Recompiles Go orchestrator CLI from repository root.
+   - Refreshes `%LOCALAPPDATA%\VibeGuard`.
 3. **`run_test.bat` (Health Check & Fixture Validation)**:
-   - Validates CLI and scanner binaries.
-   - Executes security scan against intentionally vulnerable `test-project`.
-   - Confirms exit code `1` (BLOCKED) with formatted test banners.
+   - Validates CLI, Scanner, Version, Test Project Scan, HTML Report Generation, and Security Gate Blocking.
+   - Formatted `[PASS]` status output across all 6 core criteria.
 4. **`install_hook.bat` & `uninstall_hook.bat`**:
    - Single-command lifecycle management for the Git pre-push hook.
 
@@ -6207,7 +4943,557 @@ All notable changes to the VibeGuard project are documented in this file.
 
 ---
 
-<a name="mdfileslanguagemd"></a>
+## md files/finalreport.md
+
+```markdown
+# VibeGuard — Final Project Report
+
+**Project Name:** VibeGuard  
+**Tagline:** Pre-Deployment Security Verification & Git Secure Push Gate  
+**Version:** v3.0.0  
+**Date:** 2026-09-19  
+**Repository:** `C:\Users\ranua\Music\cyberhackathon`  
+
+---
+
+## 1. Executive Summary
+
+**VibeGuard** is an independent pre-deployment security verification CLI and Git pre-push security gate. It acts as an automated barrier between code development and deployment/publishing, ensuring that secrets, known CVEs, SAST security vulnerabilities, container misconfigurations, and sensitive repository files are detected and blocked before code ever leaves the developer's workstation or enters production pipelines.
+
+VibeGuard v3.0 introduces real-time terminal progress indicators for long scans (file scanning, dependency analysis, and OSV queries), native Git pre-push hook integration (`.git/hooks/pre-push`), interactive secure commit-and-push workflows (`vibeguard push`), repository-level configuration (`.vibeguard/config.json`), and comprehensive reporting across Terminal, JSON, and standalone HTML formats.
+
+---
+
+## 2. Architecture & Technical Design
+
+VibeGuard uses a decoupled **dual-language hybrid architecture** optimized for developer experience, fast filesystem scanning speed, and reliable offline operations.
+
+### 2.1 High-Level Architecture Diagram
+
+```text
+                             Developer Workstation
+                                      │
+                         ┌────────────┴────────────┐
+                         ▼                         ▼
+                     git push               vibeguard scan / push
+                         │                         │
+                         ▼                         │
+                 Git Pre-Push Hook                 │
+                         │                         │
+                         └────────────┬────────────┘
+                                      ▼
+                            VibeGuard Go CLI (v2.0)
+                                      │
+                 ┌────────────────────┴────────────────────┐
+                 ▼                                         ▼
+        Rust Scanner Engine                       Dependency Engine
+     (High-Performance Filesystem Scanner)      (Go, npm, Python, Cargo)
+                 │                                         │
+                 │ ┌─────────────────────────┐             ▼
+                 │ │ Native Go Fallback Engine│         OSV REST API
+                 │ │ (Always works offline)  │   (api.osv.dev - Real CVEs)
+                 │ └─────────────────────────┘             │
+                 └────────────────────┬────────────────────┘
+                                      ▼
+                                Finding Engine
+                     (ID, Severity, File:Line, Evidence)
+                                      │
+                                      ▼
+                                 Risk Engine
+                         (Deterministic Score 0-100)
+                                      │
+                                      ▼
+                            Deployment Gate Logic
+                     (Configurable Policy via config.json)
+                                      │
+                  ┌───────────────────┼───────────────────┐
+                  ▼                   ▼                   ▼
+             Terminal Output     JSON Report         HTML Report
+          (Colored ANSI Gate) (reports/scan.json) (reports/scan.html)
+                  │
+          ┌───────┴───────┐
+          ▼               ▼
+     SAFE (Exit 0)   BLOCKED (Exit 1)
+          │               │
+          ▼               ▼
+     Push Allowed    Push Aborted (Local commit preserved)
+```
+
+### 2.2 Core Components & Subsystems
+
+1. **Go CLI Orchestrator (`cmd/vibeguard/`, `internal/`)**:
+   - Manages CLI subcommands (`init`, `uninstall`, `status`, `push`, `scan`, `report`, `version`, `help`).
+   - Manages Git repository state, branches, remotes, commit hashes, and `.git/hooks/pre-push`.
+   - Parses manifest files across 4 package ecosystems.
+   - Communicates with the OSV vulnerability database via HTTP POST requests.
+   - Evaluates deployment gate policies and coordinates multi-format reporting.
+
+2. **Rust Scanning Engine (`scanner/`)**:
+   - Compiled binary `vibeguard-scanner.exe` utilizing `walkdir`, `regex`, `serde`, and `serde_json`.
+   - Traverses filesystems with fast directory skipping (`node_modules`, `vendor`, `.git`, `target`, binary files).
+   - Scans for 8 secret categories, 7 SAST vulnerability classes, Dockerfile risks, and sensitive repo files.
+   - Returns structured JSON to Go via stdout with sub-millisecond per-file latency.
+
+3. **Integrated Pure-Go Scanning Fallback**:
+   - Embedded within `internal/scanner/runner.go`.
+   - Automatically activates if the compiled Rust binary is not present in the local environment.
+   - Ensures 100% test and scan coverage even when building or running in resource-constrained or offline environments.
+
+4. **Vulnerability Intelligence (OSV)**:
+   - Queries Google's Open Source Vulnerabilities (`api.osv.dev`) schema.
+   - Zero hallucinated or synthetic vulnerabilities: uses authoritative package name and version pairs.
+   - Extracts CVSS scores, CVE aliases, and fixed remediation versions.
+
+5. **Risk Scoring Engine (`internal/risk/`)**:
+   - Deterministic mathematical formula bounded between 0 and 100:
+     $$\text{Score} = \max\left(0, 100 - (15 \times C + 8 \times H + 3 \times M + 1 \times L)\right)$$
+   - Where $C = \text{Critical}$, $H = \text{High}$, $M = \text{Medium}$, $L = \text{Low}$.
+
+6. **Deployment Gate (`internal/gate/`)**:
+   - Enforces configurable blocking thresholds (`.vibeguard/config.json`).
+   - Default policy: any `CRITICAL` or `HIGH` findings immediately trigger `BLOCKED` (exit code `1`).
+
+---
+
+## 3. Repository Tree Structure
+
+The project is structured into modular layers covering the Go orchestrator, Rust engine, test fixtures, reporting, configuration, and documentation:
+
+```text
+cyberhackathon/
+├── .vibeguard/
+│   └── config.json                   # Project security policy & scanner configuration
+├── cmd/
+│   └── vibeguard/
+│       └── main.go                   # Go CLI Entrypoint (init, uninstall, status, push, scan, report)
+├── internal/
+│   ├── config/
+│   │   ├── config.go                 # Configuration loader, saver, and policy types
+│   │   └── config_test.go            # Config unit tests
+│   ├── dependencies/
+│   │   ├── detector.go               # Recursive manifest discovery
+│   │   ├── parser.go                 # Parsers for go.mod, package.json, requirements.txt, Cargo.toml
+│   │   └── parser_test.go            # Manifest parsing unit tests
+│   ├── gate/
+│   │   ├── gate.go                   # PASS / BLOCK deployment decision engine
+│   │   └── gate_test.go              # Gate policy unit tests
+│   ├── git/
+│   │   ├── hooks.go                  # Pre-push hook installer, preservation, and uninstaller
+│   │   ├── hooks_test.go             # Hook management unit tests
+│   │   ├── repo.go                   # Git repository detection, branches, commits, remotes
+│   │   └── repo_test.go              # Git helper unit tests
+│   ├── osv/
+│   │   ├── types.go                  # OSV request and response data structures
+│   │   └── client.go                 # OSV REST API client and batch query executor
+│   ├── report/
+│   │   ├── terminal.go               # Colorized ASCII terminal report generator
+│   │   ├── json.go                   # Machine-readable JSON report writer
+│   │   ├── html.go                   # Standalone HTML report generator
+│   │   └── report_test.go            # Report generation unit tests
+│   ├── risk/
+│   │   ├── scorer.go                 # Deterministic 0-100 risk scoring algorithm
+│   │   └── scorer_test.go            # Scorer unit tests
+│   └── scanner/
+│       ├── runner.go                 # Dual-engine runner (Rust subprocess + Native Go engine)
+│       └── runner_test.go            # Scanner runner unit tests
+├── scanner/                          # High-Performance Rust Scanner Engine
+│   ├── Cargo.toml
+│   ├── Cargo.lock
+│   └── src/
+│       ├── main.rs                   # Rust scanner entrypoint and JSON output serializer
+│       ├── types.rs                  # Core data models (Finding, Severity, Category, ScanResult)
+│       ├── scanner.rs                # Fast recursive directory walker with exclusion filters
+│       ├── secrets.rs                # Secret detection, credential masking + unit tests
+│       ├── sast.rs                   # SAST rule evaluation + unit tests
+│       ├── rules.rs                  # Built-in regex rule definitions
+│       ├── docker.rs                 # Dockerfile security analysis (root user, ENV secrets)
+│       ├── git.rs                    # Repository sensitive file checks (.env, private keys)
+│       └── config.rs                 # Configuration security auditor (debug mode, CORS, 0.0.0.0)
+├── test-project/                     # Deliberately Vulnerable Demo Application
+│   ├── .env                          # Synthetic test credentials and private keys
+│   ├── Dockerfile                    # Insecure container config (root user, ENV secrets, latest)
+│   ├── go.mod                        # Outdated Go dependencies with CVEs
+│   ├── package.json                  # Outdated npm dependencies with CVEs
+│   ├── requirements.txt              # Outdated Python dependencies with CVEs
+│   ├── README.md                     # Demo project documentation
+│   └── src/
+│       ├── auth.js                   # eval(), command injection, hardcoded JWT
+│       ├── config.go                 # Hardcoded API key, disabled TLS
+│       └── database.go               # SQL injection, command injection, weak MD5
+├── tests/                            # Test Suite & Fixtures
+│   ├── dependencies/                 # Manifest test fixtures (go.mod, package.json, etc.)
+│   ├── integration/
+│   │   └── integration_test.go       # End-to-end integration tests
+│   ├── sast/                         # Positive/negative source code fixtures (vulnerable.go, safe.go)
+│   └── secrets/                      # Positive/negative secret fixtures (fake_keys.txt, clean_text.txt)
+├── reports/
+│   └── README.md                     # Output directory for scan.json and scan.html
+├── md files/                         # Organized Documentation & Specification Archive
+│   ├── ARCHITECTURE.md
+│   ├── CHANGELOG.md
+│   ├── FEATURES.md
+│   ├── LANGUAGE.md
+│   ├── PLAN.md
+│   ├── PLAN1.md
+│   ├── PROCESSES.md
+│   ├── README.md
+│   ├── ROADMAP.md
+│   ├── TEST_OUTPUT.md
+│   ├── v2.md
+│   └── finalreport.md
+├── finalreport.md                    # Complete final project report
+├── test output.md                    # Verified test execution log
+├── README.md                         # Root project documentation & quickstart
+├── go.mod                            # Go module root
+└── vibeguard.exe                     # Compiled VibeGuard v2.0 binary
+```
+
+---
+
+## 4. Languages, Software & Technologies
+
+| Layer | Technology | Version / Tool | Purpose |
+|:---|:---|:---|:---|
+| **CLI & Application Layer** | **Go (Golang)** | 1.21+ | CLI orchestration, Git integration, manifest parsing, OSV client, gate evaluation, report generation |
+| **High-Speed Scanner** | **Rust** | 2021 Edition / rustc 1.70+ | Fast filesystem traversal, regex-based secret matching, SAST rule evaluation |
+| **Version Control Gate** | **Git** | 2.x+ (POSIX sh / Git Bash) | `.git/hooks/pre-push` execution, branch/commit tracking, staging & pushing |
+| **Vulnerability Data** | **OSV API** | REST / JSON v1 | Real-time CVE and advisory lookup for open-source dependencies |
+| **Inter-Process Comm.** | **JSON IPC** | Standard Streams | Structured data exchange between Rust scanner output and Go runner |
+| **Configuration** | **JSON** | `.vibeguard/config.json` | Repository-level policy, module toggles, scan mode, and fail-closed flags |
+| **Reports** | **HTML5 / CSS3** | Embedded standalone | Interactive, self-contained executive security reports |
+
+---
+
+## 5. Version Progression & Roadmap
+
+| Version | Milestone | Key Features Delivered |
+|:---:|:---|:---|
+| **v0.1** | Foundation | Go module setup, CLI structure, Rust scanner skeleton, recursive walker, JSON IPC |
+| **v0.2** | Secret Detection | AWS keys, GitHub tokens, Slack tokens, private keys, password assignments, credential masking |
+| **v0.3** | Source Code (SAST) | SQL injection, command injection, dangerous eval, disabled TLS, weak crypto, insecure HTTP |
+| **v0.4** | Dependency Security | Parsers for `go.mod`, `package.json`, `requirements.txt`, `Cargo.toml`; OSV API client |
+| **v0.5** | Scoring & Reporting | Deterministic 0–100 risk score, ANSI terminal report, JSON report, HTML report |
+| **v0.6** | Deployment Gate | PASS / BLOCK gate decision, exit codes (0/1/2), CI/CD integration |
+| **v0.7** | Containers & Config | Dockerfile checks (root user, ENV secrets, latest tag), Git sensitive files, config security |
+| **v1.0** | Stable Core MVP | Full test-project fixture (9 vulnerable files), dual-engine scanner fallback, end-to-end testing |
+| **v2.0** | **Git Secure Push Gate** | **Git pre-push hook integration (`init`, `uninstall`, `status`, `push`), custom hook preservation, `.vibeguard/config.json`, Git metadata in reports, exit codes 0–4** |
+
+---
+
+## 6. Dual Execution Outputs
+
+Below are the two canonical outputs demonstrating VibeGuard's gate behavior: **Clean/Safe Scan (Output 1)** and **Blocked Vulnerable Scan (Output 2)**.
+
+### Output 1: Safe Scan / Clean Project (`SAFE TO PUSH` — Exit Code 0)
+
+Triggered when scanning clean code or running through a safe Git push:
+
+```text
+========================================
+       VIBEGUARD SECURITY GATE
+========================================
+Project: CleanShop
+Commit:  4b2e8a1
+Branch:  main
+
+[1/4] Running security scanner...
+  Files scanned: 18
+  Findings from scanner: 0
+[2/4] Checking dependencies...
+  Dependencies found: 6
+[3/4] Querying vulnerability database (OSV)...
+  No known vulnerabilities found in dependencies
+[4/4] Calculating risk score...
+
+========================================
+       VIBEGUARD SECURITY REPORT
+========================================
+Project: CleanShop
+Commit:  4b2e8a1
+Branch:  main
+Remote:  https://github.com/example/cleanshop.git
+Scan Time: 142ms
+Files Scanned: 18
+---------------------------------------------
+Severity Counts:
+Critical: 0, High: 0, Medium: 0, Low: 0, Info: 0
+---------------------------------------------
+Category Breakdown:
+Secrets: 0, Source Code: 0, Dependencies: 0, Configuration: 0, Docker: 0, Git: 0
+---------------------------------------------
+Security Score: 100/100
+---------------------------------------------
+Findings:
+None. All security verification checks passed.
+---------------------------------------------
+Deployment Status: PASSED
+Reason: No blocking security findings
+---------------------------------------------
+STATUS: SAFE TO PUSH
+Continuing Git push...
+========================================
+```
+
+**Process Exit Code:** `0` (Success — Git push or CI/CD deployment proceeds).
+
+---
+
+### Output 2: Blocked Scan / Vulnerable Project (`PUSH BLOCKED` — Exit Code 1)
+
+Triggered when scanning `test-project` (containing synthetic secrets, SQL injection, disabled TLS, and vulnerable dependencies):
+
+```text
+========================================
+       VIBEGUARD SECURITY SCANNER
+========================================
+Project: test-project
+Path:    C:\Users\ranua\Music\cyberhackathon\test-project
+
+[1/4] Running security scanner...
+  Files scanned: 8
+  Findings from scanner: 18
+[2/4] Checking dependencies...
+  Dependencies found: 12
+[3/4] Querying vulnerability database (OSV)...
+  Vulnerable packages: 11
+  Total vulnerabilities: 185
+[4/4] Calculating risk score...
+
+========= VIBEGUARD SECURITY REPORT =========
+Project: test-project
+Scan Time: 2.14s
+Files Scanned: 8
+---------------------------------------------
+Severity Counts:
+Critical: 123, High: 80, Medium: 0, Low: 0, Info: 0
+---------------------------------------------
+Category Breakdown:
+Secrets: 7, Source Code: 7, Dependencies: 185, Configuration: 0, Docker: 4, Git: 0
+---------------------------------------------
+Security Score: 0/100
+---------------------------------------------
+Findings:
+[CRITICAL] VG-001 in .env:1
+  Title: Sensitive File Detected
+  Recommendation: Ensure this file is not committed to version control and does not contain sensitive data.
+
+[CRITICAL] VG-002 in .env:4
+  Title: Generic API Key
+  Evidence: API_KEY=****
+  Recommendation: Remove the key from code and use a secret manager.
+
+[CRITICAL] VG-003 in .env:5
+  Title: AWS Access Key
+  Evidence: AWS_ACCE****
+  Recommendation: Revoke the key immediately and use IAM roles instead.
+
+[HIGH] VG-008 in src\config.go:17
+  Title: Hardcoded Credentials
+  Evidence: password = "supersecretpassword123"
+  Recommendation: Use environment variables or a secret management service.
+
+[HIGH] VG-009 in src\config.go:21
+  Title: Disabled TLS
+  Evidence: InsecureSkipVerify: true
+  Recommendation: Enable TLS verification for all network connections in production.
+
+[HIGH] VG-010 in src\database.go:14
+  Title: SQL Injection
+  Evidence: query := fmt.Sprintf("SELECT * FROM users WHERE id = '%s'", userID)
+  Recommendation: Use parameterized queries or prepared statements.
+
+[HIGH] VG-011 in src\database.go:21
+  Title: Command Injection
+  Evidence: cmd := exec.Command("ping", host)
+  Recommendation: Avoid executing OS commands with user input. Use safe APIs.
+
+[CRITICAL] VG-019 in package.json:0
+  Title: Vulnerable Dependency: lodash
+  Evidence: Package: lodash@4.17.20, Advisory: GHSA-p6mc-m468-83gw (CVE-2020-8203, CVE-2021-23337)
+  Recommendation: Update lodash from 4.17.20 to 4.17.21 or later
+
+... and 195 more finding(s).
+
+---------------------------------------------
+Deployment Status: BLOCKED
+Reason: 123 critical finding(s) and 80 high-severity finding(s) detected
+=============================================
+```
+
+**Process Exit Code:** `1` (Blocked — Git push aborted, code prevented from leaving machine).
+
+---
+
+## 7. Exit Codes Reference
+
+| Exit Code | Status | Meaning | Action Taken |
+|:---:|:---:|:---|:---|
+| **`0`** | **PASS** | No blocking security findings detected | Push or deployment allowed to continue |
+| **`1`** | **BLOCKED** | One or more findings violate `.vibeguard/config.json` | Push or deployment strictly blocked |
+| **`2`** | **ERROR** | Runtime error, scanner panic, or missing arguments | Process terminates with error output |
+| **`3`** | **CONFIG ERROR** | `.vibeguard/config.json` malformed or unreadable | Push blocked to prevent insecure bypass |
+| **`4`** | **OSV UNAVAILABLE** | OSV API unreachable with `fail_closed: true` | Fails closed to protect against blind pushes |
+
+---
+
+## 8. Verification & Automated Test Status
+
+All unit, integration, and end-to-end tests pass cleanly:
+
+```powershell
+go test ./...
+# ok   internal/config         (1.558s)
+# ok   internal/dependencies   (cached)
+# ok   internal/gate           (cached)
+# ok   internal/git            (1.436s)
+# ok   internal/report         (cached)
+# ok   internal/risk           (cached)
+# ok   internal/scanner        (cached)
+# ok   tests/integration       (cached)
+```
+
+- **CLI Compilation:** `go build -buildvcs=false -o vibeguard.exe ./cmd/vibeguard` — **SUCCESS (0 warnings)**
+- **Binary Version:** `vibeguard.exe version` — **`VibeGuard v3.0.0`**
+- **Live Progress Indicators:** Verified across file scanning, dependency checks, and live OSV queries.
+- **Hook Lifecycle:** `vibeguard init` $\rightarrow$ `status` $\rightarrow$ `uninstall` verified on clean repositories.
+- **Controlled Push:** `vibeguard push` successfully prompts, stages, commits, verifies, and protects pushes.
+
+---
+
+## 9. Conclusion
+
+VibeGuard v3.0 provides an end-to-end security verification gate for developers with rich real-time visual progress feedback. By combining the speed of Rust, the ergonomics and ecosystem integration of Go, live OSV intelligence, and non-destructive Git hook automation, VibeGuard fulfills its design purpose: **"Make security verification a simple, reliable step between writing software and deploying software."**
+```
+
+---
+
+## md files/GLOBAL_CLI_SETUP.md
+
+```markdown
+# VibeGuard — Global CLI Installation & Portable Setup Specification
+
+## 1. Executive Summary
+
+VibeGuard v3.0 installs as a native, self-locating global CLI utility on Windows. Running `setup.bat` configures the tool into `%LOCALAPPDATA%\VibeGuard` and idempotently registers the directory into the Current User's `PATH`.
+
+Once installed:
+- `vibeguard` runs from **ANY** CMD or PowerShell directory without typing `.\` or running from the repository root.
+- Scans can target any project folder independently: `vibeguard scan C:\path\to\project`.
+- No developer usernames or absolute user directories (such as `C:\Users\ranua` or `C:\Users\pooji`) are hardcoded.
+- The Git pre-push hook autonomously locates the trusted global installation.
+- Prebuilt release packages require **zero compilers** (no Go, no Rust, no Visual Studio Build Tools).
+
+---
+
+## 2. Directory Layout
+
+The stable per-user installation directory is:
+
+```text
+%LOCALAPPDATA%\VibeGuard\
+├── vibeguard.exe            # Go Orchestrator CLI
+├── scanner.exe              # Rust Security Scanner
+├── vibeguard-scanner.exe    # Compatible alias
+├── bin/                     # Legacy path compatibility
+│   ├── vibeguard.exe
+│   └── scanner.exe
+└── rules/                   # Active detection rules & documentation
+    └── README.md
+```
+
+### PATH Configuration
+- `setup.bat` adds `%LOCALAPPDATA%\VibeGuard` to the Windows User `PATH` environment variable.
+- Uses case-insensitive token comparison to prevent duplicate entries (`idempotent`).
+- Does not modify System `PATH`, requiring no administrator privileges.
+
+---
+
+## 3. Dynamic Self-Locating Engine
+
+The Go CLI resolves the Rust scanner using dynamic runtime inspection (`internal/scanner/runner.go` -> `FindScannerExecutable()`):
+
+```
++-------------------------------------------------------------+
+| 1. Explicit Override: $env:VIBEGUARD_SCANNER_PATH           |
++-------------------------------------------------------------+
+                              |
+                              v
++-------------------------------------------------------------+
+| 2. Executable Directory: os.Executable() -> exeDir          |
+|    - exeDir\scanner.exe                                     |
+|    - exeDir\vibeguard-scanner.exe                           |
++-------------------------------------------------------------+
+                              |
+                              v
++-------------------------------------------------------------+
+| 3. Global AppData: %LOCALAPPDATA%\VibeGuard                 |
+|    - %LOCALAPPDATA%\VibeGuard\scanner.exe                   |
+|    - %LOCALAPPDATA%\VibeGuard\vibeguard-scanner.exe         |
++-------------------------------------------------------------+
+                              |
+                              v
++-------------------------------------------------------------+
+| 4. Current Working Directory / Fallback                     |
+|    - cwd\scanner.exe                                        |
+|    - cwd\scanner\scanner.exe                                |
++-------------------------------------------------------------+
+```
+
+This guarantees that:
+```cmd
+C:\Users\pooji\Desktop> vibeguard scan C:\Users\pooji\Projects\backend
+```
+correctly executes the scanner from `C:\Users\pooji\AppData\Local\VibeGuard\scanner.exe` while analyzing the target project at `C:\Users\pooji\Projects\backend`.
+
+---
+
+## 4. Security Architecture & Hook Hardening
+
+To prevent untrusted repositories from spoofing the security scanner (Section 19 Security Requirement):
+- The Git pre-push hook generated by `vibeguard init` prioritizes the trusted global binary:
+  1. `%LOCALAPPDATA%\VibeGuard\vibeguard.exe`
+  2. `%LOCALAPPDATA%\VibeGuard\bin\vibeguard.exe`
+  3. `%USERPROFILE%\AppData\Local\VibeGuard\vibeguard.exe`
+  4. System / User `PATH` lookup (`command -v vibeguard.exe`)
+  5. Repository-local `vibeguard.exe` is used only as an explicit fallback.
+- Prevents malicious repositories from placing a rogue `vibeguard.exe` that exits with code 0 to bypass pre-push checks.
+
+---
+
+## 5. Scripts Reference
+
+| Script | Purpose | Prerequisites |
+| :--- | :--- | :--- |
+| `setup.bat` | One-step global installation of prebuilt binaries into `%LOCALAPPDATA%\VibeGuard`, User `PATH` configuration, and Git hook init. | None (No Go/Rust needed) |
+| `run_test.bat` | Comprehensive health check suite: verifies CLI, Scanner, Version, Test Project Scan, Report Generation, and Security Gate. | Prebuilt binaries or source build |
+| `build.bat` | Mode B developer script: verifies Go, Rust, and MSVC `link.exe`, compiles release binaries, and copies to `%LOCALAPPDATA%\VibeGuard`. | Go 1.21+, Rust 1.70+, MSVC linker |
+| `install_hook.bat` | Wrapper to install `.git/hooks/pre-push` security gate into current repository. | Installed VibeGuard |
+| `uninstall_hook.bat`| Cleanly removes `.git/hooks/pre-push` security gate. | None |
+
+---
+
+## 6. Acceptance Checklist
+
+- [x] `setup.bat` works from any directory using dynamic `%~dp0`.
+- [x] Zero hardcoded usernames (`ranua`, `pooji`, etc.).
+- [x] VibeGuard installs to `%LOCALAPPDATA%\VibeGuard`.
+- [x] Directory added to User `PATH` idempotently.
+- [x] New terminal sessions recognize `vibeguard` globally.
+- [x] `where vibeguard` resolves to `%LOCALAPPDATA%\VibeGuard\vibeguard.exe`.
+- [x] `vibeguard version` works from `%USERPROFILE%`, `%TEMP%`, and `C:\`.
+- [x] `vibeguard help` works from any folder.
+- [x] `vibeguard scan <target>` scans target independently of VibeGuard install folder.
+- [x] Scanner binary path is independent of current working directory.
+- [x] Pre-push hook uses trusted `%LOCALAPPDATA%\VibeGuard` binary.
+- [x] `build.bat` checks Go, Rust, and MSVC `link.exe` with clear guidance.
+- [x] `build.bat` executes Go build from repository root, not `scanner\`.
+- [x] Prebuilt release mode requires no compilers.
+- [x] `run_test.bat` passes all 6 validation checks.
+- [x] All 8 existing CLI commands remain fully functional.
+```
+
+---
+
 ## md files/LANGUAGE.md
 
 ```markdown
@@ -6250,7 +5536,6 @@ VibeGuard intentionally pairs **Go** and **Rust** to optimize developer ergonomi
 
 ---
 
-<a name="mdfilesnewlaptopsetupmd"></a>
 ## md files/NEW_LAPTOP_SETUP.md
 
 ```markdown
@@ -7009,7 +6294,6 @@ without requiring the user to manually understand Rust, Cargo, Go module paths, 
 
 ---
 
-<a name="mdfilesplanmd"></a>
 ## md files/PLAN.md
 
 ```markdown
@@ -7354,7 +6638,6 @@ cyberhackathon/
 
 ---
 
-<a name="mdfilesprocessesmd"></a>
 ## md files/PROCESSES.md
 
 ```markdown
@@ -7364,32 +6647,35 @@ cyberhackathon/
 
 ---
 
-## 0. Workstation Setup & Verification Lifecycle (`NEW_LAPTOP_SETUP.md`)
+## 0. Workstation Setup & Verification Lifecycle (`GLOBAL_CLI_SETUP.md`)
 
 ### 0.1 Demo & User Mode Setup (`setup.bat`)
 On a fresh Windows laptop, run:
 ```cmd
-.\setup.bat
+setup.bat
 ```
-- Operates 100% on prebuilt binaries (`vibeguard.exe`, `vibeguard-scanner.exe`).
+- Operates 100% on prebuilt binaries (`vibeguard.exe`, `scanner.exe`).
 - Requires zero compilers (no Go, no Rust, no Visual Studio Build Tools).
 - Automatically initializes `.vibeguard\`, `reports\`, `rules\`, and `tests\`.
 - Installs the Git pre-push hook.
-- Registers `%LOCALAPPDATA%\VibeGuard\bin` in the User `PATH` registry environment.
+- Registers `%LOCALAPPDATA%\VibeGuard` in the User `PATH` registry environment.
+- Works globally from any new terminal window.
 
 ### 0.2 Automated Health Check (`run_test.bat`)
 Verify complete scanner and hook pipeline:
 ```cmd
-.\run_test.bat
+run_test.bat
 ```
 - Validates CLI and scanner binary presence.
+- Verifies version output.
 - Executes full scan on intentionally vulnerable `test-project`.
-- Confirms findings are identified and deployment is correctly BLOCKED.
+- Verifies HTML report generation.
+- Confirms security gate correctly returns exit code `1` (BLOCKED).
 
 ### 0.3 Pre-Push Hook Control
 ```cmd
-.\install_hook.bat     # Installs .git/hooks/pre-push
-.\uninstall_hook.bat   # Cleanly removes .git/hooks/pre-push
+install_hook.bat     # Installs .git/hooks/pre-push
+uninstall_hook.bat   # Cleanly removes .git/hooks/pre-push
 ```
 
 ---
@@ -7399,9 +6685,9 @@ Verify complete scanner and hook pipeline:
 ### 1.1 One-Command Source Build (`build.bat`)
 For developers with Go 1.21+, Rust 1.70+, and Visual Studio Build Tools (`link.exe`):
 ```cmd
-.\build.bat
+build.bat
 ```
-Automatically verifies compiler prerequisites, rebuilds the release Rust scanner, builds the Go orchestrator CLI, updates `%LOCALAPPDATA%\VibeGuard\bin`, and runs a self-verification check.
+Automatically verifies compiler prerequisites, rebuilds the release Rust scanner, builds the Go orchestrator CLI from root, refreshes `%LOCALAPPDATA%\VibeGuard`, and runs self-verification.
 
 ### 1.2 Automated Verification Pipeline
 ```powershell
@@ -7451,7 +6737,6 @@ Running `vibeguard init` performs:
 
 ---
 
-<a name="mdfilesreadmemd"></a>
 ## md files/README.md
 
 ```markdown
@@ -7617,21 +6902,32 @@ cyberhackathon/
 VibeGuard supports two distinct distribution modes for zero-friction portability:
 
 ### Mode A — Demo / User Mode (No Compilers Required)
-Prebuilt Windows binaries (`vibeguard.exe` and `vibeguard-scanner.exe`) are bundled directly with the repository. You **do not need Go, Rust, or Visual Studio Build Tools** to run VibeGuard on a demo laptop:
+Prebuilt Windows binaries (`vibeguard.exe` and `vibeguard-scanner.exe`) are bundled directly with the repository. You **do not need Go, Rust, or Visual Studio Build Tools** to run VibeGuard:
 
-1. **One-Command Setup**:
+1. **One-Command Global Setup**:
    ```cmd
    setup.bat
    ```
-   *Verifies prebuilt binaries, checks required directories (`.vibeguard`, `reports`, `rules`, `tests`), installs the Git pre-push hook, copies the CLI to `%LOCALAPPDATA%\VibeGuard\bin`, and registers User `PATH` for universal terminal access.*
+   *Installs VibeGuard into `%LOCALAPPDATA%\VibeGuard`, verifies the Rust scanner, installs runtime rules, configures the Git pre-push hook, and registers `%LOCALAPPDATA%\VibeGuard` in the Current User `PATH`.*
 
-2. **Verify Health & Scan Test Project**:
+2. **Open a NEW Terminal & Verify Global Access**:
+   Close your current CMD or PowerShell window and open a new one. `vibeguard` is now available globally from **any directory**:
+   ```cmd
+   cd %USERPROFILE%
+   vibeguard version
+   # Output: VibeGuard v3.0.0
+
+   cd C:\
+   vibeguard help
+   ```
+
+3. **Verify Health & Scan Test Project**:
    ```cmd
    run_test.bat
    ```
-   *Executes a full self-test against the intentionally vulnerable fixture `test-project`, verifying that security findings are correctly detected and blocked.*
+   *Executes a full self-test against the intentionally vulnerable fixture `test-project`, verifying CLI, scanner, version, scan, HTML report generation, and security gate blocking.*
 
-3. **Hook Management Scripts**:
+4. **Hook Management Scripts**:
    ```cmd
    install_hook.bat     # Installs the pre-push hook in .git/hooks/pre-push
    uninstall_hook.bat   # Cleanly removes the pre-push hook
@@ -7640,7 +6936,7 @@ Prebuilt Windows binaries (`vibeguard.exe` and `vibeguard-scanner.exe`) are bund
 ---
 
 ### Mode B — Developer / Source Build Mode
-Developers who want to recompile VibeGuard from source:
+Developers rebuilding VibeGuard from source:
 
 1. **Prerequisites**:
    - **Go** (1.21 or higher)
@@ -7652,7 +6948,7 @@ Developers who want to recompile VibeGuard from source:
    ```cmd
    build.bat
    ```
-   *Verifies Go, Rust, and `link.exe`, compiles the release Rust scanner (`cargo build --release`), compiles the Go orchestrator CLI (`go build ./cmd/vibeguard`), and updates the local binaries.*
+   *Verifies Go, Rust, and `link.exe`, compiles the release Rust scanner (`cargo build --release`), compiles the Go orchestrator CLI (`go build ./cmd/vibeguard`), updates local binaries, and refreshes the global `%LOCALAPPDATA%\VibeGuard` installation.*
 
 3. **Manual CLI Build**:
    ```powershell
@@ -7664,25 +6960,21 @@ Developers who want to recompile VibeGuard from source:
 
 ---
 
-### Permanent Global CLI Installation
-`setup.bat` automatically copies `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin\` and permanently adds it to your User `PATH`. Once configured, `vibeguard` runs globally from any command prompt or terminal window across any project folder:
+### Global Execution & Independent Target Scanning
+Because VibeGuard dynamically determines its executable directory at runtime (`FindScannerExecutable()`), you can scan any external repository or project folder from anywhere on your machine:
 
 ```powershell
-# Run from any project folder:
-vibeguard scan .
+# Scan external projects from any directory:
+vibeguard scan C:\Users\pooji\Projects\my-app
+vibeguard scan D:\Repositories\backend --format html --output reports\audit.html
+
+# Run within any Git repository:
 vibeguard status
 vibeguard init
 vibeguard push
-vibeguard version
 ```
 
-This also enables any repository's `.git/hooks/pre-push` to automatically locate and execute VibeGuard without needing the binary inside every repository.
-
-4. **Verify Installation**:
-   ```powershell
-   .\vibeguard.exe version
-   # Output: VibeGuard v3.0.0
-   ```
+The Git pre-push hook prioritizes the trusted `%LOCALAPPDATA%\VibeGuard\vibeguard.exe` binary over untrusted repository-local executables, preventing rogue scripts from circumventing gate policies.
 
 ---
 
@@ -7691,7 +6983,7 @@ This also enables any repository's `.git/hooks/pre-push` to automatically locate
 ### 1. `vibeguard init` — Install Git Pre-Push Hook
 Installs the automatic pre-push hook into `.git/hooks/pre-push` and creates default configuration `.vibeguard/config.json`. Existing user hooks are automatically preserved and chained.
 ```powershell
-.\vibeguard.exe init
+vibeguard init
 ```
 
 ### 2. `vibeguard status` — Check Security Gate Status
@@ -7864,779 +7156,6 @@ VibeGuard is designed for secure developer operations. It processes files locall
 
 ---
 
-<a name="mdfilesroadmapmd"></a>
-## md files/ROADMAP.md
-
-```markdown
-# VibeGuard — Strategic Roadmap
-
-> **Product Evolution and Future Horizons**
-
----
-
-## 1. Completed Milestones
-
-- [x] **v0.1 — Foundation**: Go CLI skeleton, Rust scanner skeleton, JSON IPC protocol.
-- [x] **v0.2 — Filesystem Traversal**: Recursive walker, binary filtering, directory exclusions.
-- [x] **v0.3 — Secret Detection**: AWS keys, GitHub tokens, Slack tokens, private keys, evidence masking.
-- [x] **v0.4 — SAST Engine**: SQL injection, command injection, TLS bypass, weak crypto, eval.
-- [x] **v0.5 — SCA Engine**: Dependency manifest parsing (Go, npm, Python, Rust) with live Google OSV lookup.
-- [x] **v0.6 — Finding Engine**: Normalized IDs (`VG-001`), severity classification, category grouping.
-- [x] **v0.7 — Reporting & Risk**: 0–100 deterministic risk score, ANSI terminal, JSON, and standalone HTML reports.
-- [x] **v0.8 — Deployment Gate**: PASS/BLOCK decision logic, exit codes (0, 1, 2, 3, 4).
-- [x] **v0.9 — Container & Config**: Dockerfile security analysis, config file security audits.
-- [x] **v1.0 — Stable MVP**: Multi-shell support, comprehensive test fixtures, end-to-end integration.
-- [x] **v3.0 — Live Scan Progress & Scoped Pre-Push Gate**: Real-time terminal progress bars across all scanning stages (files, dependencies, OSV queries, 100% completion indicator), pure Go `git archive` snapshot scanning, `.vibeguard/config.json` exclusions, refined SAST terminology, double-scan elimination.
-- [x] **v3.1 — Automated Environment Setup & Global CLI (`setup.bat`)**: Intelligent Windows environment setup verifying and installing Git, Go, Rust, Cargo, Node.js, Python, and Docker via `winget`, permanent global installation to `%LOCALAPPDATA%\VibeGuard\bin`, User PATH registry configuration, and PATH verification.
-
----
-
-## 2. Upcoming Horizons
-
-### Horizon 1: AI Remediation & Patch Generation
-- Optional local/cloud AI interface (Ollama, Anthropic, OpenAI, Gemini).
-- Auto-generate Git patch diffs for discovered vulnerabilities.
-- Explain root causes in plain language without making AI the source of truth for detection.
-
-### Horizon 2: Native CI/CD Integration
-- Official GitHub Action (`vibeguard/action@v1`).
-- GitLab CI template and Bitbucket Pipelines support.
-- Pre-commit framework integration (`.pre-commit-hooks.yaml`).
-
-### Horizon 3: IDE & Real-Time Security Sidecars
-- Language Server Protocol (LSP) server for real-time diagnostics in VS Code, JetBrains, and Neovim.
-```
-
----
-
-<a name="mdfilestestingmd"></a>
-## md files/TESTING.md
-
-```markdown
-# VibeGuard — Testing & Verification Guide
-
-> **Test Suites, Automated Tests, and Manual Verification Procedures**
-
----
-
-## 1. Automated Test Suite
-
-Run the full Go test suite:
-
-```powershell
-go test -v ./...
-```
-
-### Passing Packages:
-- `internal/config`: Default configuration loading, JSON validation, and exclusion path matching.
-- `internal/dependencies`: Manifest parsing (Go, npm, Python, Cargo) and exclusion filtering.
-- `internal/gate`: Policy threshold evaluation and exit code mapping.
-- `internal/git`: Hook installation/uninstallation, user hook preservation, ref tuple parsing, and snapshot creation.
-- `internal/report`: JSON and HTML report generation, dynamic terminal progress bar rendering, and ANSI cursor control tests (`progress_test.go`).
-- `internal/risk`: Deterministic mathematical risk scoring calculations.
-- `internal/scanner`: Dual-engine scanner execution, exclusion skipping, and rule matching.
-- `tests/integration`: End-to-end integration workflows.
-
----
-
-## 2. Static Analysis Verification
-
-```powershell
-go vet ./...
-```
-
-Ensures zero suspicious constructs, correct printf formatting, and code standards compliance.
-
----
-
-## 3. End-to-End Functional Verification
-
-### 3.1 Clean Repository Self-Scan
-```powershell
-.\vibeguard.exe scan .
-```
-- **Expected Result**: `Deployment Status: PASSED`
-- **Security Score**: `100/100`
-- **Exit Code**: `0`
-- **Findings**: `0` (internal code exclusions and tooling filters successfully applied)
-
-### 3.2 Intentionally Vulnerable Target Scan
-```powershell
-.\vibeguard.exe scan .\test-project
-```
-- **Expected Result**: `Deployment Status: BLOCKED`
-- **Exit Code**: `1`
-- **Findings**: Identifies intentional secrets in `.env`, vulnerable dependencies in `requirements.txt`/`package.json`, root user in `Dockerfile`, SQL injection and command injection in `database.go`.
-
-### 3.3 Git Pre-Push Hook Verification
-```powershell
-# Check status
-.\vibeguard.exe status
-
-# Reinstall hook
-.\vibeguard.exe init
-
-# Verify hook script exists
-Get-Content .git/hooks/pre-push
-```
-
-### 3.4 Live Terminal Progress Indicator Verification (v3.0)
-```powershell
-.\vibeguard.exe scan .
-```
-- **File Scan Progress**: Real-time counter and file path:
-  `[██████████████░░░░░░] 70%`  
-  `Files: 56/80`  
-  `Current: internal/scanner/runner.go`
-- **Dependency Scan Progress**: Real-time package indicator:
-  `[████████████████░░░░] 80%`  
-  `Dependencies: 36/45`  
-  `Current: lodash@4.17.20`
-- **OSV Query Progress**: Real-time query counter:
-  `[██████████████████░░] 90%`  
-  `OSV queries: 41/45`
-- **Final Completion Indicator**: Full 100% completion bar:
-  `[████████████████████] 100%`  
-  `Security analysis complete.`
-```
-
----
-
-<a name="mdfilestestoutputmd"></a>
-## md files/TEST_OUTPUT.md
-
-```markdown
-# VibeGuard Test Output
-
-**Date:** 2026-09-19  
-**Project:** `C:\Users\ranua\Music\cyberhackathon`  
-**Version:** VibeGuard v3.0.0 (Git Secure Push Gate & Live Progress)
-
----
-
-## 1. Full Go Test Suite
-
-Command:
-
-```powershell
-go test ./...
-```
-
-Result: **PASS** (exit code `0`)
-
-Passing packages:
-
-- `internal/config`
-- `internal/dependencies`
-- `internal/gate`
-- `internal/git`
-- `internal/report` (includes `progress_test.go`: `TestBuildBar`, `TestProgressBarRender`, `TestProgressBarFinish`)
-- `internal/risk`
-- `internal/scanner`
-- `tests/integration`
-
-Packages without test files compiled successfully:
-
-- `cmd/vibeguard`
-- `internal/osv`
-- `tests/sast`
-
----
-
-## 2. Compile Binary
-
-Command:
-
-```powershell
-go build -buildvcs=false -o vibeguard.exe ./cmd/vibeguard
-```
-
-Result: **PASS** (exit code `0`)
-
----
-
-## 3. Version Check
-
-Command:
-
-```powershell
-.\vibeguard.exe version
-```
-
-Result: **PASS** (exit code `0`)
-
-Output:
-
-```text
-VibeGuard v3.0.0
-```
-
----
-
-## 4. Status Check
-
-Command:
-
-```powershell
-.\vibeguard.exe status
-```
-
-Result: **PASS** (exit code `0`)
-
-Observed status:
-
-```text
-Git detected: NO
-Status: INACTIVE (not a git repository)
-```
-
----
-
-## 5. Vulnerable Test Project Scan
-
-Command:
-
-```powershell
-.\vibeguard.exe scan .\test-project
-```
-
-Result: **BLOCKED** (exit code `1`)
-
-Observed summary:
-
-```text
-Deployment Status: BLOCKED
-Reason: 123 critical finding(s) and 80 high-severity finding(s) detected
-```
-
----
-
-## Overall Result
-
-**PASS:** The test suite and binary build succeeded. The security gate correctly blocked the intentionally vulnerable test project.
-```
-
----
-
-<a name="mdfilesv2md"></a>
-## md files/V2.md
-
-```markdown
-# VibeGuard v2 / v3 — Git Secure Push Integration
-
-> **Technical Specification: Git Pre-Push Hook Gate & Scoped Snapshot Verification**
-
----
-
-## 1. Overview
-
-VibeGuard v2 / v3 transforms VibeGuard into an autonomous security firewall placed between developer local commits and remote Git branches. It prevents vulnerable code and credentials from leaking into central repositories.
-
----
-
-## 2. Key Components
-
-### 2.1 Pre-Push Hook Script (`.git/hooks/pre-push`)
-```sh
-#!/bin/sh
-# VibeGuard Security Gate — Do not edit this section
-
-# 1. Run preserved user hook first if present
-HOOK_DIR=$(dirname "$0")
-if [ -f "$HOOK_DIR/pre-push.user" ]; then
-    "$HOOK_DIR/pre-push.user" "$@"
-    USER_EXIT=$?
-    if [ $USER_EXIT -ne 0 ]; then
-        exit $USER_EXIT
-    fi
-fi
-
-# 2. Resolve repository root
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-if [ -z "$REPO_ROOT" ]; then
-    REPO_ROOT=$(pwd)
-fi
-
-# 3. Locate VibeGuard binary
-VIBEGUARD_BIN=""
-if [ -f "$REPO_ROOT/vibeguard.exe" ]; then
-    VIBEGUARD_BIN="$REPO_ROOT/vibeguard.exe"
-elif [ -f "$REPO_ROOT/vibeguard" ]; then
-    VIBEGUARD_BIN="$REPO_ROOT/vibeguard"
-elif command -v vibeguard.exe >/dev/null 2>&1; then
-    VIBEGUARD_BIN="vibeguard.exe"
-elif command -v vibeguard >/dev/null 2>&1; then
-    VIBEGUARD_BIN="vibeguard"
-fi
-
-if [ -z "$VIBEGUARD_BIN" ]; then
-    echo "Notice: VibeGuard binary not found in repository root or PATH. Allowing push."
-    exit 0
-fi
-
-# 4. Run VibeGuard security verification gate
-"$VIBEGUARD_BIN" scan "$REPO_ROOT" --hook
-exit $?
-```
-
-### 2.2 Scoped Pre-Push Commit Snapshot
-- Git passes tuples `<local_ref> <local_sha> <remote_ref> <remote_sha>` via standard input.
-- If `local_sha` is all zeros (`00000000...`), it signifies a branch deletion; VibeGuard allows the push immediately without scanning.
-- For standard pushes, VibeGuard runs `git archive --format=tar <local_sha>` and reads the tar stream directly in Go via `archive/tar`, extracting only the committed tree into a temporary directory.
-- This guarantees that uncommitted changes or unstaged experiments in the developer's working directory do not interfere with the pre-push security verdict.
-
-### 2.3 Single-Scan Execution in `vibeguard push`
-- When running `vibeguard push`, VibeGuard stages files, creates the commit, and runs the security scan.
-- Once the scan passes, VibeGuard invokes `git push --no-verify` to send code to remote without re-triggering the pre-push hook a second time, eliminating redundant double scans.
-
-### 2.4 Real-Time Scan Progress in Hook Gate (v3.0)
-- During both manual `vibeguard scan` and pre-push hook execution, VibeGuard renders terminal progress bars:
-  - **File Scanning**: `[██████████████░░░░░░] 70%`, files counter, and active file path.
-  - **Dependency Checks**: `[████████████████░░░░] 80%`, dependency counter, and active package.
-  - **Live OSV Intelligence**: `[██████████████████░░] 90%`, OSV queries counter.
-  - **Final Completion**: `[████████████████████] 100%` followed by `Security analysis complete.`
-- Developers get immediate visual feedback on long scans right in their terminal before push completes.
-
-### 2.5 Automated Development Environment Setup & Permanent CLI (`setup.bat`)
-- Windows developers run `setup.bat` to automatically verify or install:
-  - Git, Go, Rust, Cargo, Node.js, Python, Docker
-- Probes existing tools to prevent redundant downloads.
-- Copies `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin`.
-- Adds `%LOCALAPPDATA%\VibeGuard\bin` permanently to the Windows User `PATH`.
-- Dynamically configures session PATH and verifies PATH for Go, Rust, Cargo, and VibeGuard.
-- Enables `vibeguard` commands to run from any terminal and any directory, allowing Git hooks across all repositories to automatically locate and execute VibeGuard.
-
-
-```
-
----
-
-<a name="mdfilesfinalreportmd"></a>
-## md files/finalreport.md
-
-```markdown
-# VibeGuard — Final Project Report
-
-**Project Name:** VibeGuard  
-**Tagline:** Pre-Deployment Security Verification & Git Secure Push Gate  
-**Version:** v3.0.0  
-**Date:** 2026-09-19  
-**Repository:** `C:\Users\ranua\Music\cyberhackathon`  
-
----
-
-## 1. Executive Summary
-
-**VibeGuard** is an independent pre-deployment security verification CLI and Git pre-push security gate. It acts as an automated barrier between code development and deployment/publishing, ensuring that secrets, known CVEs, SAST security vulnerabilities, container misconfigurations, and sensitive repository files are detected and blocked before code ever leaves the developer's workstation or enters production pipelines.
-
-VibeGuard v3.0 introduces real-time terminal progress indicators for long scans (file scanning, dependency analysis, and OSV queries), native Git pre-push hook integration (`.git/hooks/pre-push`), interactive secure commit-and-push workflows (`vibeguard push`), repository-level configuration (`.vibeguard/config.json`), and comprehensive reporting across Terminal, JSON, and standalone HTML formats.
-
----
-
-## 2. Architecture & Technical Design
-
-VibeGuard uses a decoupled **dual-language hybrid architecture** optimized for developer experience, fast filesystem scanning speed, and reliable offline operations.
-
-### 2.1 High-Level Architecture Diagram
-
-```text
-                             Developer Workstation
-                                      │
-                         ┌────────────┴────────────┐
-                         ▼                         ▼
-                     git push               vibeguard scan / push
-                         │                         │
-                         ▼                         │
-                 Git Pre-Push Hook                 │
-                         │                         │
-                         └────────────┬────────────┘
-                                      ▼
-                            VibeGuard Go CLI (v2.0)
-                                      │
-                 ┌────────────────────┴────────────────────┐
-                 ▼                                         ▼
-        Rust Scanner Engine                       Dependency Engine
-     (High-Performance Filesystem Scanner)      (Go, npm, Python, Cargo)
-                 │                                         │
-                 │ ┌─────────────────────────┐             ▼
-                 │ │ Native Go Fallback Engine│         OSV REST API
-                 │ │ (Always works offline)  │   (api.osv.dev - Real CVEs)
-                 │ └─────────────────────────┘             │
-                 └────────────────────┬────────────────────┘
-                                      ▼
-                                Finding Engine
-                     (ID, Severity, File:Line, Evidence)
-                                      │
-                                      ▼
-                                 Risk Engine
-                         (Deterministic Score 0-100)
-                                      │
-                                      ▼
-                            Deployment Gate Logic
-                     (Configurable Policy via config.json)
-                                      │
-                  ┌───────────────────┼───────────────────┐
-                  ▼                   ▼                   ▼
-             Terminal Output     JSON Report         HTML Report
-          (Colored ANSI Gate) (reports/scan.json) (reports/scan.html)
-                  │
-          ┌───────┴───────┐
-          ▼               ▼
-     SAFE (Exit 0)   BLOCKED (Exit 1)
-          │               │
-          ▼               ▼
-     Push Allowed    Push Aborted (Local commit preserved)
-```
-
-### 2.2 Core Components & Subsystems
-
-1. **Go CLI Orchestrator (`cmd/vibeguard/`, `internal/`)**:
-   - Manages CLI subcommands (`init`, `uninstall`, `status`, `push`, `scan`, `report`, `version`, `help`).
-   - Manages Git repository state, branches, remotes, commit hashes, and `.git/hooks/pre-push`.
-   - Parses manifest files across 4 package ecosystems.
-   - Communicates with the OSV vulnerability database via HTTP POST requests.
-   - Evaluates deployment gate policies and coordinates multi-format reporting.
-
-2. **Rust Scanning Engine (`scanner/`)**:
-   - Compiled binary `vibeguard-scanner.exe` utilizing `walkdir`, `regex`, `serde`, and `serde_json`.
-   - Traverses filesystems with fast directory skipping (`node_modules`, `vendor`, `.git`, `target`, binary files).
-   - Scans for 8 secret categories, 7 SAST vulnerability classes, Dockerfile risks, and sensitive repo files.
-   - Returns structured JSON to Go via stdout with sub-millisecond per-file latency.
-
-3. **Integrated Pure-Go Scanning Fallback**:
-   - Embedded within `internal/scanner/runner.go`.
-   - Automatically activates if the compiled Rust binary is not present in the local environment.
-   - Ensures 100% test and scan coverage even when building or running in resource-constrained or offline environments.
-
-4. **Vulnerability Intelligence (OSV)**:
-   - Queries Google's Open Source Vulnerabilities (`api.osv.dev`) schema.
-   - Zero hallucinated or synthetic vulnerabilities: uses authoritative package name and version pairs.
-   - Extracts CVSS scores, CVE aliases, and fixed remediation versions.
-
-5. **Risk Scoring Engine (`internal/risk/`)**:
-   - Deterministic mathematical formula bounded between 0 and 100:
-     $$\text{Score} = \max\left(0, 100 - (15 \times C + 8 \times H + 3 \times M + 1 \times L)\right)$$
-   - Where $C = \text{Critical}$, $H = \text{High}$, $M = \text{Medium}$, $L = \text{Low}$.
-
-6. **Deployment Gate (`internal/gate/`)**:
-   - Enforces configurable blocking thresholds (`.vibeguard/config.json`).
-   - Default policy: any `CRITICAL` or `HIGH` findings immediately trigger `BLOCKED` (exit code `1`).
-
----
-
-## 3. Repository Tree Structure
-
-The project is structured into modular layers covering the Go orchestrator, Rust engine, test fixtures, reporting, configuration, and documentation:
-
-```text
-cyberhackathon/
-├── .vibeguard/
-│   └── config.json                   # Project security policy & scanner configuration
-├── cmd/
-│   └── vibeguard/
-│       └── main.go                   # Go CLI Entrypoint (init, uninstall, status, push, scan, report)
-├── internal/
-│   ├── config/
-│   │   ├── config.go                 # Configuration loader, saver, and policy types
-│   │   └── config_test.go            # Config unit tests
-│   ├── dependencies/
-│   │   ├── detector.go               # Recursive manifest discovery
-│   │   ├── parser.go                 # Parsers for go.mod, package.json, requirements.txt, Cargo.toml
-│   │   └── parser_test.go            # Manifest parsing unit tests
-│   ├── gate/
-│   │   ├── gate.go                   # PASS / BLOCK deployment decision engine
-│   │   └── gate_test.go              # Gate policy unit tests
-│   ├── git/
-│   │   ├── hooks.go                  # Pre-push hook installer, preservation, and uninstaller
-│   │   ├── hooks_test.go             # Hook management unit tests
-│   │   ├── repo.go                   # Git repository detection, branches, commits, remotes
-│   │   └── repo_test.go              # Git helper unit tests
-│   ├── osv/
-│   │   ├── types.go                  # OSV request and response data structures
-│   │   └── client.go                 # OSV REST API client and batch query executor
-│   ├── report/
-│   │   ├── terminal.go               # Colorized ASCII terminal report generator
-│   │   ├── json.go                   # Machine-readable JSON report writer
-│   │   ├── html.go                   # Standalone HTML report generator
-│   │   └── report_test.go            # Report generation unit tests
-│   ├── risk/
-│   │   ├── scorer.go                 # Deterministic 0-100 risk scoring algorithm
-│   │   └── scorer_test.go            # Scorer unit tests
-│   └── scanner/
-│       ├── runner.go                 # Dual-engine runner (Rust subprocess + Native Go engine)
-│       └── runner_test.go            # Scanner runner unit tests
-├── scanner/                          # High-Performance Rust Scanner Engine
-│   ├── Cargo.toml
-│   ├── Cargo.lock
-│   └── src/
-│       ├── main.rs                   # Rust scanner entrypoint and JSON output serializer
-│       ├── types.rs                  # Core data models (Finding, Severity, Category, ScanResult)
-│       ├── scanner.rs                # Fast recursive directory walker with exclusion filters
-│       ├── secrets.rs                # Secret detection, credential masking + unit tests
-│       ├── sast.rs                   # SAST rule evaluation + unit tests
-│       ├── rules.rs                  # Built-in regex rule definitions
-│       ├── docker.rs                 # Dockerfile security analysis (root user, ENV secrets)
-│       ├── git.rs                    # Repository sensitive file checks (.env, private keys)
-│       └── config.rs                 # Configuration security auditor (debug mode, CORS, 0.0.0.0)
-├── test-project/                     # Deliberately Vulnerable Demo Application
-│   ├── .env                          # Synthetic test credentials and private keys
-│   ├── Dockerfile                    # Insecure container config (root user, ENV secrets, latest)
-│   ├── go.mod                        # Outdated Go dependencies with CVEs
-│   ├── package.json                  # Outdated npm dependencies with CVEs
-│   ├── requirements.txt              # Outdated Python dependencies with CVEs
-│   ├── README.md                     # Demo project documentation
-│   └── src/
-│       ├── auth.js                   # eval(), command injection, hardcoded JWT
-│       ├── config.go                 # Hardcoded API key, disabled TLS
-│       └── database.go               # SQL injection, command injection, weak MD5
-├── tests/                            # Test Suite & Fixtures
-│   ├── dependencies/                 # Manifest test fixtures (go.mod, package.json, etc.)
-│   ├── integration/
-│   │   └── integration_test.go       # End-to-end integration tests
-│   ├── sast/                         # Positive/negative source code fixtures (vulnerable.go, safe.go)
-│   └── secrets/                      # Positive/negative secret fixtures (fake_keys.txt, clean_text.txt)
-├── reports/
-│   └── README.md                     # Output directory for scan.json and scan.html
-├── md files/                         # Organized Documentation & Specification Archive
-│   ├── ARCHITECTURE.md
-│   ├── CHANGELOG.md
-│   ├── FEATURES.md
-│   ├── LANGUAGE.md
-│   ├── PLAN.md
-│   ├── PLAN1.md
-│   ├── PROCESSES.md
-│   ├── README.md
-│   ├── ROADMAP.md
-│   ├── TEST_OUTPUT.md
-│   ├── v2.md
-│   └── finalreport.md
-├── finalreport.md                    # Complete final project report
-├── test output.md                    # Verified test execution log
-├── README.md                         # Root project documentation & quickstart
-├── go.mod                            # Go module root
-└── vibeguard.exe                     # Compiled VibeGuard v2.0 binary
-```
-
----
-
-## 4. Languages, Software & Technologies
-
-| Layer | Technology | Version / Tool | Purpose |
-|:---|:---|:---|:---|
-| **CLI & Application Layer** | **Go (Golang)** | 1.21+ | CLI orchestration, Git integration, manifest parsing, OSV client, gate evaluation, report generation |
-| **High-Speed Scanner** | **Rust** | 2021 Edition / rustc 1.70+ | Fast filesystem traversal, regex-based secret matching, SAST rule evaluation |
-| **Version Control Gate** | **Git** | 2.x+ (POSIX sh / Git Bash) | `.git/hooks/pre-push` execution, branch/commit tracking, staging & pushing |
-| **Vulnerability Data** | **OSV API** | REST / JSON v1 | Real-time CVE and advisory lookup for open-source dependencies |
-| **Inter-Process Comm.** | **JSON IPC** | Standard Streams | Structured data exchange between Rust scanner output and Go runner |
-| **Configuration** | **JSON** | `.vibeguard/config.json` | Repository-level policy, module toggles, scan mode, and fail-closed flags |
-| **Reports** | **HTML5 / CSS3** | Embedded standalone | Interactive, self-contained executive security reports |
-
----
-
-## 5. Version Progression & Roadmap
-
-| Version | Milestone | Key Features Delivered |
-|:---:|:---|:---|
-| **v0.1** | Foundation | Go module setup, CLI structure, Rust scanner skeleton, recursive walker, JSON IPC |
-| **v0.2** | Secret Detection | AWS keys, GitHub tokens, Slack tokens, private keys, password assignments, credential masking |
-| **v0.3** | Source Code (SAST) | SQL injection, command injection, dangerous eval, disabled TLS, weak crypto, insecure HTTP |
-| **v0.4** | Dependency Security | Parsers for `go.mod`, `package.json`, `requirements.txt`, `Cargo.toml`; OSV API client |
-| **v0.5** | Scoring & Reporting | Deterministic 0–100 risk score, ANSI terminal report, JSON report, HTML report |
-| **v0.6** | Deployment Gate | PASS / BLOCK gate decision, exit codes (0/1/2), CI/CD integration |
-| **v0.7** | Containers & Config | Dockerfile checks (root user, ENV secrets, latest tag), Git sensitive files, config security |
-| **v1.0** | Stable Core MVP | Full test-project fixture (9 vulnerable files), dual-engine scanner fallback, end-to-end testing |
-| **v2.0** | **Git Secure Push Gate** | **Git pre-push hook integration (`init`, `uninstall`, `status`, `push`), custom hook preservation, `.vibeguard/config.json`, Git metadata in reports, exit codes 0–4** |
-
----
-
-## 6. Dual Execution Outputs
-
-Below are the two canonical outputs demonstrating VibeGuard's gate behavior: **Clean/Safe Scan (Output 1)** and **Blocked Vulnerable Scan (Output 2)**.
-
-### Output 1: Safe Scan / Clean Project (`SAFE TO PUSH` — Exit Code 0)
-
-Triggered when scanning clean code or running through a safe Git push:
-
-```text
-========================================
-       VIBEGUARD SECURITY GATE
-========================================
-Project: CleanShop
-Commit:  4b2e8a1
-Branch:  main
-
-[1/4] Running security scanner...
-  Files scanned: 18
-  Findings from scanner: 0
-[2/4] Checking dependencies...
-  Dependencies found: 6
-[3/4] Querying vulnerability database (OSV)...
-  No known vulnerabilities found in dependencies
-[4/4] Calculating risk score...
-
-========================================
-       VIBEGUARD SECURITY REPORT
-========================================
-Project: CleanShop
-Commit:  4b2e8a1
-Branch:  main
-Remote:  https://github.com/example/cleanshop.git
-Scan Time: 142ms
-Files Scanned: 18
----------------------------------------------
-Severity Counts:
-Critical: 0, High: 0, Medium: 0, Low: 0, Info: 0
----------------------------------------------
-Category Breakdown:
-Secrets: 0, Source Code: 0, Dependencies: 0, Configuration: 0, Docker: 0, Git: 0
----------------------------------------------
-Security Score: 100/100
----------------------------------------------
-Findings:
-None. All security verification checks passed.
----------------------------------------------
-Deployment Status: PASSED
-Reason: No blocking security findings
----------------------------------------------
-STATUS: SAFE TO PUSH
-Continuing Git push...
-========================================
-```
-
-**Process Exit Code:** `0` (Success — Git push or CI/CD deployment proceeds).
-
----
-
-### Output 2: Blocked Scan / Vulnerable Project (`PUSH BLOCKED` — Exit Code 1)
-
-Triggered when scanning `test-project` (containing synthetic secrets, SQL injection, disabled TLS, and vulnerable dependencies):
-
-```text
-========================================
-       VIBEGUARD SECURITY SCANNER
-========================================
-Project: test-project
-Path:    C:\Users\ranua\Music\cyberhackathon\test-project
-
-[1/4] Running security scanner...
-  Files scanned: 8
-  Findings from scanner: 18
-[2/4] Checking dependencies...
-  Dependencies found: 12
-[3/4] Querying vulnerability database (OSV)...
-  Vulnerable packages: 11
-  Total vulnerabilities: 185
-[4/4] Calculating risk score...
-
-========= VIBEGUARD SECURITY REPORT =========
-Project: test-project
-Scan Time: 2.14s
-Files Scanned: 8
----------------------------------------------
-Severity Counts:
-Critical: 123, High: 80, Medium: 0, Low: 0, Info: 0
----------------------------------------------
-Category Breakdown:
-Secrets: 7, Source Code: 7, Dependencies: 185, Configuration: 0, Docker: 4, Git: 0
----------------------------------------------
-Security Score: 0/100
----------------------------------------------
-Findings:
-[CRITICAL] VG-001 in .env:1
-  Title: Sensitive File Detected
-  Recommendation: Ensure this file is not committed to version control and does not contain sensitive data.
-
-[CRITICAL] VG-002 in .env:4
-  Title: Generic API Key
-  Evidence: API_KEY=****
-  Recommendation: Remove the key from code and use a secret manager.
-
-[CRITICAL] VG-003 in .env:5
-  Title: AWS Access Key
-  Evidence: AWS_ACCE****
-  Recommendation: Revoke the key immediately and use IAM roles instead.
-
-[HIGH] VG-008 in src\config.go:17
-  Title: Hardcoded Credentials
-  Evidence: password = "supersecretpassword123"
-  Recommendation: Use environment variables or a secret management service.
-
-[HIGH] VG-009 in src\config.go:21
-  Title: Disabled TLS
-  Evidence: InsecureSkipVerify: true
-  Recommendation: Enable TLS verification for all network connections in production.
-
-[HIGH] VG-010 in src\database.go:14
-  Title: SQL Injection
-  Evidence: query := fmt.Sprintf("SELECT * FROM users WHERE id = '%s'", userID)
-  Recommendation: Use parameterized queries or prepared statements.
-
-[HIGH] VG-011 in src\database.go:21
-  Title: Command Injection
-  Evidence: cmd := exec.Command("ping", host)
-  Recommendation: Avoid executing OS commands with user input. Use safe APIs.
-
-[CRITICAL] VG-019 in package.json:0
-  Title: Vulnerable Dependency: lodash
-  Evidence: Package: lodash@4.17.20, Advisory: GHSA-p6mc-m468-83gw (CVE-2020-8203, CVE-2021-23337)
-  Recommendation: Update lodash from 4.17.20 to 4.17.21 or later
-
-... and 195 more finding(s).
-
----------------------------------------------
-Deployment Status: BLOCKED
-Reason: 123 critical finding(s) and 80 high-severity finding(s) detected
-=============================================
-```
-
-**Process Exit Code:** `1` (Blocked — Git push aborted, code prevented from leaving machine).
-
----
-
-## 7. Exit Codes Reference
-
-| Exit Code | Status | Meaning | Action Taken |
-|:---:|:---:|:---|:---|
-| **`0`** | **PASS** | No blocking security findings detected | Push or deployment allowed to continue |
-| **`1`** | **BLOCKED** | One or more findings violate `.vibeguard/config.json` | Push or deployment strictly blocked |
-| **`2`** | **ERROR** | Runtime error, scanner panic, or missing arguments | Process terminates with error output |
-| **`3`** | **CONFIG ERROR** | `.vibeguard/config.json` malformed or unreadable | Push blocked to prevent insecure bypass |
-| **`4`** | **OSV UNAVAILABLE** | OSV API unreachable with `fail_closed: true` | Fails closed to protect against blind pushes |
-
----
-
-## 8. Verification & Automated Test Status
-
-All unit, integration, and end-to-end tests pass cleanly:
-
-```powershell
-go test ./...
-# ok   internal/config         (1.558s)
-# ok   internal/dependencies   (cached)
-# ok   internal/gate           (cached)
-# ok   internal/git            (1.436s)
-# ok   internal/report         (cached)
-# ok   internal/risk           (cached)
-# ok   internal/scanner        (cached)
-# ok   tests/integration       (cached)
-```
-
-- **CLI Compilation:** `go build -buildvcs=false -o vibeguard.exe ./cmd/vibeguard` — **SUCCESS (0 warnings)**
-- **Binary Version:** `vibeguard.exe version` — **`VibeGuard v3.0.0`**
-- **Live Progress Indicators:** Verified across file scanning, dependency checks, and live OSV queries.
-- **Hook Lifecycle:** `vibeguard init` $\rightarrow$ `status` $\rightarrow$ `uninstall` verified on clean repositories.
-- **Controlled Push:** `vibeguard push` successfully prompts, stages, commits, verifies, and protects pushes.
-
----
-
-## 9. Conclusion
-
-VibeGuard v3.0 provides an end-to-end security verification gate for developers with rich real-time visual progress feedback. By combining the speed of Rust, the ergonomics and ecosystem integration of Go, live OSV intelligence, and non-destructive Git hook automation, VibeGuard fulfills its design purpose: **"Make security verification a simple, reliable step between writing software and deploying software."**
-```
-
----
-
-<a name="mdfilesreportmd"></a>
 ## md files/report.md
 
 ```markdown
@@ -8712,7 +7231,50 @@ All issues noted in this early report have been fully resolved:
 
 ---
 
-<a name="mdfilesstepsmd"></a>
+## md files/ROADMAP.md
+
+```markdown
+# VibeGuard — Strategic Roadmap
+
+> **Product Evolution and Future Horizons**
+
+---
+
+## 1. Completed Milestones
+
+- [x] **v0.1 — Foundation**: Go CLI skeleton, Rust scanner skeleton, JSON IPC protocol.
+- [x] **v0.2 — Filesystem Traversal**: Recursive walker, binary filtering, directory exclusions.
+- [x] **v0.3 — Secret Detection**: AWS keys, GitHub tokens, Slack tokens, private keys, evidence masking.
+- [x] **v0.4 — SAST Engine**: SQL injection, command injection, TLS bypass, weak crypto, eval.
+- [x] **v0.5 — SCA Engine**: Dependency manifest parsing (Go, npm, Python, Rust) with live Google OSV lookup.
+- [x] **v0.6 — Finding Engine**: Normalized IDs (`VG-001`), severity classification, category grouping.
+- [x] **v0.7 — Reporting & Risk**: 0–100 deterministic risk score, ANSI terminal, JSON, and standalone HTML reports.
+- [x] **v0.8 — Deployment Gate**: PASS/BLOCK decision logic, exit codes (0, 1, 2, 3, 4).
+- [x] **v0.9 — Container & Config**: Dockerfile security analysis, config file security audits.
+- [x] **v1.0 — Stable MVP**: Multi-shell support, comprehensive test fixtures, end-to-end integration.
+- [x] **v3.0 — Live Scan Progress & Scoped Pre-Push Gate**: Real-time terminal progress bars across all scanning stages (files, dependencies, OSV queries, 100% completion indicator), pure Go `git archive` snapshot scanning, `.vibeguard/config.json` exclusions, refined SAST terminology, double-scan elimination.
+- [x] **v3.1 — Automated Environment Setup & Global CLI (`setup.bat`)**: Intelligent Windows environment setup verifying and installing Git, Go, Rust, Cargo, Node.js, Python, and Docker via `winget`, permanent global installation to `%LOCALAPPDATA%\VibeGuard\bin`, User PATH registry configuration, and PATH verification.
+
+---
+
+## 2. Upcoming Horizons
+
+### Horizon 1: AI Remediation & Patch Generation
+- Optional local/cloud AI interface (Ollama, Anthropic, OpenAI, Gemini).
+- Auto-generate Git patch diffs for discovered vulnerabilities.
+- Explain root causes in plain language without making AI the source of truth for detection.
+
+### Horizon 2: Native CI/CD Integration
+- Official GitHub Action (`vibeguard/action@v1`).
+- GitLab CI template and Bitbucket Pipelines support.
+- Pre-commit framework integration (`.pre-commit-hooks.yaml`).
+
+### Horizon 3: IDE & Real-Time Security Sidecars
+- Language Server Protocol (LSP) server for real-time diagnostics in VS Code, JetBrains, and Neovim.
+```
+
+---
+
 ## md files/steps.md
 
 ```markdown
@@ -8956,7 +7518,1063 @@ Version: v3.1
 
 ---
 
-<a name="outputmd"></a>
+## md files/TEST_OUTPUT.md
+
+```markdown
+# VibeGuard Test Output
+
+**Date:** 2026-09-19  
+**Project:** `C:\Users\ranua\Music\cyberhackathon`  
+**Version:** VibeGuard v3.0.0 (Git Secure Push Gate & Live Progress)
+
+---
+
+## 1. Full Go Test Suite
+
+Command:
+
+```powershell
+go test ./...
+```
+
+Result: **PASS** (exit code `0`)
+
+Passing packages:
+
+- `internal/config`
+- `internal/dependencies`
+- `internal/gate`
+- `internal/git`
+- `internal/report` (includes `progress_test.go`: `TestBuildBar`, `TestProgressBarRender`, `TestProgressBarFinish`)
+- `internal/risk`
+- `internal/scanner`
+- `tests/integration`
+
+Packages without test files compiled successfully:
+
+- `cmd/vibeguard`
+- `internal/osv`
+- `tests/sast`
+
+---
+
+## 2. Compile Binary
+
+Command:
+
+```powershell
+go build -buildvcs=false -o vibeguard.exe ./cmd/vibeguard
+```
+
+Result: **PASS** (exit code `0`)
+
+---
+
+## 3. Version Check
+
+Command:
+
+```powershell
+.\vibeguard.exe version
+```
+
+Result: **PASS** (exit code `0`)
+
+Output:
+
+```text
+VibeGuard v3.0.0
+```
+
+---
+
+## 4. Status Check
+
+Command:
+
+```powershell
+.\vibeguard.exe status
+```
+
+Result: **PASS** (exit code `0`)
+
+Observed status:
+
+```text
+Git detected: NO
+Status: INACTIVE (not a git repository)
+```
+
+---
+
+## 5. Vulnerable Test Project Scan
+
+Command:
+
+```powershell
+.\vibeguard.exe scan .\test-project
+```
+
+Result: **BLOCKED** (exit code `1`)
+
+Observed summary:
+
+```text
+Deployment Status: BLOCKED
+Reason: 123 critical finding(s) and 80 high-severity finding(s) detected
+```
+
+---
+
+## Overall Result
+
+**PASS:** The test suite and binary build succeeded. The security gate correctly blocked the intentionally vulnerable test project.
+```
+
+---
+
+## md files/TESTING.md
+
+```markdown
+# VibeGuard — Testing & Verification Guide
+
+> **Test Suites, Automated Tests, and Manual Verification Procedures**
+
+---
+
+## 1. Automated Test Suite
+
+Run the full Go test suite:
+
+```powershell
+go test -v ./...
+```
+
+### Passing Packages:
+- `internal/config`: Default configuration loading, JSON validation, and exclusion path matching.
+- `internal/dependencies`: Manifest parsing (Go, npm, Python, Cargo) and exclusion filtering.
+- `internal/gate`: Policy threshold evaluation and exit code mapping.
+- `internal/git`: Hook installation/uninstallation, user hook preservation, ref tuple parsing, and snapshot creation.
+- `internal/report`: JSON and HTML report generation, dynamic terminal progress bar rendering, and ANSI cursor control tests (`progress_test.go`).
+- `internal/risk`: Deterministic mathematical risk scoring calculations.
+- `internal/scanner`: Dual-engine scanner execution, exclusion skipping, and rule matching.
+- `tests/integration`: End-to-end integration workflows.
+
+---
+
+## 2. Static Analysis Verification
+
+```powershell
+go vet ./...
+```
+
+Ensures zero suspicious constructs, correct printf formatting, and code standards compliance.
+
+---
+
+## 3. End-to-End Functional Verification
+
+### 3.1 Clean Repository Self-Scan
+```powershell
+.\vibeguard.exe scan .
+```
+- **Expected Result**: `Deployment Status: PASSED`
+- **Security Score**: `100/100`
+- **Exit Code**: `0`
+- **Findings**: `0` (internal code exclusions and tooling filters successfully applied)
+
+### 3.2 Intentionally Vulnerable Target Scan
+```powershell
+.\vibeguard.exe scan .\test-project
+```
+- **Expected Result**: `Deployment Status: BLOCKED`
+- **Exit Code**: `1`
+- **Findings**: Identifies intentional secrets in `.env`, vulnerable dependencies in `requirements.txt`/`package.json`, root user in `Dockerfile`, SQL injection and command injection in `database.go`.
+
+### 3.3 Git Pre-Push Hook Verification
+```powershell
+# Check status
+.\vibeguard.exe status
+
+# Reinstall hook
+.\vibeguard.exe init
+
+# Verify hook script exists
+Get-Content .git/hooks/pre-push
+```
+
+### 3.4 Live Terminal Progress Indicator Verification (v3.0)
+```powershell
+.\vibeguard.exe scan .
+```
+- **File Scan Progress**: Real-time counter and file path:
+  `[██████████████░░░░░░] 70%`  
+  `Files: 56/80`  
+  `Current: internal/scanner/runner.go`
+- **Dependency Scan Progress**: Real-time package indicator:
+  `[████████████████░░░░] 80%`  
+  `Dependencies: 36/45`  
+  `Current: lodash@4.17.20`
+- **OSV Query Progress**: Real-time query counter:
+  `[██████████████████░░] 90%`  
+  `OSV queries: 41/45`
+- **Final Completion Indicator**: Full 100% completion bar:
+  `[████████████████████] 100%`  
+  `Security analysis complete.`
+```
+
+---
+
+## md files/V2.md
+
+```markdown
+# VibeGuard v2 / v3 — Git Secure Push Integration
+
+> **Technical Specification: Git Pre-Push Hook Gate & Scoped Snapshot Verification**
+
+---
+
+## 1. Overview
+
+VibeGuard v2 / v3 transforms VibeGuard into an autonomous security firewall placed between developer local commits and remote Git branches. It prevents vulnerable code and credentials from leaking into central repositories.
+
+---
+
+## 2. Key Components
+
+### 2.1 Pre-Push Hook Script (`.git/hooks/pre-push`)
+```sh
+#!/bin/sh
+# VibeGuard Security Gate — Do not edit this section
+
+# 1. Run preserved user hook first if present
+HOOK_DIR=$(dirname "$0")
+if [ -f "$HOOK_DIR/pre-push.user" ]; then
+    "$HOOK_DIR/pre-push.user" "$@"
+    USER_EXIT=$?
+    if [ $USER_EXIT -ne 0 ]; then
+        exit $USER_EXIT
+    fi
+fi
+
+# 2. Resolve repository root
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+if [ -z "$REPO_ROOT" ]; then
+    REPO_ROOT=$(pwd)
+fi
+
+# 3. Locate VibeGuard binary
+VIBEGUARD_BIN=""
+if [ -f "$REPO_ROOT/vibeguard.exe" ]; then
+    VIBEGUARD_BIN="$REPO_ROOT/vibeguard.exe"
+elif [ -f "$REPO_ROOT/vibeguard" ]; then
+    VIBEGUARD_BIN="$REPO_ROOT/vibeguard"
+elif command -v vibeguard.exe >/dev/null 2>&1; then
+    VIBEGUARD_BIN="vibeguard.exe"
+elif command -v vibeguard >/dev/null 2>&1; then
+    VIBEGUARD_BIN="vibeguard"
+fi
+
+if [ -z "$VIBEGUARD_BIN" ]; then
+    echo "Notice: VibeGuard binary not found in repository root or PATH. Allowing push."
+    exit 0
+fi
+
+# 4. Run VibeGuard security verification gate
+"$VIBEGUARD_BIN" scan "$REPO_ROOT" --hook
+exit $?
+```
+
+### 2.2 Scoped Pre-Push Commit Snapshot
+- Git passes tuples `<local_ref> <local_sha> <remote_ref> <remote_sha>` via standard input.
+- If `local_sha` is all zeros (`00000000...`), it signifies a branch deletion; VibeGuard allows the push immediately without scanning.
+- For standard pushes, VibeGuard runs `git archive --format=tar <local_sha>` and reads the tar stream directly in Go via `archive/tar`, extracting only the committed tree into a temporary directory.
+- This guarantees that uncommitted changes or unstaged experiments in the developer's working directory do not interfere with the pre-push security verdict.
+
+### 2.3 Single-Scan Execution in `vibeguard push`
+- When running `vibeguard push`, VibeGuard stages files, creates the commit, and runs the security scan.
+- Once the scan passes, VibeGuard invokes `git push --no-verify` to send code to remote without re-triggering the pre-push hook a second time, eliminating redundant double scans.
+
+### 2.4 Real-Time Scan Progress in Hook Gate (v3.0)
+- During both manual `vibeguard scan` and pre-push hook execution, VibeGuard renders terminal progress bars:
+  - **File Scanning**: `[██████████████░░░░░░] 70%`, files counter, and active file path.
+  - **Dependency Checks**: `[████████████████░░░░] 80%`, dependency counter, and active package.
+  - **Live OSV Intelligence**: `[██████████████████░░] 90%`, OSV queries counter.
+  - **Final Completion**: `[████████████████████] 100%` followed by `Security analysis complete.`
+- Developers get immediate visual feedback on long scans right in their terminal before push completes.
+
+### 2.5 Automated Development Environment Setup & Permanent CLI (`setup.bat`)
+- Windows developers run `setup.bat` to automatically verify or install:
+  - Git, Go, Rust, Cargo, Node.js, Python, Docker
+- Probes existing tools to prevent redundant downloads.
+- Copies `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin`.
+- Adds `%LOCALAPPDATA%\VibeGuard\bin` permanently to the Windows User `PATH`.
+- Dynamically configures session PATH and verifies PATH for Go, Rust, Cargo, and VibeGuard.
+- Enables `vibeguard` commands to run from any terminal and any directory, allowing Git hooks across all repositories to automatically locate and execute VibeGuard.
+
+
+```
+
+---
+
+## NEW_LAPTOP_SETUP.md
+
+```markdown
+# VibeGuard — New Laptop Setup & Portability Plan
+
+## Purpose
+
+This document defines how VibeGuard must be packaged and how the setup scripts must behave on a **new Windows laptop**.
+
+The goal is:
+
+> Clone/copy the repository to a new Windows laptop, run one setup command, and avoid confusing build errors caused by missing Go, Rust, MSVC, PATH configuration, or incorrect working directories.
+
+The hackathon/demo laptop should **not need Go, Rust, or Visual Studio Build Tools just to run the already-built VibeGuard application**.
+
+---
+
+# 1. Recommended Final Distribution
+
+The repository should support two modes.
+
+## Mode A — Demo / User Mode
+
+Use prebuilt binaries.
+
+```text
+cyberhackathon/
+├── vibeguard.exe
+├── scanner/
+│   └── scanner.exe
+├── rules/
+├── reports/
+├── test-project/
+├── .vibeguard/
+├── setup.bat
+├── run_test.bat
+└── README.md
+```
+
+In this mode:
+
+```cmd
+setup.bat
+```
+
+should configure VibeGuard and verify the installation.
+
+The user should then be able to run:
+
+```cmd
+vibeguard version
+```
+
+and:
+
+```cmd
+vibeguard scan .\test-project
+```
+
+No Rust compiler is required.
+
+No Go compiler is required.
+
+No Visual Studio Build Tools are required.
+
+---
+
+# 2. Mode B — Developer / Source Build Mode
+
+Developers who want to rebuild VibeGuard from source may install:
+
+```text
+Git
+Go
+Rust
+Visual Studio Build Tools
+Desktop development with C++
+```
+
+Then the project can be rebuilt using the source-build script.
+
+Example:
+
+```cmd
+build.bat
+```
+
+The important rule is:
+
+> The normal setup script must not assume that a compiler is installed.
+
+---
+
+# 3. Required Scripts
+
+The repository should eventually contain:
+
+```text
+setup.bat
+build.bat
+run_test.bat
+install_hook.bat
+uninstall_hook.bat
+```
+
+## setup.bat
+
+Responsible for:
+
+1. Detecting the repository root.
+2. Checking that VibeGuard binaries exist.
+3. Creating required directories.
+4. Checking required files.
+5. Configuring PATH if required.
+6. Installing the Git pre-push hook.
+7. Running a basic version test.
+8. Printing clear success/failure messages.
+
+It should NOT automatically run `cargo build` or `go build` unless explicitly requested.
+
+---
+
+# 4. Repository Root Detection
+
+Every BAT script must work regardless of the directory from which it is launched.
+
+Do NOT assume the user is already inside the repository.
+
+Use the BAT file's own location as the project root.
+
+Conceptually:
+
+```bat
+set "ROOT=%~dp0"
+cd /d "%ROOT%"
+```
+
+This prevents errors such as:
+
+```text
+scanner\cmd\vibeguard not found
+```
+
+caused by running a root-level Go command from inside the `scanner` directory.
+
+---
+
+# 5. Prebuilt Binary Check
+
+Before doing anything else, `setup.bat` should check:
+
+```text
+vibeguard.exe
+scanner\scanner.exe
+```
+
+If they exist:
+
+```text
+[OK] VibeGuard CLI found
+[OK] Rust scanner found
+```
+
+If one is missing:
+
+```text
+[ERROR] Required VibeGuard binary was not found.
+
+Expected:
+    <project>\vibeguard.exe
+
+Run build.bat on a developer machine or obtain the official release package.
+```
+
+Do not silently continue.
+
+---
+
+# 6. Do Not Require Rust on Demo Laptop
+
+This is critical.
+
+The current problem was:
+
+```text
+error: linker `link.exe` not found
+```
+
+This happens because Rust was trying to compile using the Windows MSVC target but the Microsoft C++ linker was not installed.
+
+The final demo package should avoid this entirely.
+
+The demo laptop should run:
+
+```text
+vibeguard.exe
+```
+
+and:
+
+```text
+scanner.exe
+```
+
+instead of compiling Rust.
+
+---
+
+# 7. Developer Build Requirements
+
+`build.bat` should check:
+
+```text
+go
+cargo
+rustc
+link.exe
+```
+
+Example checks:
+
+```bat
+where go
+where cargo
+where rustc
+where link
+```
+
+If `link.exe` is missing, show:
+
+```text
+[ERROR] Microsoft C++ linker (link.exe) was not found.
+
+Install:
+Visual Studio Build Tools
+→ Desktop development with C++
+
+Then open a new terminal and run build.bat again.
+```
+
+Do not display a long Rust compiler error when a simple prerequisite explanation is possible.
+
+---
+
+# 8. Correct Build Order
+
+The source build should be:
+
+```text
+1. Detect project root
+2. Check Go
+3. Check Rust
+4. Check MSVC linker
+5. Build Rust scanner
+6. Build Go CLI
+7. Verify generated binaries
+8. Run version test
+9. Report success
+```
+
+Rust:
+
+```cmd
+cd scanner
+cargo build --release
+```
+
+Return to root:
+
+```cmd
+cd ..
+```
+
+Go:
+
+```cmd
+go build -buildvcs=false -o vibeguard.exe ./cmd/vibeguard
+```
+
+The Go command MUST be executed from the repository root.
+
+---
+
+# 9. Never Use Documentation Comments as Commands
+
+Do not copy lines such as:
+
+```text
+# Output: VibeGuard v3.0.0
+```
+
+into CMD.
+
+For BAT files use:
+
+```bat
+REM Output: VibeGuard v3.0.0
+```
+
+or simply print output with:
+
+```bat
+echo Output: VibeGuard v3.0.0
+```
+
+---
+
+# 10. PATH Configuration
+
+VibeGuard should work from the project directory even if PATH is not modified.
+
+Example:
+
+```cmd
+.\vibeguard.exe version
+```
+
+If global CLI usage is desired, setup may add the VibeGuard installation directory to the user's PATH.
+
+Prefer **User PATH**, not System PATH.
+
+After changing PATH, tell the user:
+
+```text
+PATH updated.
+Please open a new terminal before using `vibeguard`.
+```
+
+Do not assume the current CMD automatically receives the newly modified PATH.
+
+---
+
+# 11. Git Pre-Push Hook
+
+The project must install a Git pre-push hook.
+
+Expected location:
+
+```text
+.git\hooks\pre-push
+```
+
+The hook should call the VibeGuard executable using an absolute/project-relative path rather than assuming `vibeguard` is globally available.
+
+Conceptually:
+
+```text
+git push
+    ↓
+.git/hooks/pre-push
+    ↓
+vibeguard scan
+    ↓
+PASS → exit 0
+BLOCK → exit 1
+```
+
+The hook must return a non-zero exit code when VibeGuard blocks the push.
+
+---
+
+# 12. Git Hook Portability
+
+Do not hardcode a developer's personal path such as:
+
+```text
+C:\Users\ranua\...
+```
+
+Never use:
+
+```text
+C:\Users\pooji\...
+```
+
+Never use:
+
+```text
+C:\Users\ranua\...
+```
+
+The hook must determine the repository/project location dynamically.
+
+This is essential when moving the project between laptops.
+
+---
+
+# 13. Required Directory Checks
+
+`setup.bat` should verify or create:
+
+```text
+.vibeguard\
+reports\
+rules\
+tests\
+```
+
+If a directory is required by the current implementation, it should be created automatically.
+
+Example:
+
+```bat
+if not exist ".vibeguard" mkdir ".vibeguard"
+if not exist "reports" mkdir "reports"
+```
+
+Do not overwrite existing configuration unnecessarily.
+
+---
+
+# 14. Test Command
+
+Create:
+
+```text
+run_test.bat
+```
+
+It should:
+
+1. Detect project root.
+2. Check `vibeguard.exe`.
+3. Check scanner executable.
+4. Run the version command.
+5. Scan `test-project`.
+6. Display the final result.
+7. Return a useful exit code.
+
+Example:
+
+```cmd
+run_test.bat
+```
+
+Expected:
+
+```text
+========================================
+        VIBEGUARD TEST
+========================================
+
+[OK] CLI
+[OK] Scanner
+[OK] Version
+[OK] Test project
+
+Running security scan...
+
+========================================
+TEST COMPLETED
+========================================
+```
+
+---
+
+# 15. Setup Should Be Safe to Run Multiple Times
+
+Running:
+
+```cmd
+setup.bat
+```
+
+more than once must not break the project.
+
+It should:
+
+- not duplicate PATH entries
+- not overwrite user configuration unnecessarily
+- not create duplicate Git hooks
+- not delete existing reports
+- not delete source code
+- not reinstall working components unnecessarily
+
+The setup process should be **idempotent**.
+
+---
+
+# 16. Error Handling
+
+Every important command should be checked.
+
+Conceptually:
+
+```bat
+some-command
+if errorlevel 1 (
+    echo [ERROR] Command failed.
+    exit /b 1
+)
+```
+
+Do not allow setup to continue after a critical failure.
+
+For example:
+
+```text
+Rust scanner missing
+        ↓
+STOP
+```
+
+rather than:
+
+```text
+Rust scanner missing
+        ↓
+continue
+        ↓
+Go build
+        ↓
+confusing later error
+```
+
+---
+
+# 17. Offline Demo Consideration
+
+The hackathon demonstration should preferably work even if Internet access is unavailable.
+
+The core scanner should still run.
+
+Dependency vulnerability lookup can be designed as:
+
+```text
+Online:
+Project → VibeGuard → OSV API
+
+Offline future:
+Project → VibeGuard → Local vulnerability database
+```
+
+For the current MVP, if OSV cannot be reached, VibeGuard should clearly report:
+
+```text
+[WARNING] Vulnerability intelligence service unavailable.
+
+Dependency CVE verification could not be completed.
+```
+
+Do not report:
+
+```text
+PASS
+```
+
+when the dependency vulnerability check was never performed.
+
+The final policy should decide whether this condition blocks the push.
+
+---
+
+# 18. Fresh Laptop Test Procedure
+
+Before submitting the project, test it on another Windows laptop.
+
+### Test 1 — Clean environment
+
+Use a laptop without:
+
+```text
+Go
+Rust
+Visual Studio Build Tools
+```
+
+if possible.
+
+Copy/clone the project.
+
+Run:
+
+```cmd
+setup.bat
+```
+
+The demo package should still work if prebuilt binaries are included.
+
+### Test 2 — Version
+
+```cmd
+vibeguard version
+```
+
+Expected:
+
+```text
+VibeGuard v3.0.0
+```
+
+### Test 3 — Scan
+
+```cmd
+vibeguard scan .\test-project
+```
+
+### Test 4 — Git hook
+
+Create a controlled test finding.
+
+Run:
+
+```cmd
+git add .
+git commit -m "test"
+git push
+```
+
+Expected:
+
+```text
+VibeGuard Security Gate
+...
+STATUS: BLOCKED
+```
+
+Then remove/fix the test finding and repeat:
+
+```cmd
+git push
+```
+
+Expected:
+
+```text
+STATUS: SAFE TO PUSH
+```
+
+---
+
+# 19. Final Packaging Rule
+
+For the hackathon submission, prefer distributing:
+
+```text
+VibeGuard/
+├── vibeguard.exe
+├── scanner/
+│   └── scanner.exe
+├── .vibeguard/
+├── rules/
+├── reports/
+├── tests/
+├── test-project/
+├── setup.bat
+├── build.bat
+├── run_test.bat
+├── install_hook.bat
+├── uninstall_hook.bat
+├── README.md
+└── NEW_LAPTOP_SETUP.md
+```
+
+Source code should remain available for academic/source-code submission.
+
+The important distinction is:
+
+```text
+Source package
+    ↓
+For developers who want to build
+
+Release/demo package
+    ↓
+For judges/users who just want to run
+```
+
+---
+
+# 20. Final Acceptance Criteria
+
+VibeGuard setup is considered portable when all of these are true:
+
+- [x] No hardcoded `C:\Users\<name>` paths.
+- [x] Scripts automatically find their project root.
+- [x] `setup.bat` works from any current directory.
+- [x] Demo laptop does not need Rust to run VibeGuard.
+- [x] Demo laptop does not need Go to run VibeGuard.
+- [x] Demo laptop does not need Visual Studio Build Tools to run VibeGuard.
+- [x] `build.bat` detects missing developer prerequisites.
+- [x] `link.exe` requirement is explained clearly for source builds.
+- [x] Go build is executed from the repository root.
+- [x] Rust build is executed from the scanner directory.
+- [x] Required directories are created automatically.
+- [x] Git pre-push hook uses portable paths.
+- [x] Setup can safely be run multiple times.
+- [x] `run_test.bat` provides a complete health check.
+- [x] Version command works.
+- [x] Test scan works.
+- [x] Git push is blocked when the security policy fails.
+- [x] Git push proceeds when the security policy passes.
+- [x] No real credentials are included in test data.
+- [x] The project can be demonstrated on a second Windows laptop.
+
+---
+
+# 21. Priority for Hackathon
+
+Because the project is being demonstrated today, implement in this order:
+
+### P0 — Required immediately
+
+1. Build working Rust scanner.
+2. Build working Go CLI.
+3. Produce `vibeguard.exe`.
+4. Produce Rust scanner `.exe`.
+5. Update `setup.bat`.
+6. Add `run_test.bat`.
+7. Make Git hook portable.
+8. Test on the second laptop.
+
+### P1 — Important
+
+9. Clear prerequisite detection.
+10. Better error messages.
+11. PATH handling.
+12. Final README instructions.
+
+### P2 — Future
+
+13. Automatic vulnerability database synchronization.
+14. Offline vulnerability database.
+15. CI/CD integration.
+16. AI provider integration.
+17. Linux/macOS release packages.
+
+---
+
+# Final Goal
+
+A new Windows laptop should be able to receive the VibeGuard project and reach:
+
+```text
+setup.bat
+    ↓
+VibeGuard ready
+    ↓
+vibeguard version
+    ↓
+vibeguard scan .
+    ↓
+git push
+    ↓
+VibeGuard Security Gate
+    ↓
+┌───────────────────────┐
+│ SAFE TO PUSH          │
+│          OR           │
+│ PUSH BLOCKED          │
+└───────────────────────┘
+```
+
+without requiring the user to manually understand Rust, Cargo, Go module paths, MSVC linker configuration, or the developer's original Windows username.
+```
+
+---
+
 ## output.md
 
 ```markdown
@@ -9016,7 +8634,6 @@ VibeGuard v1.0.0
 
 ---
 
-<a name="output2md"></a>
 ## output2.md
 
 ```markdown
@@ -9119,7 +8736,425 @@ Reason: 123 critical finding(s) and 80 high-severity finding(s) detected
 
 ---
 
-<a name="rulesreadmemd"></a>
+## README.md
+
+```markdown
+# VibeGuard v3.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
+
+> **The Autonomous Pre-Push Security Firewall for Engineering Teams**  
+> *"Make security verification an automatic, non-negotiable step before code ever leaves your machine."*
+
+---
+
+## Overview
+
+**VibeGuard v3.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST), vulnerable third-party dependencies (SCA via Google OSV), Dockerfile misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
+
+VibeGuard operates directly in developer terminal workflows and CI/CD pipelines:
+- **Live Interactive Scan Progress**: Real-time terminal progress bars during file scanning, dependency resolution, and OSV database queries.
+- **Autonomous Git Pre-Push Gate**: Intercepts `git push` via standard pre-push hooks. Scans only the exact commits being pushed using pure Go `git archive` snapshotting.
+- **Deterministic 0–100 Security Score**: Evaluates risk using weighted mathematical severity scoring.
+- **Strict Policy Enforcement**: Standardized exit codes (`0` SAFE, `1` BLOCKED, `2` ERROR, `3` CONFIG ERROR, `4` OSV UNAVAILABLE) to reliably integrate with git hooks, GitHub Actions, and deployment pipelines.
+- **Zero Cloud Uploads / 100% On-Machine Privacy**: Code and files never leave your workstation. Discovered credentials are automatically masked (`sk-demo-****`).
+- **Multi-Engine Speed & Precision**: High-performance Rust scanner coupled with Go orchestrator and fallback engine.
+
+---
+
+## Architecture
+
+```
+                    Developer Shell / Git CLI
+                               │
+               ┌───────────────┴───────────────┐
+               ▼                               ▼
+       git push / vibeguard push        vibeguard scan
+               │                               │
+               ▼                               │
+        Git Pre-Push Hook                      │
+  (stdin: local & remote refs)                 │
+               │                               │
+               ▼                               │
+     Commit Tree Snapshot                      │
+   (git archive -> tar reader)                 │
+               │                               │
+               └───────────────┬───────────────┘
+                               ▼
+                        VibeGuard CLI (Go)
+                               │
+               ┌───────────────┴───────────────┐
+               ▼                               ▼
+      Rust Scanner Engine              OSV Vulnerability API
+   (Secrets, SAST, Docker, Git)      (Real CVEs / Advisories)
+               │                               │
+               └───────────────┬───────────────┘
+                               ▼
+                         Finding Engine
+                               │
+                               ▼
+                       Risk Scoring Engine
+                               │
+               ┌───────────────┼───────────────┐
+               ▼               ▼               ▼
+        Terminal Report   JSON Report     HTML Report
+               │
+               ▼
+       PASS / BLOCK Gate
+  (SAFE -> Push Continues | BLOCKED -> Push Aborted)
+```
+
+- **Go Orchestrator (`cmd/vibeguard`, `internal/`)**: CLI UX, Git hook lifecycle management, commit snapshot extraction, dependency detection & manifest parsing, OSV REST API communication, finding aggregation, risk scoring, report generation, and gate evaluation.
+- **Rust Engine (`scanner/`)**: High-performance recursive filesystem walker, secret pattern matching with evidence masking, static analysis (SAST) rule evaluation, Dockerfile scanning, configuration auditing, and JSON IPC stream.
+- **Google OSV Intelligence**: Authoritative, real-time vulnerability data for Go, npm, PyPI, and crates.io packages (no hallucinated CVEs).
+
+---
+
+## Repository Structure
+
+```text
+cyberhackathon/
+├── cmd/
+│   └── vibeguard/               # CLI application entry point
+│       └── main.go              # Commands: init, status, uninstall, push, scan, report
+├── internal/
+│   ├── config/                  # Repository configuration (.vibeguard/config.json) & exclusions
+│   │   ├── config.go
+│   │   └── config_test.go
+│   ├── dependencies/            # Manifest parsers (go.mod, package.json, requirements.txt, Cargo.toml)
+│   │   ├── detector.go
+│   │   ├── parser.go
+│   │   └── parser_test.go
+│   ├── gate/                    # PASS / BLOCK security gate decision engine
+│   │   ├── gate.go
+│   │   └── gate_test.go
+│   ├── git/                     # Git integration, pre-push hook manager, snapshot scanner
+│   │   ├── hooks.go
+│   │   ├── hooks_test.go
+│   │   ├── repo.go
+│   │   └── repo_test.go
+│   ├── osv/                     # Google OSV API client & batch query engine
+│   │   ├── client.go
+│   │   └── types.go
+│   ├── report/                  # Terminal ANSI, JSON, HTML generators & live progress bars
+│   │   ├── html.go
+│   │   ├── json.go
+│   │   ├── progress.go
+│   │   ├── progress_test.go
+│   │   ├── report_test.go
+│   │   └── terminal.go
+│   ├── risk/                    # Deterministic 0-100 risk scoring algorithm
+│   │   ├── scorer.go
+│   │   └── scorer_test.go
+│   └── scanner/                 # Dual-engine scanner runner (Rust binary + Go fallback)
+│       ├── runner.go
+│       └── runner_test.go
+├── scanner/                     # Rust Scanner Engine
+│   ├── Cargo.toml
+│   └── src/
+│       ├── config.rs            # Configuration auditing (debug mode, CORS wildcard, 0.0.0.0)
+│       ├── docker.rs            # Dockerfile analysis (root user, ENV secrets, COPY .)
+│       ├── git.rs               # Repository sensitive file checks
+│       ├── main.rs              # Scanner entry point and JSON output serializer
+│       ├── rules.rs             # Built-in regex rule definitions
+│       ├── sast.rs              # SAST source code scanner
+│       ├── scanner.rs           # Fast recursive directory traversal with exclusion filters
+│       ├── secrets.rs           # High-entropy secret detection & masking
+│       └── types.rs             # Core shared data structures
+├── test-project/                # Controlled intentionally vulnerable demo project
+│   ├── .env                     # Demo test secrets
+│   ├── Dockerfile               # Vulnerable container file (root user, ENV secrets)
+│   ├── go.mod                   # Outdated dependencies
+│   ├── package.json             # Outdated npm packages
+│   ├── requirements.txt         # Outdated Python dependencies
+│   └── src/
+│       ├── auth.js              # eval(), command injection, hardcoded JWT
+│       ├── config.go            # Hardcoded credentials, disabled TLS
+│       └── database.go          # SQL injection, command injection, weak MD5
+├── tests/                       # Test suites & fixtures
+│   ├── dependencies/            # Mock manifest files
+│   ├── integration/             # End-to-end integration tests
+│   ├── sast/                    # Vulnerable code samples for SAST verification
+│   └── secrets/                 # Test credential patterns
+├── .vibeguard/
+│   └── config.json              # Repository-level configuration and exclusion rules
+├── reports/                     # Output directory for generated reports
+├── setup.bat                    # Automated environment setup script for Windows
+├── README.md                    # Project documentation
+├── md files/                    # Core project documentation and blueprints
+```
+
+---
+
+## Detection Capabilities
+
+| Category | Checks & Rules | Default Severity |
+| :--- | :--- | :---: |
+| **Secrets & Keys** | AWS Access Keys (`AKIA...`), GitHub PATs (`ghp_...`), Slack Tokens (`xox...`), Private Cryptographic Keys (`BEGIN RSA/OPENSSH PRIVATE KEY`), Hardcoded Passwords & Tokens, Sensitive Files (`.env`, `*.pem`, `*.key`, `id_rsa`) | `CRITICAL` |
+| **SAST — Code Analysis** | Potential OS Command Injection, Potential SQL Injection, Potential TLS Misconfiguration (`InsecureSkipVerify: true`), Potential Insecure HTTP Connection, Dangerous `eval()` / `Function()`, Weak Cryptography (`MD5`, `SHA1`, `DES`, `RC4`), Hardcoded Credentials | `HIGH` / `MEDIUM` |
+| **Container & Docker** | Container running as `root` (missing non-root `USER`), Secrets stored in `ENV` instructions, Unbounded `COPY . .` without `.dockerignore` | `CRITICAL` / `HIGH` / `MEDIUM` |
+| **SCA — Dependencies** | Direct & transitive package CVE lookup against live Google OSV database (`go.mod`, `package.json`, `package-lock.json`, `requirements.txt`, `Cargo.toml`, `Cargo.lock`) | `CRITICAL` to `LOW` |
+| **Configuration** | Insecure CORS (`Access-Control-Allow-Origin: *`), Exposed Debug Mode (`debug: true`), Insecure host binding (`0.0.0.0`) | `MEDIUM` / `LOW` |
+
+---
+
+## Installation & Distribution Modes
+
+VibeGuard supports two distinct distribution modes for zero-friction portability:
+
+### Mode A — Demo / User Mode (No Compilers Required)
+Prebuilt Windows binaries (`vibeguard.exe` and `vibeguard-scanner.exe`) are bundled directly with the repository. You **do not need Go, Rust, or Visual Studio Build Tools** to run VibeGuard:
+
+1. **One-Command Global Setup**:
+   ```cmd
+   setup.bat
+   ```
+   *Installs VibeGuard into `%LOCALAPPDATA%\VibeGuard`, verifies the Rust scanner, installs runtime rules, configures the Git pre-push hook, and registers `%LOCALAPPDATA%\VibeGuard` in the Current User `PATH`.*
+
+2. **Open a NEW Terminal & Verify Global Access**:
+   Close your current CMD or PowerShell window and open a new one. `vibeguard` is now available globally from **any directory**:
+   ```cmd
+   cd %USERPROFILE%
+   vibeguard version
+   # Output: VibeGuard v3.0.0
+
+   cd C:\
+   vibeguard help
+   ```
+
+3. **Verify Health & Scan Test Project**:
+   ```cmd
+   run_test.bat
+   ```
+   *Executes a full self-test against the intentionally vulnerable fixture `test-project`, verifying CLI, scanner, version, scan, HTML report generation, and security gate blocking.*
+
+4. **Hook Management Scripts**:
+   ```cmd
+   install_hook.bat     # Installs the pre-push hook in .git/hooks/pre-push
+   uninstall_hook.bat   # Cleanly removes the pre-push hook
+   ```
+
+---
+
+### Mode B — Developer / Source Build Mode
+Developers rebuilding VibeGuard from source:
+
+1. **Prerequisites**:
+   - **Go** (1.21 or higher)
+   - **Git** (2.20 or higher)
+   - **Rust & Cargo** (1.70 or higher)
+   - **Visual Studio Build Tools** (Desktop development with C++ for `link.exe`)
+
+2. **One-Command Source Build**:
+   ```cmd
+   build.bat
+   ```
+   *Verifies Go, Rust, and `link.exe`, compiles the release Rust scanner (`cargo build --release`), compiles the Go orchestrator CLI (`go build ./cmd/vibeguard`), updates local binaries, and refreshes the global `%LOCALAPPDATA%\VibeGuard` installation.*
+
+3. **Manual CLI Build**:
+   ```powershell
+   cd scanner
+   cargo build --release
+   cd ..
+   go build -buildvcs=false -o vibeguard.exe ./cmd/vibeguard
+   ```
+
+---
+
+### Global Execution & Independent Target Scanning
+Because VibeGuard dynamically determines its executable directory at runtime (`FindScannerExecutable()`), you can scan any external repository or project folder from anywhere on your machine:
+
+```powershell
+# Scan external projects from any directory:
+vibeguard scan C:\Users\pooji\Projects\my-app
+vibeguard scan D:\Repositories\backend --format html --output reports\audit.html
+
+# Run within any Git repository:
+vibeguard status
+vibeguard init
+vibeguard push
+```
+
+The Git pre-push hook prioritizes the trusted `%LOCALAPPDATA%\VibeGuard\vibeguard.exe` binary over untrusted repository-local executables, preventing rogue scripts from circumventing gate policies.
+
+---
+
+## Command Reference & Usage
+
+### 1. `vibeguard init` — Install Git Pre-Push Hook
+Installs the automatic pre-push hook into `.git/hooks/pre-push` and creates default configuration `.vibeguard/config.json`. Existing user hooks are automatically preserved and chained.
+```powershell
+vibeguard init
+```
+
+### 2. `vibeguard status` — Check Security Gate Status
+Displays the repository status, active Git branch, remote origin, commit hash, hook installation state, and loaded security policies.
+```powershell
+.\vibeguard.exe status
+```
+
+### 3. `vibeguard push` — Guided Interactive Push Workflow
+An interactive command that detects staged/modified files, prompts for commit message, executes the security gate verification, and pushes to remote only if the scan passes cleanly.
+```powershell
+.\vibeguard.exe push
+```
+
+### 4. `vibeguard scan` — Scan Repository or Target Directory
+Performs security verification on any path.
+```powershell
+# Scan current repository
+.\vibeguard.exe scan .
+
+# Scan specific directory (e.g. intentionally vulnerable test project)
+.\vibeguard.exe scan .\test-project
+
+# Run in Git pre-push hook mode (evaluates exact pushed commits)
+.\vibeguard.exe scan --hook .
+```
+
+### 5. `vibeguard report` — Generate HTML or JSON Reports
+```powershell
+# Interactive HTML Report (saved to reports/scan.html)
+.\vibeguard.exe report .\test-project --format html
+
+# Machine-readable JSON Report (saved to reports/scan.json)
+.\vibeguard.exe report .\test-project --format json
+```
+
+### 6. `vibeguard uninstall` — Remove Git Pre-Push Hook
+Cleanly removes the VibeGuard pre-push hook and restores any previous user hook backup.
+```powershell
+.\vibeguard.exe uninstall
+```
+
+---
+
+## Live Scan Progress (v3.0)
+
+During scans, VibeGuard renders terminal progress indicators with real-time feedback across all 4 stages:
+
+### 1. File Scanning
+```text
+[██████████████░░░░░░] 70%
+Files: 56/80
+Current: internal/scanner/runner.go
+```
+
+### 2. Dependency Scanning
+```text
+[████████████████░░░░] 80%
+Dependencies: 36/45
+Current: lodash@4.17.20
+```
+
+### 3. Vulnerability Database (OSV) Lookup
+```text
+[██████████████████░░] 90%
+OSV queries: 41/45
+```
+
+### 4. Final Completion Stage
+```text
+[████████████████████] 100%
+
+Security analysis complete.
+```
+
+---
+
+## Configuration (`.vibeguard/config.json`)
+
+VibeGuard is configured via `.vibeguard/config.json` at the root of your project:
+
+```json
+{
+  "block_on": [
+    "critical",
+    "high"
+  ],
+  "scan_mode": "full",
+  "dependency_scan": true,
+  "secret_scan": true,
+  "source_scan": true,
+  "report_format": "terminal",
+  "fail_closed": true,
+  "exclude": [
+    ".git",
+    ".vibeguard",
+    "reports",
+    "md files",
+    "tests",
+    "test-project",
+    "code.md",
+    "finalreport.md",
+    "output.md",
+    "output2.md",
+    "test output.md",
+    "test3.md"
+  ]
+}
+```
+
+### Configuration Options:
+- `block_on`: List of severities that trigger a `BLOCK` gate decision (`"critical"`, `"high"`, `"medium"`, `"low"`).
+- `scan_mode`: `"full"` scans all files; `"changed"` scans only modified/staged files.
+- `fail_closed`: If `true`, aborts `git push` if the vulnerability database or scanner fails (prevents bypassing security during network failures).
+- `exclude`: Subtrees, directories, and filenames excluded from security analysis.
+
+---
+
+## Exit Codes
+
+| Exit Code | Classification | Meaning |
+| :---: | :--- | :--- |
+| `0` | **SAFE TO PUSH / PASSED** | All security checks passed; no blocking findings. Push continues. |
+| `1` | **PUSH BLOCKED** | Critical or high-severity vulnerabilities detected. Git push aborted. |
+| `2` | **ERROR** | Runtime or scanning error occurred. |
+| `3` | **CONFIG ERROR** | Malformed or invalid `.vibeguard/config.json`. |
+| `4` | **OSV UNAVAILABLE** | OSV API unreachable with `fail_closed: true`. Push aborted safely. |
+
+---
+
+## Security Scoring Formula
+
+VibeGuard calculates a deterministic score from **0** to **100**:
+
+$$\text{Score} = \max\left(0, 100 - (15 \times C + 8 \times H + 3 \times M + 1 \times L)\right)$$
+
+- $C$ = Critical severity findings
+- $H$ = High severity findings
+- $M$ = Medium severity findings
+- $L$ = Low severity findings
+
+A clean project receives a score of **100/100 (`STATUS: SAFE TO PUSH`)**.
+
+---
+
+## Verification & Testing
+
+Run the full test suite:
+
+```powershell
+# Run all Go package unit and integration tests
+go test ./...
+
+# Run static analysis check
+go vet ./...
+
+# Self-scan verification (must report 100/100, PASSED, Exit 0)
+.\vibeguard.exe scan .
+
+# Target verification on test fixture (must report BLOCKED, Exit 1)
+.\vibeguard.exe scan .\test-project
+```
+
+---
+
+## License & Security Policy
+
+VibeGuard is designed for secure developer operations. It processes files locally in-memory and communicates strictly with official vulnerability advisories (OSV.dev).
+```
+
+---
+
 ## rules/README.md
 
 ```markdown
@@ -9181,7 +9216,6 @@ All detected credentials have their secrets automatically masked (`sk-demo-****`
 
 ---
 
-<a name="runtestbat"></a>
 ## run_test.bat
 
 ```bat
@@ -9190,89 +9224,106 @@ setlocal enabledelayedexpansion
 
 :: ============================================================
 ::  VibeGuard Health Check & Validation Script (run_test.bat)
+::  Validates CLI, Scanner, Version, Scan, Report & Security Gate
 :: ============================================================
 
 :: 1. Detect project root
 set "ROOT=%~dp0"
 cd /d "%ROOT%"
 
-set "CLI_BIN=%ROOT%vibeguard.exe"
-set "SCANNER_BIN=%ROOT%vibeguard-scanner.exe"
+:: Locate installed or local binary
+set "CLI_BIN=%LOCALAPPDATA%\VibeGuard\vibeguard.exe"
+if not exist "%CLI_BIN%" (
+    set "CLI_BIN=%ROOT%vibeguard.exe"
+)
 
+set "SCANNER_BIN=%LOCALAPPDATA%\VibeGuard\scanner.exe"
 if not exist "%SCANNER_BIN%" (
     if exist "%ROOT%scanner\scanner.exe" (
         set "SCANNER_BIN=%ROOT%scanner\scanner.exe"
-    ) else if exist "%ROOT%scanner\vibeguard-scanner.exe" (
-        set "SCANNER_BIN=%ROOT%scanner\vibeguard-scanner.exe"
+    ) else if exist "%ROOT%vibeguard-scanner.exe" (
+        set "SCANNER_BIN=%ROOT%vibeguard-scanner.exe"
     )
 )
 
 echo ========================================
-echo         VIBEGUARD TEST
+echo        VIBEGUARD HEALTH TEST
 echo ========================================
 echo.
 
-:: 2. Check CLI
+:: Check 1: CLI found
 if not exist "%CLI_BIN%" (
-    echo [FAIL] CLI binary not found: %CLI_BIN%
+    echo [FAIL] CLI binary not found.
     echo Please run setup.bat or build.bat first.
     exit /b 1
 )
-echo [OK] CLI
+echo [PASS] CLI found
 
-:: 3. Check Scanner
+:: Check 2: Scanner found
 if not exist "%SCANNER_BIN%" (
     echo [FAIL] Scanner binary not found.
     echo Please run setup.bat or build.bat first.
     exit /b 1
 )
-echo [OK] Scanner
+echo [PASS] Scanner found
 
-:: 4. Check Version
+:: Check 3: Version command
 for /f "tokens=*" %%v in ('"%CLI_BIN%" version 2^>nul') do set "VER_OUT=%%v"
 if not defined VER_OUT (
-    echo [FAIL] Could not retrieve version from %CLI_BIN%
+    echo [FAIL] Version command failed.
     exit /b 1
 )
-echo [OK] Version: !VER_OUT!
+echo [PASS] Version command
 
-:: 5. Check Test Project
+:: Check 4: Test project scan
 if not exist "%ROOT%test-project" (
-    echo [FAIL] Test project directory not found: %ROOT%test-project
+    echo [FAIL] Test project fixture not found.
     exit /b 1
 )
-echo [OK] Test project
-
-echo.
-echo Running security scan...
-echo.
-
-:: 6. Run Scan on test project (fixture is intentionally vulnerable, so exit code 1 = successful detection!)
-call "%CLI_BIN%" scan "%ROOT%test-project"
+:: Run scan quietly to test detection logic
+call "%CLI_BIN%" scan "%ROOT%test-project" --format json --output "%TEMP%\vg-test-scan.json" >nul 2>&1
 set "SCAN_EXIT=%ERRORLEVEL%"
-
-echo.
-echo ========================================
-echo TEST COMPLETED
-echo ========================================
-if %SCAN_EXIT% equ 1 (
-    echo Result: [PASS] Intentionally vulnerable test project correctly detected and blocked.
-) else if %SCAN_EXIT% equ 0 (
-    echo Result: [PASS] Scan completed with 0 findings.
-) else (
-    echo Result: [FAIL] Scan exited with runtime error code %SCAN_EXIT%.
+if %SCAN_EXIT% neq 0 if %SCAN_EXIT% neq 1 (
+    echo [FAIL] Test project scan returned runtime error %SCAN_EXIT%.
     exit /b %SCAN_EXIT%
 )
+echo [PASS] Test project scan
+
+:: Check 5: Report generation
+call "%CLI_BIN%" report "%ROOT%test-project" --format html --output "%TEMP%\vg-test-report.html" >nul 2>&1
+if not exist "%TEMP%\vg-test-report.html" (
+    echo [FAIL] Report generation failed to produce output file.
+    exit /b 1
+)
+del /f /q "%TEMP%\vg-test-report.html" >nul 2>&1
+del /f /q "%TEMP%\vg-test-scan.json" >nul 2>&1
+echo [PASS] Report generation
+
+:: Check 6: Security gate policy enforcement
+:: test-project has intentional vulnerabilities; gate should block (exit 1)
+call "%CLI_BIN%" scan "%ROOT%test-project" --hook >nul 2>&1
+set "GATE_EXIT=%ERRORLEVEL%"
+if %GATE_EXIT% equ 1 (
+    echo [PASS] Security gate
+) else (
+    echo [FAIL] Security gate did not block vulnerable fixture: exit code %GATE_EXIT%
+    exit /b 1
+)
+
+echo.
+echo ========================================
+echo        ALL TESTS PASSED
+echo ========================================
+echo.
 
 endlocal
 ```
 
 ---
 
-<a name="scannercargolock"></a>
 ## scanner/Cargo.lock
 
-```lock
+```
 # This file is automatically @generated by Cargo.
 # It is not intended for manual editing.
 version = 4
@@ -9467,7 +9518,6 @@ checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
 
 ---
 
-<a name="scannercargotoml"></a>
 ## scanner/Cargo.toml
 
 ```toml
@@ -9485,7 +9535,6 @@ serde_json = "1"
 
 ---
 
-<a name="scannersrcconfigrs"></a>
 ## scanner/src/config.rs
 
 ```rust
@@ -9574,7 +9623,6 @@ pub fn scan_config(file_path: &str, content: &str, finding_counter: &mut usize) 
 
 ---
 
-<a name="scannersrcdockerrs"></a>
 ## scanner/src/docker.rs
 
 ```rust
@@ -9714,7 +9762,6 @@ pub fn scan_dockerfile(file_path: &str, content: &str, finding_counter: &mut usi
 
 ---
 
-<a name="scannersrcgitrs"></a>
 ## scanner/src/git.rs
 
 ```rust
@@ -9755,7 +9802,6 @@ pub fn scan_git_security(scanned_files: &[String], finding_counter: &mut usize) 
 
 ---
 
-<a name="scannersrcmainrs"></a>
 ## scanner/src/main.rs
 
 ```rust
@@ -9888,7 +9934,6 @@ fn main() {
 
 ---
 
-<a name="scannersrcrulesrs"></a>
 ## scanner/src/rules.rs
 
 ```rust
@@ -10053,7 +10098,6 @@ pub fn get_secret_rules() -> Vec<Rule> {
 
 ---
 
-<a name="scannersrcsastrs"></a>
 ## scanner/src/sast.rs
 
 ```rust
@@ -10134,7 +10178,6 @@ mod tests {
 
 ---
 
-<a name="scannersrcscannerrs"></a>
 ## scanner/src/scanner.rs
 
 ```rust
@@ -10223,7 +10266,6 @@ pub fn scan_directory(path: &str) -> Vec<String> {
 
 ---
 
-<a name="scannersrcsecretsrs"></a>
 ## scanner/src/secrets.rs
 
 ```rust
@@ -10330,7 +10372,6 @@ mod tests {
 
 ---
 
-<a name="scannersrctypesrs"></a>
 ## scanner/src/types.rs
 
 ```rust
@@ -10382,7 +10423,6 @@ pub struct ScanResult {
 
 ---
 
-<a name="setupbat"></a>
 ## setup.bat
 
 ```bat
@@ -10390,47 +10430,48 @@ pub struct ScanResult {
 setlocal enabledelayedexpansion
 
 :: ============================================================
-::  VibeGuard Automated Setup Script (setup.bat)
-::  Portability: Runs on any Windows laptop using prebuilt binaries
+::  VibeGuard Automated Global Setup Script (setup.bat)
+::  Portability: Runs on any Windows machine using prebuilt binaries
+::  Installs to %LOCALAPPDATA%\VibeGuard and configures User PATH
 ::  Does NOT require Go, Rust, or Visual Studio Build Tools
 :: ============================================================
 
-:: 1. Detect repository root dynamically from script location
+:: Step 1 — Find repository root dynamically from script location
 set "ROOT=%~dp0"
 cd /d "%ROOT%"
 
 echo ========================================
-echo       VIBEGUARD LAPTOP SETUP
+echo        VIBEGUARD SETUP
 echo ========================================
-echo Project Root: %ROOT%
+echo Source Location: %ROOT%
 echo.
 
-:: 2. Prebuilt binary check
-set "CLI_BIN=%ROOT%vibeguard.exe"
-set "SCANNER_BIN=%ROOT%vibeguard-scanner.exe"
+:: Step 2 — Locate source binaries
+set "CLI_SRC=%ROOT%vibeguard.exe"
+set "SCANNER_SRC=%ROOT%vibeguard-scanner.exe"
 
-if not exist "%SCANNER_BIN%" (
+if not exist "%SCANNER_SRC%" (
     if exist "%ROOT%scanner\scanner.exe" (
-        set "SCANNER_BIN=%ROOT%scanner\scanner.exe"
+        set "SCANNER_SRC=%ROOT%scanner\scanner.exe"
     ) else if exist "%ROOT%scanner\vibeguard-scanner.exe" (
-        set "SCANNER_BIN=%ROOT%scanner\vibeguard-scanner.exe"
+        set "SCANNER_SRC=%ROOT%scanner\vibeguard-scanner.exe"
     )
 )
 
-if not exist "%CLI_BIN%" (
-    echo [ERROR] Required VibeGuard binary was not found.
+if not exist "%CLI_SRC%" (
+    echo [ERROR] vibeguard.exe was not found.
     echo.
     echo Expected:
-    echo     %CLI_BIN%
+    echo     %CLI_SRC%
     echo.
     echo Run build.bat on a developer machine or obtain the official release package.
     exit /b 1
 )
 
-echo [OK] VibeGuard CLI found: %CLI_BIN%
+echo [OK] VibeGuard executable found: %CLI_SRC%
 
-if not exist "%SCANNER_BIN%" (
-    echo [ERROR] Required VibeGuard scanner binary was not found.
+if not exist "%SCANNER_SRC%" (
+    echo [ERROR] Rust scanner executable was not found.
     echo.
     echo Expected:
     echo     %ROOT%vibeguard-scanner.exe or %ROOT%scanner\scanner.exe
@@ -10439,120 +10480,111 @@ if not exist "%SCANNER_BIN%" (
     exit /b 1
 )
 
-echo [OK] Rust scanner found: %SCANNER_BIN%
+echo [OK] Scanner executable found: %SCANNER_SRC%
 
-:: Ensure scanner binary exists in both standard locations
+:: Step 3 — Create stable user installation directory
+set "INSTALL_DIR=%LOCALAPPDATA%\VibeGuard"
+if not exist "%INSTALL_DIR%" (
+    mkdir "%INSTALL_DIR%" >nul 2>&1
+)
+if not exist "%INSTALL_DIR%\bin" (
+    mkdir "%INSTALL_DIR%\bin" >nul 2>&1
+)
+
+:: Step 4 — Copy / update VibeGuard CLI and Rust scanner
+copy /Y "%CLI_SRC%" "%INSTALL_DIR%\vibeguard.exe" >nul 2>&1
+copy /Y "%CLI_SRC%" "%INSTALL_DIR%\bin\vibeguard.exe" >nul 2>&1
+
+copy /Y "%SCANNER_SRC%" "%INSTALL_DIR%\scanner.exe" >nul 2>&1
+copy /Y "%SCANNER_SRC%" "%INSTALL_DIR%\vibeguard-scanner.exe" >nul 2>&1
+copy /Y "%SCANNER_SRC%" "%INSTALL_DIR%\bin\scanner.exe" >nul 2>&1
+copy /Y "%SCANNER_SRC%" "%INSTALL_DIR%\bin\vibeguard-scanner.exe" >nul 2>&1
+
+:: Also keep local copies in repo for local workflows
 if not exist "%ROOT%vibeguard-scanner.exe" (
-    copy /Y "%SCANNER_BIN%" "%ROOT%vibeguard-scanner.exe" >nul 2>&1
+    copy /Y "%SCANNER_SRC%" "%ROOT%vibeguard-scanner.exe" >nul 2>&1
 )
 if not exist "%ROOT%scanner\scanner.exe" (
     if not exist "%ROOT%scanner" mkdir "%ROOT%scanner"
-    copy /Y "%SCANNER_BIN%" "%ROOT%scanner\scanner.exe" >nul 2>&1
+    copy /Y "%SCANNER_SRC%" "%ROOT%scanner\scanner.exe" >nul 2>&1
 )
 
-:: 3. Required Directory Checks (verify or create)
-echo.
-echo Checking required directories...
-if not exist "%ROOT%.vibeguard" (
-    mkdir "%ROOT%.vibeguard"
-    echo [OK] Created .vibeguard\ directory
-) else (
-    echo [OK] .vibeguard\ directory verified
+:: Step 5 — Copy runtime rules / configuration data
+if exist "%ROOT%rules" (
+    if not exist "%INSTALL_DIR%\rules" mkdir "%INSTALL_DIR%\rules" >nul 2>&1
+    xcopy /E /I /Y /Q "%ROOT%rules" "%INSTALL_DIR%\rules" >nul 2>&1
 )
 
-if not exist "%ROOT%reports" (
-    mkdir "%ROOT%reports"
-    echo [OK] Created reports\ directory
-) else (
-    echo [OK] reports\ directory verified
-)
+:: Step 6 — Required directories in current repository
+if not exist "%ROOT%.vibeguard" mkdir "%ROOT%.vibeguard" >nul 2>&1
+if not exist "%ROOT%reports" mkdir "%ROOT%reports" >nul 2>&1
+if not exist "%ROOT%rules" mkdir "%ROOT%rules" >nul 2>&1
+if not exist "%ROOT%tests" mkdir "%ROOT%tests" >nul 2>&1
 
-if not exist "%ROOT%rules" (
-    mkdir "%ROOT%rules"
-    echo [OK] Created rules\ directory
-) else (
-    echo [OK] rules\ directory verified
-)
-
-if not exist "%ROOT%tests" (
-    mkdir "%ROOT%tests"
-    echo [OK] Created tests\ directory
-) else (
-    echo [OK] tests\ directory verified
-)
-
-:: 4. Verify or generate default configuration
 if not exist "%ROOT%.vibeguard\config.json" (
-    echo Generating default configuration...
-    call "%CLI_BIN%" init >nul 2>&1
-    if exist "%ROOT%.vibeguard\config.json" (
-        echo [OK] Default configuration created: .vibeguard\config.json
-    )
-) else (
-    echo [OK] Configuration verified: .vibeguard\config.json
+    call "%INSTALL_DIR%\vibeguard.exe" init >nul 2>&1
 )
 
-:: 5. Install Git pre-push hook if inside a git repository
-echo.
-echo Configuring Git security gate...
+:: Configure Git pre-push hook if inside a git repository
 if exist "%ROOT%.git" (
-    call "%CLI_BIN%" init
-    echo [OK] Git pre-push hook configured
-) else (
-    echo [INFO] No .git directory found. Skipping Git hook installation.
+    call "%INSTALL_DIR%\vibeguard.exe" init >nul 2>&1
 )
 
-:: 6. Install VibeGuard CLI to User PATH for global execution
-echo.
-echo Installing VibeGuard CLI for global terminal use...
-set "VIBEGUARD_HOME=%LOCALAPPDATA%\VibeGuard\bin"
+:: Step 7 — Add %LOCALAPPDATA%\VibeGuard to USER PATH idempotently
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$target = [IO.Path]::Combine($env:LOCALAPPDATA, 'VibeGuard'); " ^
+  "$userPath = [Environment]::GetEnvironmentVariable('Path', 'User'); " ^
+  "$parts = if ($userPath) { $userPath -split ';' } else { @() }; " ^
+  "$cleanParts = @(); foreach ($p in $parts) { $tp = $p.Trim(); if ($tp -and $cleanParts -notcontains $tp) { $cleanParts += $tp } }; " ^
+  "$found = $false; foreach ($p in $cleanParts) { if ($p.ToLower().TrimEnd('\') -eq $target.ToLower().TrimEnd('\')) { $found = $true; break } }; " ^
+  "if (-not $found) { $newPath = ($cleanParts + $target) -join ';'; [Environment]::SetEnvironmentVariable('Path', $newPath, 'User') }" >nul 2>&1
 
-if not exist "%VIBEGUARD_HOME%" (
-    mkdir "%VIBEGUARD_HOME%" >nul 2>&1
+:: Also update current session PATH
+set "PATH=%INSTALL_DIR%;%INSTALL_DIR%\bin;%PATH%"
+
+:: Step 8 — Verify installation
+if not exist "%INSTALL_DIR%\vibeguard.exe" (
+    echo [ERROR] Installation failed: %INSTALL_DIR%\vibeguard.exe missing.
+    exit /b 1
 )
-
-copy /Y "%CLI_BIN%" "%VIBEGUARD_HOME%\vibeguard.exe" >nul 2>&1
-copy /Y "%SCANNER_BIN%" "%VIBEGUARD_HOME%\vibeguard-scanner.exe" >nul 2>&1
-copy /Y "%SCANNER_BIN%" "%VIBEGUARD_HOME%\scanner.exe" >nul 2>&1
-
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$u=[Environment]::GetEnvironmentVariable('Path','User'); $d=[IO.Path]::Combine($env:LOCALAPPDATA,'VibeGuard','bin'); if (($u -split ';') -notcontains $d) { [Environment]::SetEnvironmentVariable('Path', (($u.TrimEnd(';')+';'+$d).TrimStart(';')), 'User') }" >nul 2>&1
-
-set "PATH=%VIBEGUARD_HOME%;%PATH%"
-
-echo [OK] VibeGuard CLI installed to: %VIBEGUARD_HOME%
-echo [OK] Global Command: vibeguard
-
-:: 7. Version verification test
-echo.
-echo Testing VibeGuard CLI...
-call "%CLI_BIN%" version
-if %ERRORLEVEL% neq 0 (
-    echo [ERROR] Version verification failed.
+if not exist "%INSTALL_DIR%\scanner.exe" (
+    echo [ERROR] Installation failed: %INSTALL_DIR%\scanner.exe missing.
     exit /b 1
 )
 
 echo.
 echo ========================================
-echo       VIBEGUARD SETUP COMPLETE
+echo        VIBEGUARD INSTALLATION
 echo ========================================
 echo.
-echo [OK] Prebuilt binaries verified
-echo [OK] Required directories verified
-echo [OK] Configuration active
-echo [OK] CLI ready for use
+echo [OK] Installation directory
+echo [OK] VibeGuard executable
+echo [OK] Rust scanner
+echo [OK] Runtime files
+echo [OK] User PATH configured
 echo.
-echo You can now run:
-echo   vibeguard version
-echo   vibeguard scan .\test-project
-echo   run_test.bat
+echo Installation:
+echo %INSTALL_DIR%
 echo.
-echo VibeGuard development environment ready.
-endlocal & set "PATH=%LOCALAPPDATA%\VibeGuard\bin;%PATH%"
+echo Current Session:
+call "%INSTALL_DIR%\vibeguard.exe" version
+echo.
+echo ============================================================
+echo  Please close this terminal and open a NEW CMD/PowerShell
+echo  window so the updated User PATH is recognized.
+echo.
+echo  Then you can run from ANY directory:
+echo      vibeguard version
+echo      vibeguard scan ^<project-path^>
+echo      vibeguard help
+echo ============================================================
+echo.
+
+endlocal & set "PATH=%LOCALAPPDATA%\VibeGuard;%LOCALAPPDATA%\VibeGuard\bin;%PATH%"
 ```
 
 ---
 
-<a name="srcreadmemd"></a>
 ## src/README.md
 
 ```markdown
@@ -10568,7 +10600,6 @@ The Rust scanning engine is located in:
 
 ---
 
-<a name="testoutputmd"></a>
 ## test output.md
 
 ```markdown
@@ -10684,7 +10715,6 @@ Reason: 123 critical finding(s) and 80 high-severity finding(s) detected
 
 ---
 
-<a name="testprojectenv"></a>
 ## test-project/.env
 
 ```
@@ -10709,10 +10739,9 @@ STRIPE_SECRET_KEY=sk_test_fake1234567890abcdefghijklmnop
 
 ---
 
-<a name="testprojectdockerfile"></a>
 ## test-project/Dockerfile
 
-```
+```dockerfile
 FROM node:latest
 
 WORKDIR /app
@@ -10734,7 +10763,42 @@ CMD ["node", "server.js"]
 
 ---
 
-<a name="testprojectreadmemd"></a>
+## test-project/go.mod
+
+```
+module github.com/demo/demoshop
+
+go 1.21
+
+require (
+	golang.org/x/crypto v0.0.0-20220314234659-1baeb1ce4c0b
+	golang.org/x/text v0.3.7
+)
+```
+
+---
+
+## test-project/package.json
+
+```json
+{
+  "name": "demoshop-frontend",
+  "version": "1.0.0",
+  "description": "Demo Shop Frontend - Deliberately Vulnerable",
+  "dependencies": {
+    "lodash": "4.17.20",
+    "express": "4.17.1",
+    "jsonwebtoken": "8.5.1",
+    "axios": "0.21.1"
+  },
+  "devDependencies": {
+    "nodemon": "2.0.7"
+  }
+}
+```
+
+---
+
 ## test-project/README.md
 
 ```markdown
@@ -10782,45 +10846,6 @@ Scan with VibeGuard:
 
 ---
 
-<a name="testprojectgomod"></a>
-## test-project/go.mod
-
-```mod
-module github.com/demo/demoshop
-
-go 1.21
-
-require (
-	golang.org/x/crypto v0.0.0-20220314234659-1baeb1ce4c0b
-	golang.org/x/text v0.3.7
-)
-```
-
----
-
-<a name="testprojectpackagejson"></a>
-## test-project/package.json
-
-```json
-{
-  "name": "demoshop-frontend",
-  "version": "1.0.0",
-  "description": "Demo Shop Frontend - Deliberately Vulnerable",
-  "dependencies": {
-    "lodash": "4.17.20",
-    "express": "4.17.1",
-    "jsonwebtoken": "8.5.1",
-    "axios": "0.21.1"
-  },
-  "devDependencies": {
-    "nodemon": "2.0.7"
-  }
-}
-```
-
----
-
-<a name="testprojectrequirementstxt"></a>
 ## test-project/requirements.txt
 
 ```text
@@ -10833,7 +10858,6 @@ Django==3.2.0
 
 ---
 
-<a name="testprojectsrcauthjs"></a>
 ## test-project/src/auth.js
 
 ```javascript
@@ -10882,7 +10906,6 @@ module.exports = { processUserInput, checkServer, fetchData, hashData };
 
 ---
 
-<a name="testprojectsrcconfiggo"></a>
 ## test-project/src/config.go
 
 ```go
@@ -10925,7 +10948,6 @@ func GetPassword() string {
 
 ---
 
-<a name="testprojectsrcdatabasego"></a>
 ## test-project/src/database.go
 
 ```go
@@ -10975,7 +10997,6 @@ func GenerateToken(data string) string {
 
 ---
 
-<a name="test3md"></a>
 ## test3.md
 
 ```markdown
@@ -11035,7 +11056,6 @@ Reason: 22 critical finding(s) and 71 high-severity finding(s) detected
 
 ---
 
-<a name="test4md"></a>
 ## test4.md
 
 ```markdown
@@ -11068,7 +11088,6 @@ Command: `git push origin main`
 
 ---
 
-<a name="test5md"></a>
 ## test5.md
 
 ```markdown
@@ -11269,7 +11288,6 @@ Result: **PASS**
 
 ---
 
-<a name="testsdependenciescargotoml"></a>
 ## tests/dependencies/Cargo.toml
 
 ```toml
@@ -11286,10 +11304,9 @@ tokio = { version = "1.0.0", features = ["full"] }
 
 ---
 
-<a name="testsdependenciesgomod"></a>
 ## tests/dependencies/go.mod
 
-```mod
+```
 module test/deps
 
 go 1.21
@@ -11302,7 +11319,6 @@ require (
 
 ---
 
-<a name="testsdependenciespackagejson"></a>
 ## tests/dependencies/package.json
 
 ```json
@@ -11321,7 +11337,6 @@ require (
 
 ---
 
-<a name="testsdependenciesrequirementstxt"></a>
 ## tests/dependencies/requirements.txt
 
 ```text
@@ -11335,7 +11350,6 @@ werkzeug==1.0.1
 
 ---
 
-<a name="testsintegrationintegrationtestgo"></a>
 ## tests/integration/integration_test.go
 
 ```go
@@ -11382,7 +11396,6 @@ func TestEndToEndDependencyDetection(t *testing.T) {
 
 ---
 
-<a name="testssastsafego"></a>
 ## tests/sast/safe.go
 
 ```go
@@ -11412,7 +11425,6 @@ func SafeOperations(db *sql.DB, userInput string) {
 
 ---
 
-<a name="testssastvulnerablego"></a>
 ## tests/sast/vulnerable.go
 
 ```go
@@ -11446,7 +11458,6 @@ func VulnerableOperations(userInput string) {
 
 ---
 
-<a name="testssecretscleantexttxt"></a>
 ## tests/secrets/clean_text.txt
 
 ```text
@@ -11459,7 +11470,6 @@ welcome_message = "Hello, World!"
 
 ---
 
-<a name="testssecretsfakekeystxt"></a>
 ## tests/secrets/fake_keys.txt
 
 ```text
@@ -11473,7 +11483,6 @@ SLACK_TOKEN="xoxb-mock-slack-test-token-not-real"
 
 ---
 
-<a name="uninstallhookbat"></a>
 ## uninstall_hook.bat
 
 ```bat

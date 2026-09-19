@@ -4,32 +4,35 @@
 
 ---
 
-## 0. Workstation Setup & Verification Lifecycle (`NEW_LAPTOP_SETUP.md`)
+## 0. Workstation Setup & Verification Lifecycle (`GLOBAL_CLI_SETUP.md`)
 
 ### 0.1 Demo & User Mode Setup (`setup.bat`)
 On a fresh Windows laptop, run:
 ```cmd
-.\setup.bat
+setup.bat
 ```
-- Operates 100% on prebuilt binaries (`vibeguard.exe`, `vibeguard-scanner.exe`).
+- Operates 100% on prebuilt binaries (`vibeguard.exe`, `scanner.exe`).
 - Requires zero compilers (no Go, no Rust, no Visual Studio Build Tools).
 - Automatically initializes `.vibeguard\`, `reports\`, `rules\`, and `tests\`.
 - Installs the Git pre-push hook.
-- Registers `%LOCALAPPDATA%\VibeGuard\bin` in the User `PATH` registry environment.
+- Registers `%LOCALAPPDATA%\VibeGuard` in the User `PATH` registry environment.
+- Works globally from any new terminal window.
 
 ### 0.2 Automated Health Check (`run_test.bat`)
 Verify complete scanner and hook pipeline:
 ```cmd
-.\run_test.bat
+run_test.bat
 ```
 - Validates CLI and scanner binary presence.
+- Verifies version output.
 - Executes full scan on intentionally vulnerable `test-project`.
-- Confirms findings are identified and deployment is correctly BLOCKED.
+- Verifies HTML report generation.
+- Confirms security gate correctly returns exit code `1` (BLOCKED).
 
 ### 0.3 Pre-Push Hook Control
 ```cmd
-.\install_hook.bat     # Installs .git/hooks/pre-push
-.\uninstall_hook.bat   # Cleanly removes .git/hooks/pre-push
+install_hook.bat     # Installs .git/hooks/pre-push
+uninstall_hook.bat   # Cleanly removes .git/hooks/pre-push
 ```
 
 ---
@@ -39,9 +42,9 @@ Verify complete scanner and hook pipeline:
 ### 1.1 One-Command Source Build (`build.bat`)
 For developers with Go 1.21+, Rust 1.70+, and Visual Studio Build Tools (`link.exe`):
 ```cmd
-.\build.bat
+build.bat
 ```
-Automatically verifies compiler prerequisites, rebuilds the release Rust scanner, builds the Go orchestrator CLI, updates `%LOCALAPPDATA%\VibeGuard\bin`, and runs a self-verification check.
+Automatically verifies compiler prerequisites, rebuilds the release Rust scanner, builds the Go orchestrator CLI from root, refreshes `%LOCALAPPDATA%\VibeGuard`, and runs self-verification.
 
 ### 1.2 Automated Verification Pipeline
 ```powershell
