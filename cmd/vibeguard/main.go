@@ -340,10 +340,21 @@ func handlePush(dir string) int {
 		return 2
 	}
 
-	// 5. Run full security scan
+	// 5. Run full security scan using exact same push verification model
 	fmt.Println()
 	fmt.Println("Running VibeGuard security verification scan...")
-	exitCode := runScan(root, "terminal", "", true)
+	branch := git.GetBranch(root)
+	commitHash := git.GetFullCommitHash(root)
+	upstreamHash := git.GetUpstreamHash(root)
+	explicitRefs := []git.PushRef{
+		{
+			LocalRef:  "refs/heads/" + branch,
+			LocalSHA:  commitHash,
+			RemoteRef: "refs/heads/" + branch,
+			RemoteSHA: upstreamHash,
+		},
+	}
+	exitCode := runScanWithRefs(root, "terminal", "", true, explicitRefs)
 	if exitCode != 0 {
 		fmt.Println()
 		fmt.Println("========================================")
@@ -473,6 +484,10 @@ func determineOSVSeverity(v osv.Vulnerability) string {
 }
 
 func runScan(projectPath string, format string, customOutput string, isHook bool) int {
+	return runScanWithRefs(projectPath, format, customOutput, isHook, nil)
+}
+
+func runScanWithRefs(projectPath string, format string, customOutput string, isHook bool, explicitRefs []git.PushRef) int {
 	absPath, err := filepath.Abs(projectPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: invalid project path: %v\n", err)
@@ -493,9 +508,6 @@ func runScan(projectPath string, format string, customOutput string, isHook bool
 		return 2
 	}
 
-	projectName := filepath.Base(absPath)
-	scanStart := time.Now()
-
 	// Load configuration
 	cfg, err := config.LoadConfig(absPath)
 	if err != nil {
@@ -507,7 +519,67 @@ func runScan(projectPath string, format string, customOutput string, isHook bool
 		return 3
 	}
 
-	// Git metadata if in a git repository
+	if git.IsGitRepo(absPath) && isHook {
+		root, _ := git.FindGitRoot(absPath)
+		pushedRefs := explicitRefs
+		if len(pushedRefs) == 0 {
+			pushedRefs, _ = git.ReadAllPushedRefs()
+		}
+
+		if len(pushedRefs) > 0 {
+			var activeRefs []git.PushRef
+			for _, pr := range pushedRefs {
+				if strings.Trim(pr.LocalSHA, "0") != "" {
+					activeRefs = append(activeRefs, pr)
+				}
+			}
+
+			if len(activeRefs) == 0 {
+				fmt.Println("Git pre-push: all pushed refs are branch deletions. Allowing push.")
+				return 0
+			}
+
+			overallExitCode := 0
+			failedCount := 0
+
+			for idx, pRef := range activeRefs {
+				if len(activeRefs) > 1 {
+					fmt.Printf("\n========================================\n")
+					fmt.Printf(" Verifying Pushed Ref [%d/%d]: %s\n", idx+1, len(activeRefs), pRef.RemoteRef)
+					fmt.Printf("========================================\n")
+				}
+
+				code := scanSingleTarget(absPath, root, cfg, format, customOutput, true, &pRef)
+				if code != 0 {
+					overallExitCode = code
+					failedCount++
+				}
+			}
+
+			if len(activeRefs) > 1 {
+				fmt.Println()
+				fmt.Println("========================================")
+				if overallExitCode == 0 {
+					fmt.Printf("STATUS: ALL %d PUSHED REFS PASSED\n", len(activeRefs))
+					fmt.Println("Continuing Git push...")
+				} else {
+					fmt.Printf("STATUS: PUSH BLOCKED (%d of %d refs failed security gate)\n", failedCount, len(activeRefs))
+				}
+				fmt.Println("========================================")
+			}
+
+			return overallExitCode
+		}
+	}
+
+	// Single target scan (CLI scan, report command, or working tree scan)
+	return scanSingleTarget(absPath, absPath, cfg, format, customOutput, isHook, nil)
+}
+
+func scanSingleTarget(absPath string, root string, cfg *config.Config, format string, customOutput string, isHook bool, pRef *git.PushRef) int {
+	projectName := filepath.Base(absPath)
+	scanStart := time.Now()
+
 	var commitHash, branchName, remoteURL string
 	var pushedCommitDiff string
 	var pushRange string
@@ -517,65 +589,53 @@ func runScan(projectPath string, format string, customOutput string, isHook bool
 	var cleanupSnapshot func()
 
 	if git.IsGitRepo(absPath) {
-		root, _ := git.FindGitRoot(absPath)
 		commitHash = git.GetCommitHash(root)
 		branchName = git.GetBranch(root)
 		remoteName := git.GetRemoteName(root)
 		remoteURL = git.GetRemoteURL(root, remoteName)
 
-		// When running as pre-push hook, inspect exact pushed refs from stdin
-		if isHook {
-			pushedRefs, _ := git.ReadAllPushedRefs()
-			if len(pushedRefs) > 0 {
-				pRef := pushedRefs[0]
-				// If deleting remote branch, allow push immediately
-				if strings.Trim(pRef.LocalSHA, "0") == "" {
-					fmt.Println("Git pre-push: deleting remote branch. No commits to scan.")
-					return 0
-				}
+		if isHook && pRef != nil {
+			commitHash = pRef.LocalSHA
+			if len(commitHash) > 7 {
+				commitHash = commitHash[:7]
+			}
+			if pRef.RemoteRef != "" {
+				remoteURL = pRef.RemoteRef
+			}
 
-				commitHash = pRef.LocalSHA
-				if len(commitHash) > 7 {
-					commitHash = commitHash[:7]
-				}
-				if pRef.RemoteRef != "" {
-					remoteURL = pRef.RemoteRef
-				}
+			locShort := pRef.LocalSHA
+			if len(locShort) > 7 {
+				locShort = locShort[:7]
+			}
+			remShort := pRef.RemoteSHA
+			if len(remShort) > 7 {
+				remShort = remShort[:7]
+			}
+			pushRange = fmt.Sprintf("%s -> %s", locShort, remShort)
 
-				locShort := pRef.LocalSHA
-				if len(locShort) > 7 {
-					locShort = locShort[:7]
+			pushedFiles := git.GetPushedCommitFiles(root, pRef.RemoteSHA, pRef.LocalSHA)
+			filesInPushCount = len(pushedFiles)
+			for _, pf := range pushedFiles {
+				if cfg.IsExcluded(pf) {
+					excludedFilesCount++
 				}
-				remShort := pRef.RemoteSHA
-				if len(remShort) > 7 {
-					remShort = remShort[:7]
+			}
+
+			pushedCommitDiff = git.GetPushedCommitDiff(root, pRef.RemoteSHA, pRef.LocalSHA)
+
+			// Create push snapshot of local commit so we scan the exact committed tree
+			snapshotDir, err := git.CreatePushSnapshot(root, pRef.LocalSHA)
+			if err == nil {
+				targetScanPath = snapshotDir
+				cleanupSnapshot = func() {
+					os.RemoveAll(snapshotDir)
 				}
-				pushRange = fmt.Sprintf("%s -> %s", locShort, remShort)
-
-				pushedFiles := git.GetPushedCommitFiles(root, pRef.RemoteSHA, pRef.LocalSHA)
-				filesInPushCount = len(pushedFiles)
-				for _, pf := range pushedFiles {
-					if cfg.IsExcluded(pf) {
-						excludedFilesCount++
-					}
-				}
-
-				pushedCommitDiff = git.GetPushedCommitDiff(root, pRef.RemoteSHA, pRef.LocalSHA)
-
-				// Create push snapshot of local commit so we scan the exact committed tree
-				snapshotDir, err := git.CreatePushSnapshot(root, pRef.LocalSHA)
-				if err == nil {
-					targetScanPath = snapshotDir
-					cleanupSnapshot = func() {
-						os.RemoveAll(snapshotDir)
-					}
-					// Copy repo config to snapshot if absent
-					snapCfgDir := filepath.Join(snapshotDir, ".vibeguard")
-					_ = os.MkdirAll(snapCfgDir, 0755)
-					cfgBytes, _ := os.ReadFile(config.ConfigPath(root))
-					if len(cfgBytes) > 0 {
-						_ = os.WriteFile(config.ConfigPath(snapshotDir), cfgBytes, 0644)
-					}
+				// Copy repo config to snapshot if absent
+				snapCfgDir := filepath.Join(snapshotDir, ".vibeguard")
+				_ = os.MkdirAll(snapCfgDir, 0755)
+				cfgBytes, _ := os.ReadFile(config.ConfigPath(root))
+				if len(cfgBytes) > 0 {
+					_ = os.WriteFile(config.ConfigPath(snapshotDir), cfgBytes, 0644)
 				}
 			}
 		}
