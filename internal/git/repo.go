@@ -393,7 +393,12 @@ func GetPushedCommitFiles(repoPath, remoteSha, localSha string) []string {
 	if remoteSha == "" || strings.Trim(remoteSha, "0") == "" {
 		out, _ = runGit(root, "diff-tree", "--no-commit-id", "--name-only", "-r", localSha)
 	} else {
-		out, _ = runGit(root, "diff", "--name-only", remoteSha+".."+localSha)
+		var diffErr error
+		out, diffErr = runGit(root, "diff", "--name-only", remoteSha+".."+localSha)
+		if diffErr != nil || strings.TrimSpace(out) == "" {
+			// Fallback: examine the local commit directly
+			out, _ = runGit(root, "diff-tree", "--no-commit-id", "--name-only", "-r", localSha)
+		}
 	}
 
 	for _, f := range strings.Split(strings.TrimSpace(out), "\n") {
@@ -417,6 +422,10 @@ func GetPushedCommitDiff(repoPath, remoteSha, localSha string) string {
 		out, _ := runGit(root, "show", localSha)
 		return out
 	}
-	out, _ := runGit(root, "diff", remoteSha+".."+localSha)
+	out, err := runGit(root, "diff", remoteSha+".."+localSha)
+	if err != nil || strings.TrimSpace(out) == "" {
+		out, _ = runGit(root, "show", localSha)
+	}
 	return out
 }
+

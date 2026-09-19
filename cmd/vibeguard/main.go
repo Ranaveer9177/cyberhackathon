@@ -526,50 +526,58 @@ func runScanWithRefs(projectPath string, format string, customOutput string, isH
 			pushedRefs, _ = git.ReadAllPushedRefs()
 		}
 
-		if len(pushedRefs) > 0 {
-			var activeRefs []git.PushRef
-			for _, pr := range pushedRefs {
-				if strings.Trim(pr.LocalSHA, "0") != "" {
-					activeRefs = append(activeRefs, pr)
-				}
-			}
-
-			if len(activeRefs) == 0 {
-				fmt.Println("Git pre-push: all pushed refs are branch deletions. Allowing push.")
-				return 0
-			}
-
-			overallExitCode := 0
-			failedCount := 0
-
-			for idx, pRef := range activeRefs {
-				if len(activeRefs) > 1 {
-					fmt.Printf("\n========================================\n")
-					fmt.Printf(" Verifying Pushed Ref [%d/%d]: %s\n", idx+1, len(activeRefs), pRef.RemoteRef)
-					fmt.Printf("========================================\n")
-				}
-
-				code := scanSingleTarget(absPath, root, cfg, format, customOutput, true, &pRef)
-				if code != 0 {
-					overallExitCode = code
-					failedCount++
-				}
-			}
-
-			if len(activeRefs) > 1 {
-				fmt.Println()
-				fmt.Println("========================================")
-				if overallExitCode == 0 {
-					fmt.Printf("STATUS: ALL %d PUSHED REFS PASSED\n", len(activeRefs))
-					fmt.Println("Continuing Git push...")
-				} else {
-					fmt.Printf("STATUS: PUSH BLOCKED (%d of %d refs failed security gate)\n", failedCount, len(activeRefs))
-				}
-				fmt.Println("========================================")
-			}
-
-			return overallExitCode
+		if len(pushedRefs) == 0 {
+			fmt.Println("Git pre-push: everything up-to-date (no refs to push). Allowing push.")
+			return 0
 		}
+
+		var activeRefs []git.PushRef
+		for _, pr := range pushedRefs {
+			if strings.Trim(pr.LocalSHA, "0") == "" {
+				continue // branch deletion
+			}
+			if pr.LocalSHA == pr.RemoteSHA {
+				continue // already up to date on remote
+			}
+			activeRefs = append(activeRefs, pr)
+		}
+
+		if len(activeRefs) == 0 {
+			fmt.Println("Git pre-push: everything up-to-date (no new commits to push). Allowing push.")
+			return 0
+		}
+
+		overallExitCode := 0
+		failedCount := 0
+
+
+		for idx, pRef := range activeRefs {
+			if len(activeRefs) > 1 {
+				fmt.Printf("\n========================================\n")
+				fmt.Printf(" Verifying Pushed Ref [%d/%d]: %s\n", idx+1, len(activeRefs), pRef.RemoteRef)
+				fmt.Printf("========================================\n")
+			}
+
+			code := scanSingleTarget(absPath, root, cfg, format, customOutput, true, &pRef)
+			if code != 0 {
+				overallExitCode = code
+				failedCount++
+			}
+		}
+
+		if len(activeRefs) > 1 {
+			fmt.Println()
+			fmt.Println("========================================")
+			if overallExitCode == 0 {
+				fmt.Printf("STATUS: ALL %d PUSHED REFS PASSED\n", len(activeRefs))
+				fmt.Println("Continuing Git push...")
+			} else {
+				fmt.Printf("STATUS: PUSH BLOCKED (%d of %d refs failed security gate)\n", failedCount, len(activeRefs))
+			}
+			fmt.Println("========================================")
+		}
+
+		return overallExitCode
 	}
 
 	// Single target scan (CLI scan, report command, or working tree scan)
@@ -882,7 +890,7 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 	}
 
 	// Filter findings to only changed files when scan_mode is "changed"
-	if isHook && strings.ToLower(cfg.ScanMode) == "changed" && len(pushedFiles) > 0 {
+	if isHook && strings.ToLower(cfg.ScanMode) == "changed" {
 		pushedMap := make(map[string]bool)
 		for _, pf := range pushedFiles {
 			pushedMap[filepath.ToSlash(filepath.Clean(pf))] = true
@@ -897,6 +905,7 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 		}
 		allFindings = filteredFindings
 	}
+
 
 	// Step 4: Calculate risk score
 	fmt.Println("[4/4] Calculating risk score...")
