@@ -382,14 +382,25 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 	}
 
 	skipDirs := map[string]bool{
-		"node_modules": true,
-		".git":         true,
-		"vendor":       true,
-		"target":       true,
-		"__pycache__":  true,
-		".venv":        true,
-		"dist":         true,
-		"build":        true,
+		"node_modules":  true,
+		".git":          true,
+		"vendor":        true,
+		"target":        true,
+		"__pycache__":   true,
+		".venv":         true,
+		"venv":          true,
+		"env":           true,
+		"dist":          true,
+		"build":         true,
+		"htmlcov":       true,
+		".coverage":     true,
+		"coverage":      true,
+		".pytest_cache": true,
+		".mypy_cache":   true,
+		".tox":          true,
+		".nyc_output":   true,
+		".idea":         true,
+		".vscode":       true,
 	}
 
 	skipExts := map[string]bool{
@@ -405,6 +416,28 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 		".c": true, ".cpp": true, ".cs": true,
 	}
 
+	docExts := map[string]bool{
+		".md": true, ".markdown": true, ".rst": true, ".txt": true,
+		".adoc": true, ".html": true, ".htm": true,
+	}
+
+	var gitignorePatterns []string
+	if gitignoreBytes, err := os.ReadFile(filepath.Join(projectPath, ".gitignore")); err == nil {
+		lines := strings.Split(string(gitignoreBytes), "\n")
+		for _, gl := range lines {
+			gl = strings.TrimSpace(gl)
+			if gl == "" || strings.HasPrefix(gl, "#") {
+				continue
+			}
+			gl = strings.TrimPrefix(gl, "/")
+			gl = strings.TrimSuffix(gl, "/")
+			gl = filepath.ToSlash(gl)
+			if gl != "" {
+				gitignorePatterns = append(gitignorePatterns, gl)
+			}
+		}
+	}
+
 	// 1. Collect all non-skipped candidate files
 	var files []candidateFile
 	err := filepath.WalkDir(projectPath, func(path string, d fs.DirEntry, err error) error {
@@ -417,6 +450,18 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 			return nil
 		}
 		relPath = filepath.ToSlash(relPath)
+
+		for _, gp := range gitignorePatterns {
+			if relPath == gp || strings.HasPrefix(relPath, gp+"/") || d.Name() == gp {
+				if d.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			if strings.HasPrefix(gp, "*") && strings.HasSuffix(d.Name(), gp[1:]) {
+				return nil
+			}
+		}
 
 		if d.IsDir() {
 			if skipDirs[d.Name()] || cfg.IsExcluded(relPath) {
@@ -549,7 +594,7 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 		for lineIdx, line := range lines {
 			lineNum := lineIdx + 1
 			trimmed := strings.TrimSpace(line)
-			if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "/*") || strings.HasPrefix(trimmed, "*") {
+			if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "/*") || strings.HasPrefix(trimmed, "*") || strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, "--") || strings.HasPrefix(trimmed, ";") {
 				continue
 			}
 			if strings.Contains(line, "regexp.MustCompile") || strings.Contains(line, "Regex::new") || strings.Contains(line, "Rule {") {
@@ -561,7 +606,50 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 					continue
 				}
 
+				isGenericAssignment := r.id == "VG-SEC-006" || r.id == "VG-SEC-007" || r.id == "VG-CRED-001"
+				if isGenericAssignment && docExts[ext] {
+					continue
+				}
+
 				if r.pattern.MatchString(line) {
+					// False positive filtering for password / credential / token assignments
+					if isGenericAssignment {
+						lineLower := strings.ToLower(line)
+						if strings.Contains(lineLower, "read-host") ||
+							strings.Contains(lineLower, "param(") ||
+							strings.Contains(lineLower, "[string]") ||
+							strings.Contains(lineLower, "[securestring]") ||
+							strings.Contains(lineLower, "os.environ") ||
+							strings.Contains(lineLower, "os.getenv") ||
+							strings.Contains(lineLower, "process.env") ||
+							strings.Contains(lineLower, "$env:") {
+							continue
+						}
+
+						dummyValues := []string{
+							`""`, `''`, `"admin"`, `'admin'`, `"password"`, `'password'`,
+							`"passwd"`, `'passwd'`, `"changeme"`, `'changeme'`,
+							`"your_password"`, `'your_password'`, `"<password>"`, `'<password>'`,
+							`"dummy"`, `'dummy'`, `"example"`, `'example'`, `"test"`, `'test'`,
+							`"sample"`, `'sample'`, `"placeholder"`, `'placeholder'`,
+							`"default"`, `'default'`, `"root"`, `'root'`, `"null"`, `'null'`,
+							`"none"`, `'none'`, `"123456"`, `'123456'`, `"secret"`, `'secret'`,
+						}
+						isDummy := false
+						for _, dv := range dummyValues {
+							if strings.Contains(lineLower, dv) {
+								isDummy = true
+								break
+							}
+						}
+						if strings.Contains(lineLower, `="$`) || strings.Contains(lineLower, `:'$`) || strings.Contains(lineLower, `="%"`) || strings.Contains(lineLower, `="${`) {
+							isDummy = true
+						}
+						if isDummy {
+							continue
+						}
+					}
+
 					// Skip safe fixed tool executions for command injection
 					if r.id == "VG-CMD-001" {
 						if strings.Contains(line, `exec.Command("git"`) || strings.Contains(line, `exec.CommandContext`) {
@@ -569,9 +657,23 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 						}
 					}
 
-					// Skip localhost/loopback for Insecure HTTP rule
+					// Skip localhost, loopback, and schemas for Insecure HTTP rule
 					if r.id == "VG-HTTP-001" {
-						if strings.Contains(line, "http://localhost") || strings.Contains(line, "http://127.0.0.1") {
+						lineLower := strings.ToLower(line)
+						if strings.Contains(lineLower, "http://localhost") ||
+							strings.Contains(lineLower, "http://127.0.0.1") ||
+							strings.Contains(lineLower, "http://0.0.0.0") ||
+							strings.Contains(lineLower, "http://::1") ||
+							strings.Contains(lineLower, "http://[::1]") ||
+							strings.Contains(lineLower, "w3.org") ||
+							strings.Contains(lineLower, "schemas.") ||
+							strings.Contains(lineLower, "json-schema.org") ||
+							strings.Contains(lineLower, "apache.org") ||
+							strings.Contains(lineLower, "example.com") ||
+							strings.Contains(lineLower, "example.org") ||
+							strings.Contains(lineLower, "http://{") ||
+							strings.Contains(lineLower, "http://${") ||
+							strings.Contains(lineLower, "http://%") {
 							continue
 						}
 					}

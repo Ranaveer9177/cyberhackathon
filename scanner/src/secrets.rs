@@ -5,11 +5,74 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
     let mut findings = Vec::new();
     let rules = get_secret_rules();
 
+    let ext = std::path::Path::new(file_path).extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    let doc_exts = ["md", "markdown", "rst", "txt", "adoc", "html", "htm"];
+    let is_doc = doc_exts.contains(&ext.as_str());
+
     for (line_idx, line) in content.lines().enumerate() {
         let line_num = line_idx + 1;
+        let trimmed = line.trim();
+
+        // Skip pure comments for assignment rules
+        let is_comment = trimmed.starts_with("//") || trimmed.starts_with('#') || trimmed.starts_with("/*") || trimmed.starts_with('*') || trimmed.starts_with("--");
 
         for rule in &rules {
+            // Generic assignment rules should not run on documentation files
+            if is_doc && (rule.id == "SEC-006" || rule.id == "SEC-007" || rule.id == "SEC-008") {
+                continue;
+            }
+
+            if is_comment && (rule.id == "SEC-006" || rule.id == "SEC-007" || rule.id == "SEC-008") {
+                continue;
+            }
+
             if let Some(caps) = rule.pattern.captures(line) {
+                // False positive filtering for password / token assignments
+                if rule.id == "SEC-006" || rule.id == "SEC-007" || rule.id == "SEC-008" {
+                    let matched_str = caps.get(0).map_or("", |m| m.as_str()).to_lowercase();
+                    let line_lower = line.to_lowercase();
+
+                    // Check for variable syntax or placeholders
+                    if line_lower.contains("read-host")
+                        || line_lower.contains("param(")
+                        || line_lower.contains("[string]")
+                        || line_lower.contains("[securestring]")
+                        || line_lower.contains("os.environ")
+                        || line_lower.contains("os.getenv")
+                        || line_lower.contains("process.env")
+                        || line_lower.contains("os.getenv")
+                        || line_lower.contains("$env:")
+                    {
+                        continue;
+                    }
+
+                    // Check if the value is a dummy/placeholder/variable
+                    let dummy_values = [
+                        "\"\"", "''", "\"admin\"", "'admin'", "\"password\"", "'password'",
+                        "\"passwd\"", "'passwd'", "\"changeme\"", "'changeme'",
+                        "\"your_password\"", "'your_password'", "\"<password>\"", "'<password>'",
+                        "\"dummy\"", "'dummy'", "\"example\"", "'example'", "\"test\"", "'test'",
+                        "\"sample\"", "'sample'", "\"placeholder\"", "'placeholder'",
+                        "\"default\"", "'default'", "\"root\"", "'root'", "\"null\"", "'null'",
+                        "\"none\"", "'none'", "\"123456\"", "'123456'", "\"secret\"", "'secret'",
+                    ];
+                    let mut is_dummy = false;
+                    for dv in &dummy_values {
+                        if matched_str.contains(dv) {
+                            is_dummy = true;
+                            break;
+                        }
+                    }
+                    // Variable reference in string: e.g. "$password" or "%password%" or "${password}"
+                    if matched_str.contains("=\"$") || matched_str.contains(":'$") || matched_str.contains("=\"%") || matched_str.contains("=\"${") {
+                        is_dummy = true;
+                    }
+
+                    if is_dummy {
+                        continue;
+                    }
+                }
+
                 *finding_counter += 1;
                 
                 let mut evidence = caps.get(0).map_or("", |m| m.as_str()).to_string();
@@ -34,6 +97,7 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
             }
         }
     }
+
 
     let file_name = std::path::Path::new(file_path)
         .file_name()

@@ -5,7 +5,9 @@ pub fn scan_directory(path: &str) -> Vec<String> {
     let mut files = Vec::new();
 
     let skipped_dirs = [
-        "node_modules", "vendor", ".git", "target", "__pycache__", ".venv", "dist", "build",
+        "node_modules", "vendor", ".git", "target", "__pycache__", ".venv", "venv", "env",
+        "dist", "build", "htmlcov", ".coverage", "coverage", ".pytest_cache", ".mypy_cache",
+        ".tox", ".nyc_output", ".idea", ".vscode",
     ];
 
     let skipped_exts = [
@@ -24,6 +26,22 @@ pub fn scan_directory(path: &str) -> Vec<String> {
                             config_excludes.push(s.replace('\\', "/"));
                         }
                     }
+                }
+            }
+        }
+    }
+
+    let gitignore_path = Path::new(path).join(".gitignore");
+    if gitignore_path.exists() {
+        if let Ok(data) = std::fs::read_to_string(&gitignore_path) {
+            for line in data.lines() {
+                let trimmed = line.trim();
+                if trimmed.is_empty() || trimmed.starts_with('#') {
+                    continue;
+                }
+                let pat = trimmed.trim_start_matches('/').trim_end_matches('/').replace('\\', "/");
+                if !pat.is_empty() {
+                    config_excludes.push(pat);
                 }
             }
         }
@@ -52,6 +70,16 @@ pub fn scan_directory(path: &str) -> Vec<String> {
 
         for exc in &config_excludes {
             let exc_clean = exc.trim_start_matches('/');
+            if exc_clean.is_empty() {
+                continue;
+            }
+            if exc_clean.starts_with("*.") {
+                let ext_pattern = &exc_clean[1..]; // e.g. ".key"
+                if rel_clean.ends_with(ext_pattern) {
+                    skip = true;
+                    break;
+                }
+            }
             if rel_clean == exc_clean || rel_clean.starts_with(&format!("{}/", exc_clean)) {
                 skip = true;
                 break;
@@ -69,6 +97,7 @@ pub fn scan_directory(path: &str) -> Vec<String> {
                 skip = true;
             }
         }
+
         
         if !skip {
             if let Some(path_str) = file_path.to_str() {
