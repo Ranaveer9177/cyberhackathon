@@ -231,6 +231,26 @@ Version: v3.0
 11. Configure session PATH and verify PATH for Go, Rust, Cargo, and VibeGuard.
 12. Print structured status output and environment readiness.
 
-Version: v3.1
+Version: v3.0
+
+---
+
+## Phase 15 — Core Hardening & Production Optimization
+
+1. Remove `test-project` from default exclusions.
+2. Add `--progress` flag to Rust scanner engine and stream to `stderr`.
+3. Connect Go `RunScannerWithProgress` to stream Rust scanner `stderr` into terminal progress bar.
+4. Process all pushed refs from `stdin` in pre-push hook and CLI.
+5. Implement fail-closed security policy (exit 1 if CLI binary missing).
+6. Unify `vibeguard push` verification model with pre-push hook.
+7. Implement concurrent OSV worker pool (10 goroutines) with HTTP connection pooling.
+8. Implement disk-staged `git archive` snapshot extraction (`commit.tar`) to eliminate Windows pipe deadlocks.
+9. Finalize canonical version naming to `v3.0.0` across all code and documentation.
+10. Build.
+11. Test.
+12. Deploy.
+
+Version: v3.0.0
+
 
 

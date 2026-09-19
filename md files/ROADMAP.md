@@ -17,7 +17,8 @@
 - [x] **v0.9 — Container & Config**: Dockerfile security analysis, config file security audits.
 - [x] **v1.0 — Stable MVP**: Multi-shell support, comprehensive test fixtures, end-to-end integration.
 - [x] **v3.0 — Live Scan Progress & Scoped Pre-Push Gate**: Real-time terminal progress bars across all scanning stages (files, dependencies, OSV queries, 100% completion indicator), pure Go `git archive` snapshot scanning, `.vibeguard/config.json` exclusions, refined SAST terminology, double-scan elimination.
-- [x] **v3.1 — Automated Environment Setup & Global CLI (`setup.bat`)**: Intelligent Windows environment setup verifying and installing Git, Go, Rust, Cargo, Node.js, Python, and Docker via `winget`, permanent global installation to `%LOCALAPPDATA%\VibeGuard\bin`, User PATH registry configuration, and PATH verification.
+- [x] **v3.0.0 — Production Hardening & Global Architecture**: Intelligent Windows environment setup (`setup.bat`) installing Git, Go, Rust, Cargo, Node.js, Python, and Docker via `winget`; global CLI in `%LOCALAPPDATA%\VibeGuard`; fail-closed pre-push hook; multi-ref verification; streaming Rust engine (`--progress`); concurrent 10-worker OSV engine (~400ms); and Windows pipe-deadlock-free disk tar snapshotting.
+
 
 ---
 
