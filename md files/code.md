@@ -1,6 +1,6 @@
 # VibeGuard Codebase — Complete Source Files
 
-Total files: 86
+Total files: 84
 
 ---
 
@@ -6532,6 +6532,167 @@ without requiring the user to manually understand Rust, Cargo, Go module paths, 
 
 ---
 
+## md files/output.md
+
+```markdown
+# VibeGuard Test Output
+
+**Date:** 2026-09-18
+**Project:** `C:\Users\ranua\Music\cyberhackathon`
+
+## Test Results
+
+### Go Unit and Integration Tests
+
+Command:
+
+```powershell
+go test ./...
+```
+
+Result: **PASS**
+
+Passing packages:
+
+- `internal/dependencies`
+- `internal/gate`
+- `internal/report`
+- `internal/risk`
+- `internal/scanner`
+- `tests/integration`
+
+Packages without test files compiled successfully:
+
+- `cmd/vibeguard`
+- `internal/osv`
+- `tests/sast`
+
+### CLI Build and Version
+
+Commands:
+
+```powershell
+go build -buildvcs=false -o output-test.exe ./cmd/vibeguard
+output-test.exe version
+```
+
+Result: **PASS**
+
+Output:
+
+```text
+VibeGuard v1.0.0
+```
+
+## Overall Status
+
+**PASS** - The Go test suite passed and the CLI built and reported its version successfully.
+```
+
+---
+
+## md files/output2.md
+
+```markdown
+# VibeGuard Test Output
+
+**Date:** 2026-09-18
+**Project:** `C:\Users\ranua\Music\cyberhackathon`
+
+## 1. Full Go Test Suite
+
+Command:
+
+```powershell
+go test ./...
+```
+
+Result: **PASS** (exit code `0`)
+
+Passing packages:
+
+- `internal/config`
+- `internal/dependencies`
+- `internal/gate`
+- `internal/git`
+- `internal/report`
+- `internal/risk`
+- `internal/scanner`
+- `tests/integration`
+
+Packages without test files compiled successfully:
+
+- `cmd/vibeguard`
+- `internal/osv`
+- `tests/sast`
+
+## 2. Compile Binary
+
+Command:
+
+```powershell
+go build -buildvcs=false -o vibeguard.exe ./cmd/vibeguard
+```
+
+Result: **PASS** (exit code `0`)
+
+## 3. Version Check
+
+Command:
+
+```powershell
+.\vibeguard.exe version
+```
+
+Result: **PASS** (exit code `0`)
+
+Output:
+
+```text
+VibeGuard v2.0.0
+```
+
+## 4. Status Check
+
+Command:
+
+```powershell
+.\vibeguard.exe status
+```
+
+Result: **PASS** (exit code `0`)
+
+Observed status:
+
+```text
+Git detected: NO
+Status: INACTIVE (not a git repository)
+```
+
+## 5. Vulnerable Test Project Scan
+
+Command:
+
+```powershell
+.\vibeguard.exe scan .\test-project
+```
+
+Result: **BLOCKED** (exit code `1`)
+
+Observed summary:
+
+```text
+Deployment Status: BLOCKED
+Reason: 123 critical finding(s) and 80 high-severity finding(s) detected
+```
+
+## Overall Result
+
+**PASS:** The test suite and binary build succeeded. The security gate correctly blocked the intentionally vulnerable test project.
+```
+
+---
+
 ## md files/PLAN.md
 
 ```markdown
@@ -7792,6 +7953,297 @@ Version: v3.0.0
 
 ---
 
+## md files/test3.md
+
+```markdown
+# VibeGuard Test 3 Output
+
+**Date:** 2026-09-18
+**Project:** `C:\Users\ranua\Music\cyberhackathon`
+
+## Full Go Test Suite
+
+Command:
+
+```powershell
+go test ./...
+```
+
+Result: **PASS** (exit code `0`)
+
+Verified packages:
+
+- `internal/config`
+- `internal/dependencies`
+- `internal/gate`
+- `internal/git`
+- `internal/report`
+- `internal/risk`
+- `internal/scanner`
+- `tests/integration`
+
+Packages without test files compiled successfully:
+
+- `cmd/vibeguard`
+- `internal/osv`
+- `tests/sast`
+
+## Vulnerable Fixture Scan
+
+Command:
+
+```powershell
+.\vibeguard.exe scan .\test-project
+```
+
+Result: **BLOCKED** (exit code `1`)
+
+Observed summary:
+
+```text
+Deployment Status: BLOCKED
+Reason: 22 critical finding(s) and 71 high-severity finding(s) detected
+```
+
+## Overall Result
+
+**PASS:** The project test suite passed, and the security gate correctly blocked the intentionally vulnerable test project.
+```
+
+---
+
+## md files/test4.md
+
+```markdown
+# Test 4 — VibeGuard v3.0 Verification
+
+**Date:** 2026-09-19  
+**Version:** VibeGuard v3.0.0  
+
+### 1. Test Suite
+- `go test ./...`: **PASS** (exit code `0`) across all modules including `internal/report` progress tests.
+- `go vet ./...`: **PASS** (0 warnings).
+
+### 2. Live Scan Progress Indicators
+Command: `.\vibeguard.exe scan .`
+- **File Scan**: `[████████████████████] 100%` (`Files: 40/40`)
+- **Dependency Scan**: `[████████████████████] 100%` (`Dependencies: 21/21`)
+- **OSV Querying**: `[████████████████████] 100%` (`OSV queries: 21/21`)
+- **Final Stage**: `[████████████████████] 100%`
+  `Security analysis complete.`
+- **Security Score**: `100/100` (PASSED)
+
+### 3. Git Pre-Push Hook Gate
+Command: `git push origin main`
+- Fired `.git/hooks/pre-push` automatically.
+- Extracted exact committed tree snapshot via pure Go `git archive`.
+- Rendered live progress bars across all 4 scan stages in real time.
+- Security Gate Decision: `STATUS: SAFE TO PUSH` (Exit `0`).
+- Remote push completed successfully to `https://github.com/Ranaveer9177/cyberhackathon.git`.
+```
+
+---
+
+## md files/test5.md
+
+```markdown
+# Test 5 — Full Validation & Resolution Report
+
+**Date:** 2026-09-19  
+**Workspace:** `C:\Users\ranua\Music\cyberhackathon`  
+**Fixture:** `test-project`  
+**Version:** VibeGuard v3.0.0  
+
+---
+
+## Executive Result
+
+**RETEST VERIFIED.**
+
+All Go tests, static analysis, CLI builds, Rust unit tests, fixture scanning, and JSON/HTML report persistence passed their intended checks. The fixture remains correctly blocked because it is intentionally vulnerable. The current retest also fixed the duplicate `dir :=` declaration in `internal/report/html.go`, which had prevented the CLI from compiling.
+
+Both issues identified in the initial Test 5 run have been fully diagnosed and resolved:
+1. **Rust Scanner Compilation & Tests**: Resolved by pointing Cargo to an isolated target directory (`$env:CARGO_TARGET_DIR = "$env:TEMP\cargo-target"`) to bypass Windows Music folder media indexing locks, and correcting a regex lookaround in `rules.rs`. All 4 Rust tests pass, and the compiled `vibeguard-scanner.exe` runs in 151ms with 0 false positives.
+2. **Report Generation Persistence**: Resolved by adding `filepath.Abs(filepath.Clean(outputPath))` and recursive parent directory creation (`os.MkdirAll`) in `internal/report/json.go` and `internal/report/html.go`. Both JSON (`test5-scan.json`, 1.2 MB) and HTML (`test5-scan.html`, 153 KB) write cleanly and reliably.
+
+---
+
+## Commands and Results
+
+### 1. Go Unit & Integration Tests
+
+Command:
+
+```powershell
+go test ./...
+```
+
+Result: **PASS** (exit code `0`)
+
+Passing packages:
+- `internal/config`
+- `internal/dependencies`
+- `internal/gate`
+- `internal/git`
+- `internal/report` (including `progress_test.go`: `TestBuildBar`, `TestProgressBarRender`, `TestProgressBarFinish`)
+- `internal/risk`
+- `internal/scanner`
+- `tests/integration`
+
+Packages without test files:
+- `cmd/vibeguard`
+- `internal/osv`
+- `tests/sast`
+
+### 2. Go Static Analysis
+
+Command:
+
+```powershell
+go vet ./...
+```
+
+Result: **PASS** (0 warnings, 0 errors)
+
+### 3. Go CLI Build
+
+Command:
+
+```powershell
+go build -buildvcs=false -o .\vibeguard.exe .\cmd\vibeguard
+```
+
+Result: **PASS** (exit code `0`)
+
+### 4. CLI Version Check
+
+Command:
+
+```powershell
+.\vibeguard.exe version
+```
+
+Output:
+
+```text
+VibeGuard v3.0.0
+```
+
+Result: **PASS**
+
+### 5. Rust Scanner Tests (RESOLVED)
+
+Root cause: Windows Media Library (`Music`) folder hooks restricted nested path writes for Cargo build scripts, and `rules.rs` used an unsupported regex lookaround `(?!...)`.  
+Resolution: Fixed the regex pattern in `rules.rs` and compiled using `$env:CARGO_TARGET_DIR = "$env:TEMP\cargo-target"`.
+
+Command:
+
+```powershell
+$env:CARGO_TARGET_DIR = "$env:TEMP\cargo-target"
+Push-Location .\scanner
+cargo test
+Pop-Location
+```
+
+Output:
+
+```text
+running 4 tests
+test sast::tests::test_ignore_unsupported_extensions ... ok
+test secrets::tests::test_clean_file_no_secrets ... ok
+test secrets::tests::test_detect_aws_key ... ok
+test sast::tests::test_detect_sql_injection ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+```
+
+Result: **PASS**
+
+Cargo emitted five non-fatal warnings about unused variables, unused assignments, and unused enum fields/variants. No Rust tests failed.
+
+### 6. Rust Release Build & Standalone Execution (RESOLVED)
+
+Command:
+
+```powershell
+$env:CARGO_TARGET_DIR = "$env:TEMP\cargo-target"
+cargo build --release --manifest-path .\scanner\Cargo.toml
+Copy-Item "$env:TEMP\cargo-target\release\vibeguard-scanner.exe" -Destination ".\vibeguard-scanner.exe" -Force
+.\vibeguard-scanner.exe .
+```
+
+Output:
+
+```json
+{"project":"unknown","files_scanned":41,"findings":[],"scan_time_ms":151}
+```
+
+Result: **PASS** (41 files scanned in 151ms, 0 false-positive findings)
+
+### 7. Security Scan of Test Project with Live Progress
+
+Command:
+
+```powershell
+.\vibeguard.exe scan .\test-project
+```
+
+Output:
+- File Scan: `[████████████████████] 100%` (`Files: 9/9`)
+- Dependency Scan: `[████████████████████] 100%` (`Dependencies: 12/12`)
+- OSV Queries: `[████████████████████] 100%` (`OSV queries: 12/12`)
+- Final Stage: `[████████████████████] 100%` followed by `Security analysis complete.`
+- Findings: 208 total (`7` secrets, `13` source-code, `185` dependency, `3` Docker)
+- Gate reason: `22` critical and `69` high findings
+- Deployment Status: **BLOCKED** (exit code `1`)
+
+Result: **PASS**
+
+### 8. JSON & HTML Report Persistence (RESOLVED)
+
+Root cause: Windows path separator formatting (`.\\reports\\...`) without absolute normalization caused path resolution mismatches on `os.Create`.  
+Resolution: Applied `filepath.Abs(filepath.Clean(outputPath))` with guaranteed `os.MkdirAll(dir, 0755)` parent directory creation.
+
+Commands:
+
+```powershell
+.\vibeguard.exe scan .\test-project --format json --output .\reports\test5-scan.json
+.\vibeguard.exe scan .\test-project --format html --output .\reports\test5-scan.html
+```
+
+Verification:
+
+```powershell
+Get-Item .\reports\test5-scan.json
+# Length: 1,257,953 bytes (1.2 MB)
+
+Get-Item .\reports\test5-scan.html
+# Length: 153,585 bytes (153 KB)
+```
+
+Result: **PASS**
+
+---
+
+## Final Status
+
+| Verification Area | Status | Notes |
+| :--- | :---: | :--- |
+| **Go Tests** | **PASS** | 100% package pass, zero regressions |
+| **Go Vet** | **PASS** | 0 warnings, strict static analysis |
+| **CLI Build** | **PASS** | `vibeguard.exe` compiles with 0 errors |
+| **CLI Version** | **PASS** | `VibeGuard v3.0.0` |
+| **Rust Tests** | **PASS** | 4/4 unit tests passed |
+| **Rust Scanner Execution** | **PASS** | 151ms execution, 0 false positives on self-scan |
+| **Fixture Security Gate** | **PASS** | Detected vulnerable fixture; BLOCKED with exit code 1 |
+| **Live Scan Progress Bars** | **PASS** | Real-time terminal bars across all 4 stages |
+| **JSON Report Persistence** | **PASS** | Verified with absolute path resolution & directory creation |
+| **HTML Report Persistence** | **PASS** | Verified with absolute path resolution & directory creation |
+| **Git Pre-Push Hook** | **PASS** | Intercepts `git push`, verifies committed tree, allows safe push |
+```
+
+---
+
 ## md files/TEST_OUTPUT.md
 
 ```markdown
@@ -8874,167 +9326,6 @@ VibeGuard Security Gate
 ```
 
 without requiring the user to manually understand Rust, Cargo, Go module paths, MSVC linker configuration, or the developer's original Windows username.
-```
-
----
-
-## output.md
-
-```markdown
-# VibeGuard Test Output
-
-**Date:** 2026-09-18
-**Project:** `C:\Users\ranua\Music\cyberhackathon`
-
-## Test Results
-
-### Go Unit and Integration Tests
-
-Command:
-
-```powershell
-go test ./...
-```
-
-Result: **PASS**
-
-Passing packages:
-
-- `internal/dependencies`
-- `internal/gate`
-- `internal/report`
-- `internal/risk`
-- `internal/scanner`
-- `tests/integration`
-
-Packages without test files compiled successfully:
-
-- `cmd/vibeguard`
-- `internal/osv`
-- `tests/sast`
-
-### CLI Build and Version
-
-Commands:
-
-```powershell
-go build -buildvcs=false -o output-test.exe ./cmd/vibeguard
-output-test.exe version
-```
-
-Result: **PASS**
-
-Output:
-
-```text
-VibeGuard v1.0.0
-```
-
-## Overall Status
-
-**PASS** - The Go test suite passed and the CLI built and reported its version successfully.
-```
-
----
-
-## output2.md
-
-```markdown
-# VibeGuard Test Output
-
-**Date:** 2026-09-18
-**Project:** `C:\Users\ranua\Music\cyberhackathon`
-
-## 1. Full Go Test Suite
-
-Command:
-
-```powershell
-go test ./...
-```
-
-Result: **PASS** (exit code `0`)
-
-Passing packages:
-
-- `internal/config`
-- `internal/dependencies`
-- `internal/gate`
-- `internal/git`
-- `internal/report`
-- `internal/risk`
-- `internal/scanner`
-- `tests/integration`
-
-Packages without test files compiled successfully:
-
-- `cmd/vibeguard`
-- `internal/osv`
-- `tests/sast`
-
-## 2. Compile Binary
-
-Command:
-
-```powershell
-go build -buildvcs=false -o vibeguard.exe ./cmd/vibeguard
-```
-
-Result: **PASS** (exit code `0`)
-
-## 3. Version Check
-
-Command:
-
-```powershell
-.\vibeguard.exe version
-```
-
-Result: **PASS** (exit code `0`)
-
-Output:
-
-```text
-VibeGuard v2.0.0
-```
-
-## 4. Status Check
-
-Command:
-
-```powershell
-.\vibeguard.exe status
-```
-
-Result: **PASS** (exit code `0`)
-
-Observed status:
-
-```text
-Git detected: NO
-Status: INACTIVE (not a git repository)
-```
-
-## 5. Vulnerable Test Project Scan
-
-Command:
-
-```powershell
-.\vibeguard.exe scan .\test-project
-```
-
-Result: **BLOCKED** (exit code `1`)
-
-Observed summary:
-
-```text
-Deployment Status: BLOCKED
-Reason: 123 critical finding(s) and 80 high-severity finding(s) detected
-```
-
-## Overall Result
-
-**PASS:** The test suite and binary build succeeded. The security gate correctly blocked the intentionally vulnerable test project.
 ```
 
 ---
@@ -10896,136 +11187,6 @@ endlocal & set "PATH=%LOCALAPPDATA%\VibeGuard;%LOCALAPPDATA%\VibeGuard\bin;%PATH
 
 ---
 
-## src/README.md
-
-```markdown
-# VibeGuard Source Structure
-
-The Go application source code is organized following the standard Go project layout:
-- `cmd/vibeguard/main.go`: CLI entry point
-- `internal/`: Core modules (scanner runner, dependencies, osv, risk, gate, report)
-
-The Rust scanning engine is located in:
-- `scanner/`: High-performance filesystem walker and pattern scanner
-```
-
----
-
-## test output.md
-
-```markdown
-# VibeGuard Test Output
-
-**Date:** 2026-09-18  
-**Project:** `C:\Users\ranua\Music\cyberhackathon`  
-**Version:** VibeGuard v2.0.0 (Git Secure Push Gate)
-
----
-
-## 1. Full Go Test Suite
-
-Command:
-
-```powershell
-go test ./...
-```
-
-Result: **PASS** (exit code `0`)
-
-Passing packages:
-
-- `internal/config`
-- `internal/dependencies`
-- `internal/gate`
-- `internal/git`
-- `internal/report`
-- `internal/risk`
-- `internal/scanner`
-- `tests/integration`
-
-Packages without test files compiled successfully:
-
-- `cmd/vibeguard`
-- `internal/osv`
-- `tests/sast`
-
----
-
-## 2. Compile Binary
-
-Command:
-
-```powershell
-go build -buildvcs=false -o vibeguard.exe ./cmd/vibeguard
-```
-
-Result: **PASS** (exit code `0`)
-
----
-
-## 3. Version Check
-
-Command:
-
-```powershell
-.\vibeguard.exe version
-```
-
-Result: **PASS** (exit code `0`)
-
-Output:
-
-```text
-VibeGuard v2.0.0
-```
-
----
-
-## 4. Status Check
-
-Command:
-
-```powershell
-.\vibeguard.exe status
-```
-
-Result: **PASS** (exit code `0`)
-
-Observed status:
-
-```text
-Git detected: NO
-Status: INACTIVE (not a git repository)
-```
-
----
-
-## 5. Vulnerable Test Project Scan
-
-Command:
-
-```powershell
-.\vibeguard.exe scan .\test-project
-```
-
-Result: **BLOCKED** (exit code `1`)
-
-Observed summary:
-
-```text
-Deployment Status: BLOCKED
-Reason: 123 critical finding(s) and 80 high-severity finding(s) detected
-```
-
----
-
-## Overall Result
-
-**PASS:** The test suite and binary build succeeded. The security gate correctly blocked the intentionally vulnerable test project.
-```
-
----
-
 ## test-project/.env
 
 ```
@@ -11304,297 +11465,6 @@ func GenerateToken(data string) string {
 	h.Write([]byte(data))
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
-```
-
----
-
-## test3.md
-
-```markdown
-# VibeGuard Test 3 Output
-
-**Date:** 2026-09-18
-**Project:** `C:\Users\ranua\Music\cyberhackathon`
-
-## Full Go Test Suite
-
-Command:
-
-```powershell
-go test ./...
-```
-
-Result: **PASS** (exit code `0`)
-
-Verified packages:
-
-- `internal/config`
-- `internal/dependencies`
-- `internal/gate`
-- `internal/git`
-- `internal/report`
-- `internal/risk`
-- `internal/scanner`
-- `tests/integration`
-
-Packages without test files compiled successfully:
-
-- `cmd/vibeguard`
-- `internal/osv`
-- `tests/sast`
-
-## Vulnerable Fixture Scan
-
-Command:
-
-```powershell
-.\vibeguard.exe scan .\test-project
-```
-
-Result: **BLOCKED** (exit code `1`)
-
-Observed summary:
-
-```text
-Deployment Status: BLOCKED
-Reason: 22 critical finding(s) and 71 high-severity finding(s) detected
-```
-
-## Overall Result
-
-**PASS:** The project test suite passed, and the security gate correctly blocked the intentionally vulnerable test project.
-```
-
----
-
-## test4.md
-
-```markdown
-# Test 4 — VibeGuard v3.0 Verification
-
-**Date:** 2026-09-19  
-**Version:** VibeGuard v3.0.0  
-
-### 1. Test Suite
-- `go test ./...`: **PASS** (exit code `0`) across all modules including `internal/report` progress tests.
-- `go vet ./...`: **PASS** (0 warnings).
-
-### 2. Live Scan Progress Indicators
-Command: `.\vibeguard.exe scan .`
-- **File Scan**: `[████████████████████] 100%` (`Files: 40/40`)
-- **Dependency Scan**: `[████████████████████] 100%` (`Dependencies: 21/21`)
-- **OSV Querying**: `[████████████████████] 100%` (`OSV queries: 21/21`)
-- **Final Stage**: `[████████████████████] 100%`
-  `Security analysis complete.`
-- **Security Score**: `100/100` (PASSED)
-
-### 3. Git Pre-Push Hook Gate
-Command: `git push origin main`
-- Fired `.git/hooks/pre-push` automatically.
-- Extracted exact committed tree snapshot via pure Go `git archive`.
-- Rendered live progress bars across all 4 scan stages in real time.
-- Security Gate Decision: `STATUS: SAFE TO PUSH` (Exit `0`).
-- Remote push completed successfully to `https://github.com/Ranaveer9177/cyberhackathon.git`.
-```
-
----
-
-## test5.md
-
-```markdown
-# Test 5 — Full Validation & Resolution Report
-
-**Date:** 2026-09-19  
-**Workspace:** `C:\Users\ranua\Music\cyberhackathon`  
-**Fixture:** `test-project`  
-**Version:** VibeGuard v3.0.0  
-
----
-
-## Executive Result
-
-**RETEST VERIFIED.**
-
-All Go tests, static analysis, CLI builds, Rust unit tests, fixture scanning, and JSON/HTML report persistence passed their intended checks. The fixture remains correctly blocked because it is intentionally vulnerable. The current retest also fixed the duplicate `dir :=` declaration in `internal/report/html.go`, which had prevented the CLI from compiling.
-
-Both issues identified in the initial Test 5 run have been fully diagnosed and resolved:
-1. **Rust Scanner Compilation & Tests**: Resolved by pointing Cargo to an isolated target directory (`$env:CARGO_TARGET_DIR = "$env:TEMP\cargo-target"`) to bypass Windows Music folder media indexing locks, and correcting a regex lookaround in `rules.rs`. All 4 Rust tests pass, and the compiled `vibeguard-scanner.exe` runs in 151ms with 0 false positives.
-2. **Report Generation Persistence**: Resolved by adding `filepath.Abs(filepath.Clean(outputPath))` and recursive parent directory creation (`os.MkdirAll`) in `internal/report/json.go` and `internal/report/html.go`. Both JSON (`test5-scan.json`, 1.2 MB) and HTML (`test5-scan.html`, 153 KB) write cleanly and reliably.
-
----
-
-## Commands and Results
-
-### 1. Go Unit & Integration Tests
-
-Command:
-
-```powershell
-go test ./...
-```
-
-Result: **PASS** (exit code `0`)
-
-Passing packages:
-- `internal/config`
-- `internal/dependencies`
-- `internal/gate`
-- `internal/git`
-- `internal/report` (including `progress_test.go`: `TestBuildBar`, `TestProgressBarRender`, `TestProgressBarFinish`)
-- `internal/risk`
-- `internal/scanner`
-- `tests/integration`
-
-Packages without test files:
-- `cmd/vibeguard`
-- `internal/osv`
-- `tests/sast`
-
-### 2. Go Static Analysis
-
-Command:
-
-```powershell
-go vet ./...
-```
-
-Result: **PASS** (0 warnings, 0 errors)
-
-### 3. Go CLI Build
-
-Command:
-
-```powershell
-go build -buildvcs=false -o .\vibeguard.exe .\cmd\vibeguard
-```
-
-Result: **PASS** (exit code `0`)
-
-### 4. CLI Version Check
-
-Command:
-
-```powershell
-.\vibeguard.exe version
-```
-
-Output:
-
-```text
-VibeGuard v3.0.0
-```
-
-Result: **PASS**
-
-### 5. Rust Scanner Tests (RESOLVED)
-
-Root cause: Windows Media Library (`Music`) folder hooks restricted nested path writes for Cargo build scripts, and `rules.rs` used an unsupported regex lookaround `(?!...)`.  
-Resolution: Fixed the regex pattern in `rules.rs` and compiled using `$env:CARGO_TARGET_DIR = "$env:TEMP\cargo-target"`.
-
-Command:
-
-```powershell
-$env:CARGO_TARGET_DIR = "$env:TEMP\cargo-target"
-Push-Location .\scanner
-cargo test
-Pop-Location
-```
-
-Output:
-
-```text
-running 4 tests
-test sast::tests::test_ignore_unsupported_extensions ... ok
-test secrets::tests::test_clean_file_no_secrets ... ok
-test secrets::tests::test_detect_aws_key ... ok
-test sast::tests::test_detect_sql_injection ... ok
-
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
-```
-
-Result: **PASS**
-
-Cargo emitted five non-fatal warnings about unused variables, unused assignments, and unused enum fields/variants. No Rust tests failed.
-
-### 6. Rust Release Build & Standalone Execution (RESOLVED)
-
-Command:
-
-```powershell
-$env:CARGO_TARGET_DIR = "$env:TEMP\cargo-target"
-cargo build --release --manifest-path .\scanner\Cargo.toml
-Copy-Item "$env:TEMP\cargo-target\release\vibeguard-scanner.exe" -Destination ".\vibeguard-scanner.exe" -Force
-.\vibeguard-scanner.exe .
-```
-
-Output:
-
-```json
-{"project":"unknown","files_scanned":41,"findings":[],"scan_time_ms":151}
-```
-
-Result: **PASS** (41 files scanned in 151ms, 0 false-positive findings)
-
-### 7. Security Scan of Test Project with Live Progress
-
-Command:
-
-```powershell
-.\vibeguard.exe scan .\test-project
-```
-
-Output:
-- File Scan: `[████████████████████] 100%` (`Files: 9/9`)
-- Dependency Scan: `[████████████████████] 100%` (`Dependencies: 12/12`)
-- OSV Queries: `[████████████████████] 100%` (`OSV queries: 12/12`)
-- Final Stage: `[████████████████████] 100%` followed by `Security analysis complete.`
-- Findings: 208 total (`7` secrets, `13` source-code, `185` dependency, `3` Docker)
-- Gate reason: `22` critical and `69` high findings
-- Deployment Status: **BLOCKED** (exit code `1`)
-
-Result: **PASS**
-
-### 8. JSON & HTML Report Persistence (RESOLVED)
-
-Root cause: Windows path separator formatting (`.\\reports\\...`) without absolute normalization caused path resolution mismatches on `os.Create`.  
-Resolution: Applied `filepath.Abs(filepath.Clean(outputPath))` with guaranteed `os.MkdirAll(dir, 0755)` parent directory creation.
-
-Commands:
-
-```powershell
-.\vibeguard.exe scan .\test-project --format json --output .\reports\test5-scan.json
-.\vibeguard.exe scan .\test-project --format html --output .\reports\test5-scan.html
-```
-
-Verification:
-
-```powershell
-Get-Item .\reports\test5-scan.json
-# Length: 1,257,953 bytes (1.2 MB)
-
-Get-Item .\reports\test5-scan.html
-# Length: 153,585 bytes (153 KB)
-```
-
-Result: **PASS**
-
----
-
-## Final Status
-
-| Verification Area | Status | Notes |
-| :--- | :---: | :--- |
-| **Go Tests** | **PASS** | 100% package pass, zero regressions |
-| **Go Vet** | **PASS** | 0 warnings, strict static analysis |
-| **CLI Build** | **PASS** | `vibeguard.exe` compiles with 0 errors |
-| **CLI Version** | **PASS** | `VibeGuard v3.0.0` |
-| **Rust Tests** | **PASS** | 4/4 unit tests passed |
-| **Rust Scanner Execution** | **PASS** | 151ms execution, 0 false positives on self-scan |
-| **Fixture Security Gate** | **PASS** | Detected vulnerable fixture; BLOCKED with exit code 1 |
-| **Live Scan Progress Bars** | **PASS** | Real-time terminal bars across all 4 stages |
-| **JSON Report Persistence** | **PASS** | Verified with absolute path resolution & directory creation |
-| **HTML Report Persistence** | **PASS** | Verified with absolute path resolution & directory creation |
-| **Git Pre-Push Hook** | **PASS** | Intercepts `git push`, verifies committed tree, allows safe push |
 ```
 
 ---
