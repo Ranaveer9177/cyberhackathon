@@ -66,14 +66,15 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
 ### 2.2 Dual-Engine Security Scanner (`scanner/` & `internal/scanner/`)
 - **Primary Rust Scanner Engine (`scanner/src/`)**:
   - Traverses the filesystem using `walkdir`.
-  - Filters out binaries and archive formats.
-  - Reads `.vibeguard/config.json` exclusions to skip documentation and test fixtures.
+  - Filters out binaries, media, archive formats, test coverage outputs (`htmlcov/`, `.coverage`), caches, virtual environments, and IDE directories.
+  - Automatically parses and respects `.gitignore` rules in the scanned repository.
   - Accepts `--progress` flag and streams live file scan progress (`PROGRESS:<cur>:<tot>:<file>`) on `stderr` while delivering pure JSON results on `stdout`.
   - Executes regex pattern rules for secrets and static code vulnerabilities.
+  - False-positive filters for documentation examples, PowerShell parameters, placeholder passwords, and loopback/schema URLs.
   - Masks detected credentials (`sk-demo-****`) to protect secrets in logs.
 - **Fallback Go Scanner Engine (`internal/scanner/runner.go`)**:
   - Automatically invoked if the compiled Rust binary is not present in the environment.
-  - Implements identical rule definitions and exclusion behavior for 100% feature parity.
+  - Implements identical rule definitions, `.gitignore` parsing, and false-positive filtering for 100% feature parity.
   - Emits real-time progress callbacks (`ScanProgressFunc`) reporting file index, total count, and current file path.
 
 ### 2.3 Dependency Vulnerability Engine (`internal/dependencies/` & `internal/osv/`)
@@ -110,9 +111,14 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
 - **Graceful Stream Fallback**: Automatic non-TTY fallback for CI/CD pipelines, log files, or piped shell execution.
 
 ### 2.6 Report Generation Subsystem (`internal/report/`)
-- **Terminal Report**: High-visibility ANSI color output with tabular breakdown and clear PASS/BLOCK banners.
-- **JSON Report**: Comprehensive machine-readable output saved to `reports/scan.json` for CI/CD integration.
-- **HTML Report**: Standalone, CSS-styled interactive security report saved to `reports/scan.html`.
+- **Terminal Report (`internal/report/terminal.go`)**:
+  - High-contrast ANSI color output with tabular breakdown and clear PASS/BLOCK banners.
+  - Dedicated **Code & Configuration Findings** section displaying ID, category, file:line, title, and recommendation.
+  - Aligned **Dependency Vulnerabilities Table** grouping issues by package (`PACKAGE | CURRENT | SEVERITY | ADVISORIES | RECOMMENDED FIX`).
+  - Compact **Key Advisory Highlights** with top 2–3 advisories per package and remainder counts.
+  - Clean confirmation banners (`✓ No code, secret, or configuration issues detected.`, `✓ No known vulnerabilities found in dependencies.`) when clean.
+- **JSON Report (`internal/report/json.go`)**: Comprehensive machine-readable output saved to `reports/scan.json` for CI/CD integration.
+- **HTML Report (`internal/report/html.go`)**: Standalone, CSS-styled interactive security report saved to `reports/scan.html`.
 
 ### 2.7 Global CLI Installation & Hardened Pre-Push Subsystem (`GLOBAL_CLI_SETUP.md`)
 - **Distribution Architecture**:

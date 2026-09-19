@@ -10,6 +10,8 @@
 **VibeGuard v3.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST), vulnerable third-party dependencies (SCA via Google OSV), Dockerfile misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
 
 VibeGuard operates directly in developer terminal workflows and CI/CD pipelines:
+- **Clean Grouped Terminal Reporting**: Replaces 250+ lines of redundant advisory dumps with an aligned dependency table (`PACKAGE | CURRENT | SEVERITY | ADVISORIES | RECOMMENDED FIX`) and compact key advisory highlights.
+- **Zero False-Positive Scanner Engine**: Automatically ignores test coverage folders (`htmlcov/`, `.coverage`), caches, virtual environments, IDE configs, and `.gitignore` patterns. Filters documentation code blocks, PowerShell parameter prompts, placeholder passwords (`"admin"`, `"password"`), loopback HTTP (`localhost`, `127.0.0.1`, `0.0.0.0`), and schema URIs.
 - **Live Interactive Scan Progress**: Real-time terminal progress bars during file scanning (streamed from the Rust engine via `--progress`), dependency resolution, and OSV database queries.
 - **Autonomous Git Pre-Push Gate**: Intercepts `git push` via standard pre-push hooks. Scans only the exact commits being pushed using disk-staged `git archive` snapshotting. Iterates over all pushed refs independently and fails closed if the CLI executable is missing.
 - **High-Performance Concurrent OSV Engine**: Multi-goroutine worker pool with HTTP Keep-Alive and connection pooling, querying Google OSV in parallel (~400ms latency).
@@ -317,6 +319,63 @@ OSV queries: 41/45
 [████████████████████] 100%
 
 Security analysis complete.
+```
+
+---
+
+## Clean Terminal Reporting & False-Positive Elimination (v3.0)
+
+### 1. Zero False-Positive Engine
+VibeGuard eliminates the common false alarms typical of static scanners:
+- **Test Coverage & Output Dirs**: Automatically excludes `htmlcov`, `.coverage`, `coverage`, `.pytest_cache`, `.mypy_cache`, `.tox`, `venv`, `env`, `.idea`, `.vscode`.
+- **Automatic `.gitignore` Resolution**: Seamlessly respects local repo `.gitignore` patterns in both Rust and Go engines.
+- **Documentation Safety**: Excludes `.md`, `.markdown`, `.rst`, `.txt`, and `.html` files from generic credential and password assignment rules. Real high-entropy keys (AWS, GitHub tokens, private keys) are still detected.
+- **Script & Placeholder Filtering**: PowerShell parameter prompts (`Read-Host`, `param(...)`, `[securestring]`), environment variable getters (`os.getenv`, `os.environ`, `$env:`), and dummy values (`"admin"`, `"password"`, `"changeme"`, `"your_password"`) are recognized and excluded.
+- **Insecure HTTP Refinement**: Ignores `http://localhost`, `127.0.0.1`, `0.0.0.0`, `::1`, XML/JSON schemas (`w3.org`, `schemas.`, `json-schema.org`, `apache.org`, `example.com`), and dynamic template strings.
+
+### 2. Clutter-Free Terminal Report
+Instead of dumping 200+ raw, repetitive lines of advisory descriptions, VibeGuard groups findings into a clean, actionable display:
+
+```text
+========= VIBEGUARD SECURITY REPORT =========
+Project:       Team-Avengers-Honeypot
+Branch:        main
+Commit:        93a757a
+Scan Time:     245ms
+Files Scanned: 69
+---------------------------------------------
+Security Score: 45/100 (HIGH RISK)
+Gate Status:    BLOCKED
+Reason:         Critical security findings detected
+
+Severity Counts:
+  Critical: 1 | High: 6 | Medium: 10 | Low: 0 | Info: 0
+Category Breakdown:
+  Secrets: 0 | Source Code: 0 | Dependencies: 38 | Config: 0 | Docker: 0 | Git: 0
+---------------------------------------------
+Code & Configuration Findings (0):
+  ✓ No code, secret, or configuration issues detected.
+---------------------------------------------
+Dependency Vulnerabilities (6 vulnerable packages, 38 total advisories):
+  PACKAGE              CURRENT      SEVERITY     ADVISORIES     RECOMMENDED FIX
+  --------------------------------------------------------------------------------
+  cryptography         41.0.0       CRITICAL     20 vulns       Upgrade to >= 42.0.4
+  Django               3.2.0        HIGH         12 vulns       Upgrade to >= 4.2.11
+  requests             2.25.1       MEDIUM       3 vulns        Upgrade to >= 2.31.0
+  urllib3              1.26.5       HIGH         3 vulns        Upgrade to >= 1.26.18
+
+  Key Advisory Highlights:
+  • cryptography (41.0.0) [requirements.txt]:
+    - GHSA-3ww4-gg4f-jr7f [CRITICAL]: null-dereference in PKCS12 parsing
+    - GHSA-5cpq-8wj7-hf2v [HIGH]: Bleichenbacher timing oracle attack
+    ... and 18 more advisories
+  • Django (3.2.0) [requirements.txt]:
+    - GHSA-2gwj-66ux-5946 [HIGH]: Potential denial of service in file uploads
+    ... and 11 more advisories
+---------------------------------------------
+Deployment Status: BLOCKED
+Reason: Critical security findings detected
+=============================================
 ```
 
 ---

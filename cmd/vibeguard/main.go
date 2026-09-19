@@ -714,6 +714,16 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 			if strings.HasPrefix(dLine, "+") && !strings.HasPrefix(dLine, "+++") {
 				added := dLine[1:]
 				for _, sp := range secretPatterns {
+					if sp.name == "Password Assignment in Pushed Commit" {
+						ext := strings.ToLower(filepath.Ext(currentFile))
+						if ext == ".md" || ext == ".markdown" || ext == ".rst" || ext == ".txt" || ext == ".html" || ext == ".htm" || ext == ".adoc" {
+							continue
+						}
+						lineLower := strings.ToLower(added)
+						if strings.Contains(lineLower, `"admin"`) || strings.Contains(lineLower, `"password"`) || strings.Contains(lineLower, `""`) || strings.Contains(lineLower, `"..."`) || strings.Contains(lineLower, `read-host`) || strings.Contains(lineLower, `param(`) {
+							continue
+						}
+					}
 					if sp.re.MatchString(added) {
 						masked := strings.TrimSpace(added)
 						if len(masked) > 8 {

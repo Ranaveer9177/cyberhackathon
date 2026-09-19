@@ -101,3 +101,8 @@ run_test.bat
 - **Fail-Closed Test**: Rename local/global `vibeguard.exe` and invoke `git push`; pre-push hook immediately prints `[SECURITY BLOCKED]` and returns exit code `1`.
 - **Multi-Ref Test**: Pushing multiple branches simultaneously validates snapshots for each ref independently.
 
+### 3.7 False-Positive Elimination & Clean Terminal Verification
+- **Doc & Coverage Test**: Scan projects containing `README.md` code snippets, `htmlcov/`, virtual environments (`venv/`), or PowerShell scripts (`start.ps1`); verify 0 false-positive findings.
+- **Grouped Dependency Output**: Verify that packages with multiple advisories (e.g. Django or cryptography) are rendered in a clean table row rather than hundreds of lines of duplicated findings.
+
+
