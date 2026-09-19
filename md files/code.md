@@ -804,6 +804,7 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 	var commitHash, branchName, remoteURL string
 	var pushedCommitDiff string
 	var pushRange string
+	var pushedFiles []string
 	var filesInPushCount int
 	var excludedFilesCount int
 	targetScanPath := absPath
@@ -834,7 +835,7 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 			}
 			pushRange = fmt.Sprintf("%s -> %s", locShort, remShort)
 
-			pushedFiles := git.GetPushedCommitFiles(root, pRef.RemoteSHA, pRef.LocalSHA)
+			pushedFiles = git.GetPushedCommitFiles(root, pRef.RemoteSHA, pRef.LocalSHA)
 			filesInPushCount = len(pushedFiles)
 			for _, pf := range pushedFiles {
 				if cfg.IsExcluded(pf) {
@@ -1099,6 +1100,23 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 			allFindings = append(allFindings, finding)
 			depFindingCounter++
 		}
+	}
+
+	// Filter findings to only changed files when scan_mode is "changed"
+	if isHook && strings.ToLower(cfg.ScanMode) == "changed" && len(pushedFiles) > 0 {
+		pushedMap := make(map[string]bool)
+		for _, pf := range pushedFiles {
+			pushedMap[filepath.ToSlash(filepath.Clean(pf))] = true
+		}
+
+		var filteredFindings []scanner.Finding
+		for _, f := range allFindings {
+			cleanF := filepath.ToSlash(filepath.Clean(f.File))
+			if pushedMap[cleanF] {
+				filteredFindings = append(filteredFindings, f)
+			}
+		}
+		allFindings = filteredFindings
 	}
 
 	// Step 4: Calculate risk score
