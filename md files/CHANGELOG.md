@@ -6,6 +6,9 @@ All notable changes to the VibeGuard project are documented in this file.
 
 > **Version Finalization Note**: Reconciled prior draft tags (`v2.2.0` vs `v3.0.0`) and established **`v3.0.0`** as the canonical version across the CLI binary, Rust engine, Git hooks, and documentation.
 
+### Fixed
+- **Dependency Fix Version Now Shows Proper Semver (not Git Hashes)**: The `RECOMMENDED FIX` column in the dependency table was displaying raw 40-character Git commit hashes (e.g. `afd63b16170b7c...`) instead of human-readable version numbers (e.g. `>= 3.1.3`). Root cause: the OSV API returns both `SEMVER` ranges (version numbers) and `GIT` ranges (commit hashes) — the old `getBestFixedVersion` compared all values as plain strings, causing long git hashes to always win. Fix: `getBestFixedVersion` now explicitly skips `GIT` ranges and selects the highest version from `SEMVER` ranges first, falling back to `ECOSYSTEM` ranges. A numeric `compareVersions` helper replaces the broken string comparison.
+
 ### Added & Enhanced
 - **Eliminated False Positives across Code, Docs, and Build Artifacts**:
   - Automatically skips test coverage output, virtual environments, and cache directories (`htmlcov`, `.coverage`, `coverage`, `.pytest_cache`, `.mypy_cache`, `.tox`, `venv`, `env`, `.idea`, `.vscode`).

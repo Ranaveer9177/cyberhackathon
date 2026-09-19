@@ -73,21 +73,63 @@ func severityColor(sev string) string {
 }
 
 func getBestFixedVersion(vulns []osv.Vulnerability) string {
-	var bestFix string
+	// Priority 1: SEMVER ranges (e.g. "9.3.0") — most human-readable
+	// Priority 2: ECOSYSTEM ranges (e.g. "5.4") — package-manager specific versions
+	// Ignore:     GIT ranges — these are raw commit hashes, not useful to display
+	var semverFix string
+	var ecosystemFix string
 	for _, v := range vulns {
 		for _, aff := range v.Affected {
 			for _, r := range aff.Ranges {
+				if r.Type == "GIT" {
+					continue // skip commit hashes
+				}
 				for _, ev := range r.Events {
-					if ev.Fixed != "" {
-						if bestFix == "" || ev.Fixed > bestFix {
-							bestFix = ev.Fixed
+					if ev.Fixed == "" {
+						continue
+					}
+					switch r.Type {
+					case "SEMVER":
+						if semverFix == "" || compareVersions(ev.Fixed, semverFix) > 0 {
+							semverFix = ev.Fixed
+						}
+					case "ECOSYSTEM":
+						if ecosystemFix == "" || compareVersions(ev.Fixed, ecosystemFix) > 0 {
+							ecosystemFix = ev.Fixed
 						}
 					}
 				}
 			}
 		}
 	}
-	return bestFix
+	if semverFix != "" {
+		return semverFix
+	}
+	return ecosystemFix
+}
+
+// compareVersions does a best-effort semver-aware comparison of two version strings.
+// Returns >0 if a > b, <0 if a < b, 0 if equal.
+func compareVersions(a, b string) int {
+	partsA := strings.Split(a, ".")
+	partsB := strings.Split(b, ".")
+	maxLen := len(partsA)
+	if len(partsB) > maxLen {
+		maxLen = len(partsB)
+	}
+	for i := 0; i < maxLen; i++ {
+		var numA, numB int
+		if i < len(partsA) {
+			fmt.Sscanf(strings.TrimRight(partsA[i], "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-+"), "%d", &numA)
+		}
+		if i < len(partsB) {
+			fmt.Sscanf(strings.TrimRight(partsB[i], "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-+"), "%d", &numB)
+		}
+		if numA != numB {
+			return numA - numB
+		}
+	}
+	return 0
 }
 
 func PrintTerminalReport(r *Report) {
