@@ -111,26 +111,31 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
 - **JSON Report**: Comprehensive machine-readable output saved to `reports/scan.json` for CI/CD integration.
 - **HTML Report**: Standalone, CSS-styled interactive security report saved to `reports/scan.html`.
 
-### 2.7 Automated Environment Setup Subsystem (`setup.bat`)
-- **Architecture**:
+### 2.7 Dual Distribution & Portability Subsystem (`NEW_LAPTOP_SETUP.md`)
+- **Distribution Architecture**:
   ```text
-  VibeGuard Setup
-  │
-  ├── Check/install Git
-  ├── Check/install Go
-  ├── Check/install Rust + Cargo
-  ├── Check/install Node.js
-  ├── Check/install Python
-  ├── Check/install Docker
-  │
-  └── Install VibeGuard CLI Permanently
-         ├── Copy vibeguard.exe
-         ├── Copy vibeguard-scanner.exe
-         └── Add %LOCALAPPDATA%\VibeGuard\bin to User PATH
+  cyberhackathon/
+  ├── vibeguard.exe              # Prebuilt Go orchestrator CLI
+  ├── vibeguard-scanner.exe      # Prebuilt Rust scanner engine (root)
+  ├── scanner/
+  │   └── scanner.exe            # Prebuilt Rust scanner engine (scanner/)
+  ├── .vibeguard/                # Repository policy & exclusion config
+  ├── rules/                     # Security rules specification (README.md)
+  ├── reports/                   # Output scan reports directory
+  ├── tests/                     # Test fixtures and integration suites
+  ├── test-project/              # Intentionally vulnerable validation fixture
+  ├── setup.bat                  # Mode A: One-command demo/laptop setup (no compilers needed)
+  ├── build.bat                  # Mode B: Developer source compilation (Go + Rust + link.exe)
+  ├── run_test.bat               # Automated self-test & test-project scan validation
+  ├── install_hook.bat           # Dedicated pre-push hook installer
+  ├── uninstall_hook.bat         # Clean pre-push hook remover
+  ├── README.md                  # Project documentation & quickstart
+  └── NEW_LAPTOP_SETUP.md        # Complete laptop portability plan & acceptance criteria
   ```
-- **Intelligent Pre-Check**: Probes local environment before invoking package managers, avoiding reinstallation of pre-existing compilers or runtimes.
-- **Automated Provisioning**: Orchestrates silent installation of missing dependencies via Windows Package Manager (`winget`).
-- **Permanent CLI Installation**: Installs `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin` and permanently appends it to Windows User `PATH` via PowerShell registry update.
-- **Session PATH Injection & Verification**: Injects `%LOCALAPPDATA%\VibeGuard\bin`, `%USERPROFILE%\.cargo\bin`, `Go\bin`, `Git\cmd`, and `nodejs` into the active terminal session, verifies PATH resolution for Go, Rust, Cargo, and VibeGuard, and presents a structured terminal verification summary.
+- **Mode A (Demo / User Mode)**: Uses prebuilt binaries (`vibeguard.exe` and `vibeguard-scanner.exe`). Never requires Go, Rust, or MSVC Build Tools. Safe, idempotent, and runs instantly on any Windows laptop.
+- **Mode B (Developer Mode)**: Compiles from source via `build.bat`, checking Go, Rust, Cargo, and Microsoft C++ linker (`link.exe`).
+- **Universal PATH Management**: Automatically registers `%LOCALAPPDATA%\VibeGuard\bin` in the Windows User `PATH` registry environment and configures current session PATH.
+- **Portable Git Pre-Push Hook**: Dynamic root discovery via `git rev-parse --show-toplevel` without hardcoded user directories, automatically resolving VibeGuard from repo root, `%LOCALAPPDATA%`, or PATH.
+
 
 
