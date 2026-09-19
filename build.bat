@@ -121,13 +121,21 @@ if %ERRORLEVEL% neq 0 (
 )
 echo [OK] Go CLI built successfully: %ROOT%vibeguard.exe
 
-:: 7. Update installed copy in LocalAppData if it exists
-if exist "%LOCALAPPDATA%\VibeGuard\bin" (
-    copy /Y "%ROOT%vibeguard.exe" "%LOCALAPPDATA%\VibeGuard\bin\vibeguard.exe" >nul 2>&1
-    copy /Y "%ROOT%vibeguard-scanner.exe" "%LOCALAPPDATA%\VibeGuard\bin\vibeguard-scanner.exe" >nul 2>&1
-    copy /Y "%ROOT%vibeguard-scanner.exe" "%LOCALAPPDATA%\VibeGuard\bin\scanner.exe" >nul 2>&1
-    echo [OK] Updated global CLI in: %LOCALAPPDATA%\VibeGuard\bin
+:: 7. Update installed copy in LocalAppData
+if not exist "%LOCALAPPDATA%\VibeGuard" mkdir "%LOCALAPPDATA%\VibeGuard" >nul 2>&1
+if not exist "%LOCALAPPDATA%\VibeGuard\bin" mkdir "%LOCALAPPDATA%\VibeGuard\bin" >nul 2>&1
+
+copy /Y "%ROOT%vibeguard.exe" "%LOCALAPPDATA%\VibeGuard\vibeguard.exe" >nul 2>&1
+copy /Y "%ROOT%vibeguard.exe" "%LOCALAPPDATA%\VibeGuard\bin\vibeguard.exe" >nul 2>&1
+copy /Y "%ROOT%vibeguard-scanner.exe" "%LOCALAPPDATA%\VibeGuard\scanner.exe" >nul 2>&1
+copy /Y "%ROOT%vibeguard-scanner.exe" "%LOCALAPPDATA%\VibeGuard\vibeguard-scanner.exe" >nul 2>&1
+copy /Y "%ROOT%vibeguard-scanner.exe" "%LOCALAPPDATA%\VibeGuard\bin\scanner.exe" >nul 2>&1
+copy /Y "%ROOT%vibeguard-scanner.exe" "%LOCALAPPDATA%\VibeGuard\bin\vibeguard-scanner.exe" >nul 2>&1
+if exist "%ROOT%rules" (
+    if not exist "%LOCALAPPDATA%\VibeGuard\rules" mkdir "%LOCALAPPDATA%\VibeGuard\rules" >nul 2>&1
+    xcopy /E /I /Y /Q "%ROOT%rules" "%LOCALAPPDATA%\VibeGuard\rules" >nul 2>&1
 )
+echo [OK] Updated global CLI in: %LOCALAPPDATA%\VibeGuard
 
 :: 8. Verify generated binaries
 echo.

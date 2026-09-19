@@ -33,24 +33,26 @@ if [ -z "$REPO_ROOT" ]; then
     REPO_ROOT=$(pwd)
 fi
 
-# 3. Locate VibeGuard binary
+# 3. Locate trusted VibeGuard binary (prioritizes global install over repo-local)
 VIBEGUARD_BIN=""
-if [ -f "$REPO_ROOT/vibeguard.exe" ]; then
-    VIBEGUARD_BIN="$REPO_ROOT/vibeguard.exe"
-elif [ -f "$REPO_ROOT/vibeguard" ]; then
-    VIBEGUARD_BIN="$REPO_ROOT/vibeguard"
+if [ -n "$LOCALAPPDATA" ] && [ -f "$LOCALAPPDATA/VibeGuard/vibeguard.exe" ]; then
+    VIBEGUARD_BIN="$LOCALAPPDATA/VibeGuard/vibeguard.exe"
 elif [ -n "$LOCALAPPDATA" ] && [ -f "$LOCALAPPDATA/VibeGuard/bin/vibeguard.exe" ]; then
     VIBEGUARD_BIN="$LOCALAPPDATA/VibeGuard/bin/vibeguard.exe"
-elif [ -n "$USERPROFILE" ] && [ -f "$USERPROFILE/AppData/Local/VibeGuard/bin/vibeguard.exe" ]; then
-    VIBEGUARD_BIN="$USERPROFILE/AppData/Local/VibeGuard/bin/vibeguard.exe"
+elif [ -n "$USERPROFILE" ] && [ -f "$USERPROFILE/AppData/Local/VibeGuard/vibeguard.exe" ]; then
+    VIBEGUARD_BIN="$USERPROFILE/AppData/Local/VibeGuard/vibeguard.exe"
 elif command -v vibeguard.exe >/dev/null 2>&1; then
     VIBEGUARD_BIN="vibeguard.exe"
 elif command -v vibeguard >/dev/null 2>&1; then
     VIBEGUARD_BIN="vibeguard"
+elif [ -f "$REPO_ROOT/vibeguard.exe" ]; then
+    VIBEGUARD_BIN="$REPO_ROOT/vibeguard.exe"
+elif [ -f "$REPO_ROOT/vibeguard" ]; then
+    VIBEGUARD_BIN="$REPO_ROOT/vibeguard"
 fi
 
 if [ -z "$VIBEGUARD_BIN" ]; then
-    echo "Notice: VibeGuard binary not found in repository root or PATH. Allowing push."
+    echo "Notice: VibeGuard binary not found in %LOCALAPPDATA%\\VibeGuard or PATH. Allowing push."
     exit 0
 fi
 

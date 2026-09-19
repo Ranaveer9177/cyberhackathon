@@ -111,7 +111,7 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
 - **JSON Report**: Comprehensive machine-readable output saved to `reports/scan.json` for CI/CD integration.
 - **HTML Report**: Standalone, CSS-styled interactive security report saved to `reports/scan.html`.
 
-### 2.7 Dual Distribution & Portability Subsystem (`NEW_LAPTOP_SETUP.md`)
+### 2.7 Global CLI Installation & Hardened Pre-Push Subsystem (`GLOBAL_CLI_SETUP.md`)
 - **Distribution Architecture**:
   ```text
   cyberhackathon/
@@ -124,18 +124,18 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
   ├── reports/                   # Output scan reports directory
   ├── tests/                     # Test fixtures and integration suites
   ├── test-project/              # Intentionally vulnerable validation fixture
-  ├── setup.bat                  # Mode A: One-command demo/laptop setup (no compilers needed)
+  ├── setup.bat                  # Mode A: One-command global setup (%LOCALAPPDATA%\VibeGuard)
   ├── build.bat                  # Mode B: Developer source compilation (Go + Rust + link.exe)
   ├── run_test.bat               # Automated self-test & test-project scan validation
   ├── install_hook.bat           # Dedicated pre-push hook installer
   ├── uninstall_hook.bat         # Clean pre-push hook remover
   ├── README.md                  # Project documentation & quickstart
-  └── NEW_LAPTOP_SETUP.md        # Complete laptop portability plan & acceptance criteria
+  └── NEW_LAPTOP_SETUP.md        # Laptop portability plan & acceptance criteria
   ```
-- **Mode A (Demo / User Mode)**: Uses prebuilt binaries (`vibeguard.exe` and `vibeguard-scanner.exe`). Never requires Go, Rust, or MSVC Build Tools. Safe, idempotent, and runs instantly on any Windows laptop.
-- **Mode B (Developer Mode)**: Compiles from source via `build.bat`, checking Go, Rust, Cargo, and Microsoft C++ linker (`link.exe`).
-- **Universal PATH Management**: Automatically registers `%LOCALAPPDATA%\VibeGuard\bin` in the Windows User `PATH` registry environment and configures current session PATH.
-- **Portable Git Pre-Push Hook**: Dynamic root discovery via `git rev-parse --show-toplevel` without hardcoded user directories, automatically resolving VibeGuard from repo root, `%LOCALAPPDATA%`, or PATH.
+- **Global User Installation**: Installs to `%LOCALAPPDATA%\VibeGuard\`, copying `vibeguard.exe`, `scanner.exe`, `rules/`, and legacy `bin/` fallback.
+- **Idempotent User PATH Management**: Adds `%LOCALAPPDATA%\VibeGuard` to the Windows User `PATH` registry environment without duplicates or admin rights, enabling `vibeguard` from any terminal session.
+- **Dynamic Self-Locating Engine (`FindScannerExecutable`)**: Prioritizes `os.Executable()` directory and `%LOCALAPPDATA%\VibeGuard` before current working directory, allowing `vibeguard scan <target>` to run from any folder.
+- **Hardened Git Pre-Push Hook**: Hook prioritizes trusted `%LOCALAPPDATA%\VibeGuard\vibeguard.exe` and global PATH over repository-local binaries to prevent rogue executable substitution attacks (Section 19 Security Policy).
 
 
 

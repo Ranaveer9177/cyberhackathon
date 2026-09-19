@@ -36,6 +36,8 @@ type Finding struct {
 }
 
 // FindScannerExecutable attempts to locate the Rust scanner binary across multiple candidate paths.
+// It prioritizes the running executable's directory and %LOCALAPPDATA%\VibeGuard so that
+// the scanner is always found regardless of what directory the user runs VibeGuard from.
 func FindScannerExecutable() (string, bool) {
 	// 1. Explicit environment variable
 	if envPath := os.Getenv("VIBEGUARD_SCANNER_PATH"); envPath != "" {
@@ -50,23 +52,39 @@ func FindScannerExecutable() (string, bool) {
 		exeDir = filepath.Dir(exePath)
 	}
 
+	var localAppDataDir string
+	if la := os.Getenv("LOCALAPPDATA"); la != "" {
+		localAppDataDir = filepath.Join(la, "VibeGuard")
+	} else if up := os.Getenv("USERPROFILE"); up != "" {
+		localAppDataDir = filepath.Join(up, "AppData", "Local", "VibeGuard")
+	}
+
 	cwd, _ := os.Getwd()
 
 	candidates := []string{
-		// Beside the current Go binary
+		// 1. In the same directory as the running VibeGuard executable
+		filepath.Join(exeDir, "scanner.exe"),
 		filepath.Join(exeDir, "vibeguard-scanner.exe"),
 		filepath.Join(exeDir, "vibeguard-scanner"),
-		filepath.Join(exeDir, "scanner.exe"),
 		filepath.Join(exeDir, "scanner", "scanner.exe"),
 		filepath.Join(exeDir, "scanner", "vibeguard-scanner.exe"),
-		// In current working directory
+
+		// 2. In the global %LOCALAPPDATA%\VibeGuard installation directory
+		filepath.Join(localAppDataDir, "scanner.exe"),
+		filepath.Join(localAppDataDir, "vibeguard-scanner.exe"),
+		filepath.Join(localAppDataDir, "bin", "scanner.exe"),
+		filepath.Join(localAppDataDir, "bin", "vibeguard-scanner.exe"),
+
+		// 3. In the current working directory / repo root
+		filepath.Join(cwd, "scanner.exe"),
 		filepath.Join(cwd, "vibeguard-scanner.exe"),
 		filepath.Join(cwd, "vibeguard-scanner"),
-		filepath.Join(cwd, "scanner.exe"),
 		filepath.Join(cwd, "scanner", "scanner.exe"),
 		filepath.Join(cwd, "scanner", "vibeguard-scanner.exe"),
-		// In scanner target directories
+
+		// 4. In build output directories (cargo target release/debug)
 		filepath.Join(cwd, "scanner", "target", "release", "vibeguard-scanner.exe"),
+		filepath.Join(cwd, "scanner", "target", "release", "scanner.exe"),
 		filepath.Join(cwd, "scanner", "target", "release", "vibeguard-scanner"),
 		filepath.Join(cwd, "scanner", "target", "debug", "vibeguard-scanner.exe"),
 		filepath.Join(cwd, "scanner", "target", "debug", "vibeguard-scanner"),
