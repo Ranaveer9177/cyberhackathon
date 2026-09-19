@@ -24,7 +24,7 @@ pub fn scan_source_code(file_path: &str, content: &str, finding_counter: &mut us
 
         for rule in &rules {
             if rule.pattern.is_match(line) {
-                if line.contains("Regex::new") || line.contains("regexp.MustCompile") || line.contains("pattern:") {
+                if line.contains("Regex::new") || line.contains("regexp.MustCompile") || line.contains("pattern:") || line.contains(r#"contains("http"#) || line.contains(r#"contains(lineLower, "http"#) {
                     continue;
                 }
                 if rule.id == "SAST-002" {
