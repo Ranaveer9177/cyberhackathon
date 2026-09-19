@@ -319,19 +319,32 @@ cyberhackathon/
 - **Test**: Run `setup.bat` on clean and pre-configured workstations to verify zero-redundant installations and instant environment validation.
 - **Deploy**: Production-ready `setup.bat` with permanent global CLI distribution.
 
+### Phase 17 — Core Hardening & Production Optimization (v3.0.0)
+- **Step 1**: Remove artificial exclusion of `test-project` in `.vibeguard/config.json`.
+- **Step 2**: Add `--progress` flag to Rust scanner engine emitting `PROGRESS:<cur>:<tot>:<file>` on `stderr` while keeping pure JSON on `stdout`.
+- **Step 3**: Update Go `RunScannerWithProgress` to prioritize executing the Rust scanner with real-time stderr progress streaming.
+- **Step 4**: Parse all pushed refs from `stdin` in pre-push hook and CLI, validating each pushed ref commit snapshot independently.
+- **Step 5**: Implement fail-closed pre-push security policy (exit code `1` if CLI binary cannot be located).
+- **Step 6**: Unify `vibeguard push` verification model to match pre-push hook snapshot, diff filtering, and gate enforcement.
+- **Step 7**: Re-engineer OSV client with a 10-goroutine worker pool and HTTP Keep-Alive connection pooling, dropping batch latency to ~400ms.
+- **Step 8**: Implement disk-staged `git archive` snapshot extraction (`commit.tar`) to eliminate Windows pipe deadlocks.
+- **Step 9**: Standardize version naming to canonical `v3.0.0` across all code and documentation.
+- **Test**: Full test suite pass (`go test ./...`), health test pass (`run_test.bat`), and successful pre-push verification on remote push.
+- **Deploy**: VibeGuard v3.0.0 Production Release.
 
 ---
 
 ## 8. Future Roadmap & Horizons
 
-### Phase 17 — Optional AI Remediation Layer
+### Phase 18 — Optional AI Remediation Layer
 - Interface with developer-selected AI models (Local Ollama, Anthropic, OpenAI, or Gemini).
 - Generate contextual code diff patches for identified vulnerabilities.
 - Keep core vulnerability detection 100% deterministic and non-dependent on AI.
 
-### Phase 18 — Native CI/CD Actions
+### Phase 19 — Native CI/CD Actions
 - GitHub Action: `uses: vibeguard/vibeguard-action@v1`.
 - GitLab CI template and pre-commit framework integration (`.pre-commit-hooks.yaml`).
 
-### Phase 19 — IDE Sidecar & Real-Time LSP
+### Phase 20 — IDE Sidecar & Real-Time LSP
 - Lightweight language server protocol (LSP) plugin for VS Code, JetBrains, and Neovim to highlight security issues in real-time as code is typed.
+

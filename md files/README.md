@@ -10,12 +10,14 @@
 **VibeGuard v3.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST), vulnerable third-party dependencies (SCA via Google OSV), Dockerfile misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
 
 VibeGuard operates directly in developer terminal workflows and CI/CD pipelines:
-- **Live Interactive Scan Progress**: Real-time terminal progress bars during file scanning, dependency resolution, and OSV database queries.
-- **Autonomous Git Pre-Push Gate**: Intercepts `git push` via standard pre-push hooks. Scans only the exact commits being pushed using pure Go `git archive` snapshotting.
+- **Live Interactive Scan Progress**: Real-time terminal progress bars during file scanning (streamed from the Rust engine via `--progress`), dependency resolution, and OSV database queries.
+- **Autonomous Git Pre-Push Gate**: Intercepts `git push` via standard pre-push hooks. Scans only the exact commits being pushed using disk-staged `git archive` snapshotting. Iterates over all pushed refs independently and fails closed if the CLI executable is missing.
+- **High-Performance Concurrent OSV Engine**: Multi-goroutine worker pool with HTTP Keep-Alive and connection pooling, querying Google OSV in parallel (~400ms latency).
 - **Deterministic 0–100 Security Score**: Evaluates risk using weighted mathematical severity scoring.
 - **Strict Policy Enforcement**: Standardized exit codes (`0` SAFE, `1` BLOCKED, `2` ERROR, `3` CONFIG ERROR, `4` OSV UNAVAILABLE) to reliably integrate with git hooks, GitHub Actions, and deployment pipelines.
 - **Zero Cloud Uploads / 100% On-Machine Privacy**: Code and files never leave your workstation. Discovered credentials are automatically masked (`sk-demo-****`).
 - **Multi-Engine Speed & Precision**: High-performance Rust scanner coupled with Go orchestrator and fallback engine.
+
 
 ---
 

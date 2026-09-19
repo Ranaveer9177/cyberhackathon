@@ -83,3 +83,21 @@ Get-Content .git/hooks/pre-push
 - **Final Completion Indicator**: Full 100% completion bar:
   `[████████████████████] 100%`  
   `Security analysis complete.`
+
+### 3.5 Automated Health Test Suite (`run_test.bat`)
+```cmd
+run_test.bat
+```
+- **Expected Result**:
+  - `[PASS] CLI found`
+  - `[PASS] Scanner found`
+  - `[PASS] Version command`
+  - `[PASS] Test project scan`
+  - `[PASS] Report generation`
+  - `[PASS] Security gate`
+  - All 6 tests pass with exit code `0`.
+
+### 3.6 Fail-Closed & Multi-Ref Verification
+- **Fail-Closed Test**: Rename local/global `vibeguard.exe` and invoke `git push`; pre-push hook immediately prints `[SECURITY BLOCKED]` and returns exit code `1`.
+- **Multi-Ref Test**: Pushing multiple branches simultaneously validates snapshots for each ref independently.
+
