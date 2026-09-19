@@ -98,11 +98,68 @@ Observed summary:
 
 ```text
 Deployment Status: BLOCKED
-Reason: 123 critical finding(s) and 80 high-severity finding(s) detected
+Reason: 24 critical finding(s) and 69 high-severity finding(s) detected
+```
+
+---
+
+## 6. Clean Repository Self-Scan
+
+Command:
+
+```powershell
+vibeguard scan scanner\src
+```
+
+Result: **PASS** (exit code `0`)
+
+Observed summary:
+
+```text
+Security Score: 100/100 (LOW RISK)
+Gate Status:    PASSED
+Reason:         No blocking security findings
+
+Code & Configuration Findings (0):
+  ✓ No code, secret, or configuration issues detected.
+Dependency Vulnerabilities (0 vulnerable packages, 0 total advisories):
+  ✓ No known vulnerabilities found in dependencies.
+```
+
+---
+
+## 7. Automated Health Test Suite (`run_test.bat`)
+
+Command:
+
+```cmd
+run_test.bat
+```
+
+Result: **ALL TESTS PASSED** (exit code `0`)
+
+Output:
+
+```text
+========================================
+       VIBEGUARD HEALTH TEST
+========================================
+
+[PASS] CLI found
+[PASS] Scanner found
+[PASS] Version command
+[PASS] Test project scan
+[PASS] Report generation
+[PASS] Security gate
+
+========================================
+       ALL TESTS PASSED
+========================================
 ```
 
 ---
 
 ## Overall Result
 
-**PASS:** The test suite and binary build succeeded. The security gate correctly blocked the intentionally vulnerable test project.
+**PASS:** The test suite, health test, binary builds, and pre-push verification succeeded. Clean projects pass with 100/100 and zero false positives; vulnerable targets are blocked with detailed, non-messy terminal reports.
+

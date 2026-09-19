@@ -191,3 +191,19 @@
 - `internal/git/repo.go` writes `git archive --format=tar -o commit.tar <localSha>` directly to disk.
 - Pure Go `tar.Reader` unpacks snapshot files into temporary directories.
 - Completely prevents Windows stdout pipe deadlocks during git archive operations.
+
+### 7.7 False-Positive Elimination Engine
+- **Test Coverage & Artifact Filtering**: Automatically excludes test coverage directories (`htmlcov`, `.coverage`, `coverage`, `.pytest_cache`, `.mypy_cache`, `.tox`, `.nyc_output`), virtual environments (`venv`, `env`), and IDE settings (`.idea`, `.vscode`).
+- **Native `.gitignore` Parsing**: Both Rust and Go scanner engines parse the repository's `.gitignore` file and skip all ignored paths.
+- **Documentation Safety**: Excludes documentation extensions (`.md`, `.markdown`, `.rst`, `.txt`, `.adoc`, `.html`) from generic password and token assignment rules. Real high-entropy credentials (AWS, GitHub tokens, RSA private keys) remain active across all file types.
+- **PowerShell & Environment Filter**: Filters parameter declarations and variable prompts (`Read-Host`, `param(`, `[string]`, `[securestring]`, `os.environ`, `os.getenv`, `process.env`, `$env:`).
+- **Placeholder Passwords**: Ignores common dummy/placeholder values (`"admin"`, `"password"`, `"changeme"`, `"your_password"`, `""`) and variable references (`="$...`, `="${...`, `="%"`, `:'$...`).
+- **Insecure HTTP Refinement**: Ignores `localhost`, `127.0.0.1`, `0.0.0.0`, `::1`, schemas (`w3.org`, `schemas.`, `json-schema.org`, `apache.org`, `example.com`), and dynamic template strings (`http://${...`, `http://{...`).
+
+### 7.8 Clean Grouped Terminal Report Architecture
+- **Eliminated Repetitive Dumps**: Deprecated 250+ lines of duplicate raw advisory dumps in terminal mode.
+- **Grouped Package Table**: Aggregates dependencies per package into an aligned table showing `PACKAGE`, `CURRENT`, `SEVERITY`, `ADVISORIES`, and `RECOMMENDED FIX`.
+- **Key Advisory Highlights**: Displays top 2–3 advisory IDs per package with concise summaries and remainder counts (`... and X more advisories`).
+- **Distinct Code & Secrets Section**: Non-dependency issues (secrets, SAST, Docker, Git) are displayed separately with color-coded severity badges, IDs, files, lines, titles, and recommendations.
+- **Zero-Issue Confirmation State**: Renders clean green checkmark states (`✓ No code, secret, or configuration issues detected.`, `✓ No known vulnerabilities found in dependencies.`).
+
