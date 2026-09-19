@@ -31,6 +31,7 @@ fn main() {
     // Check CLI flags
     let cli_no_secrets = args.iter().any(|a| a == "--no-secrets");
     let cli_no_sast = args.iter().any(|a| a == "--no-sast");
+    let emit_progress = args.iter().any(|a| a == "--progress");
 
     // Check .vibeguard/config.json if present
     let mut enable_secrets = !cli_no_secrets;
@@ -53,10 +54,15 @@ fn main() {
     }
 
     let files = scanner::scan_directory(project_path);
+    let total_files = files.len();
     let mut all_findings = Vec::new();
     let mut finding_counter = 0;
 
-    for file_path in &files {
+    for (idx, file_path) in files.iter().enumerate() {
+        if emit_progress {
+            eprintln!("PROGRESS:{}:{}:{}", idx + 1, total_files, file_path);
+        }
+
         let content = match fs::read_to_string(file_path) {
             Ok(c) => c,
             Err(_) => continue, // Skip files that can't be read as string (e.g. binary)

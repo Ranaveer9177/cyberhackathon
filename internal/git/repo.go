@@ -106,6 +106,32 @@ func GetCommitHash(path string) string {
 	return strings.TrimSpace(out)
 }
 
+// GetFullCommitHash returns the full commit hash of HEAD.
+func GetFullCommitHash(path string) string {
+	root, err := FindGitRoot(path)
+	if err != nil {
+		return ""
+	}
+	out, err := runGit(root, "rev-parse", "HEAD")
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(out)
+}
+
+// GetUpstreamHash returns the commit hash of the upstream branch (@{u}).
+func GetUpstreamHash(path string) string {
+	root, err := FindGitRoot(path)
+	if err != nil {
+		return ""
+	}
+	out, err := runGit(root, "rev-parse", "@{u}")
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(out)
+}
+
 // GetChangedFiles returns a list of files pending push or currently modified.
 func GetChangedFiles(path string) []string {
 	root, err := FindGitRoot(path)

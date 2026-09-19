@@ -52,8 +52,13 @@ elif [ -f "$REPO_ROOT/vibeguard" ]; then
 fi
 
 if [ -z "$VIBEGUARD_BIN" ]; then
-    echo "Notice: VibeGuard binary not found in %LOCALAPPDATA%\\VibeGuard or PATH. Allowing push."
-    exit 0
+    echo "========================================"
+    echo "  VIBEGUARD SECURITY GATE: BLOCKED"
+    echo "========================================"
+    echo "Error: VibeGuard executable not found in %LOCALAPPDATA%\\VibeGuard, repository, or PATH."
+    echo "Security policy: fail_closed is enforced. Push blocked."
+    echo "Run setup.bat or ensure vibeguard is on your PATH before pushing."
+    exit 1
 fi
 
 # 4. Run VibeGuard security verification gate

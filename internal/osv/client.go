@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -22,6 +24,17 @@ type VulnResult struct {
 	Ecosystem        string
 	SourceFile       string
 	Vulnerabilities  []Vulnerability
+}
+
+// defaultHTTPClient reuses TCP connections and enables HTTP keep-alive connection pooling
+var defaultHTTPClient = &http.Client{
+	Timeout: 10 * time.Second,
+	Transport: &http.Transport{
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 20,
+		IdleConnTimeout:     90 * time.Second,
+		DisableKeepAlives:   false,
+	},
 }
 
 func QueryOSV(name, version, ecosystem string) ([]Vulnerability, error) {
@@ -50,8 +63,7 @@ func QueryOSV(name, version, ecosystem string) ([]Vulnerability, error) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := defaultHTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -82,12 +94,12 @@ func CheckAllDependenciesWithStatus(deps []DependencyInfo) ([]VulnResult, error)
 	return CheckAllDependenciesWithProgress(deps, nil)
 }
 
-// CheckAllDependenciesWithProgress queries OSV for dependencies with real-time progress callbacks.
+// CheckAllDependenciesWithProgress queries OSV concurrently with pooled workers and live progress callbacks.
 func CheckAllDependenciesWithProgress(deps []DependencyInfo, progress OSVProgressFunc) ([]VulnResult, error) {
-	var results []VulnResult
-	var lastErr error
-	successCount := 0
 	total := len(deps)
+	if total == 0 {
+		return nil, nil
+	}
 
 	ecosystemMap := map[string]string{
 		"Go":        "Go",
@@ -96,36 +108,86 @@ func CheckAllDependenciesWithProgress(deps []DependencyInfo, progress OSVProgres
 		"crates.io": "crates.io",
 	}
 
+	type depJob struct {
+		index int
+		dep   DependencyInfo
+		eco   string
+	}
+
+	// Channel for jobs and pre-allocated results slice for deterministic ordering
+	jobs := make(chan depJob, total)
+	orderedResults := make([]*VulnResult, total)
+
+	var (
+		completedCount int64
+		successCount   int64
+		firstErrMu     sync.Mutex
+		lastErr        error
+		wg             sync.WaitGroup
+	)
+
+	// Concurrency level: min(10, total)
+	numWorkers := 10
+	if total < numWorkers {
+		numWorkers = total
+	}
+
+	for w := 0; w < numWorkers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for job := range jobs {
+				vulns, err := QueryOSV(job.dep.Name, job.dep.Version, job.eco)
+				done := int(atomic.AddInt64(&completedCount, 1))
+				if progress != nil {
+					progress(done, total)
+				}
+
+				if err != nil {
+					firstErrMu.Lock()
+					lastErr = err
+					firstErrMu.Unlock()
+					continue
+				}
+
+				atomic.AddInt64(&successCount, 1)
+				if len(vulns) > 0 {
+					orderedResults[job.index] = &VulnResult{
+						PackageName:      job.dep.Name,
+						InstalledVersion: job.dep.Version,
+						Ecosystem:        job.eco,
+						SourceFile:       job.dep.SourceFile,
+						Vulnerabilities:  vulns,
+					}
+				}
+			}
+		}()
+	}
+
+	// Enqueue all jobs
 	for idx, d := range deps {
 		eco, ok := ecosystemMap[d.Ecosystem]
 		if !ok {
 			eco = d.Ecosystem
 		}
+		jobs <- depJob{index: idx, dep: d, eco: eco}
+	}
+	close(jobs)
 
-		vulns, err := QueryOSV(d.Name, d.Version, eco)
-		if progress != nil {
-			progress(idx+1, total)
-		}
-		if err != nil {
-			lastErr = err
-			continue
-		}
-		successCount++
-		if len(vulns) == 0 {
-			continue
-		}
+	// Wait for all workers to complete
+	wg.Wait()
 
-		results = append(results, VulnResult{
-			PackageName:      d.Name,
-			InstalledVersion: d.Version,
-			Ecosystem:        eco,
-			SourceFile:       d.SourceFile,
-			Vulnerabilities:  vulns,
-		})
+	// If all lookups failed due to network outage, report the error
+	if total > 0 && atomic.LoadInt64(&successCount) == 0 && lastErr != nil {
+		return nil, lastErr
 	}
 
-	if len(deps) > 0 && successCount == 0 && lastErr != nil {
-		return results, lastErr
+	// Collect non-nil results in original order
+	var results []VulnResult
+	for _, res := range orderedResults {
+		if res != nil {
+			results = append(results, *res)
+		}
 	}
 
 	return results, nil

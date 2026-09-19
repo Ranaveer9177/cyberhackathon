@@ -1,6 +1,8 @@
 package scanner
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -118,13 +121,9 @@ func RunScanner(projectPath string) (*ScanResult, error) {
 	return RunScannerWithProgress(projectPath, nil)
 }
 
-// RunScannerWithProgress runs the scanner with optional real-time progress callbacks.
+// RunScannerWithProgress runs the Rust scanner executable with live progress support.
+// If the Rust scanner is unavailable or execution fails, it falls back to the built-in Go scanner.
 func RunScannerWithProgress(projectPath string, progress ScanProgressFunc) (*ScanResult, error) {
-	// When live progress is requested, use internal scanner for granular per-file callbacks
-	if progress != nil {
-		return RunInternalScannerWithProgress(projectPath, progress)
-	}
-
 	// Read config to check enabled modules
 	secretScan := true
 	sourceScan := true
@@ -153,13 +152,45 @@ func RunScannerWithProgress(projectPath string, progress ScanProgressFunc) (*Sca
 		if !sourceScan {
 			args = append(args, "--no-sast")
 		}
+		if progress != nil {
+			args = append(args, "--progress")
+		}
 
 		cmd := exec.CommandContext(ctx, scannerExe, args...)
-		output, err := cmd.Output()
-		if err == nil {
-			var result ScanResult
-			if err := json.Unmarshal(output, &result); err == nil {
-				return &result, nil
+
+		if progress != nil {
+			var stdoutBuf bytes.Buffer
+			cmd.Stdout = &stdoutBuf
+			stderrPipe, err := cmd.StderrPipe()
+			if err == nil {
+				if err := cmd.Start(); err == nil {
+					scanner := bufio.NewScanner(stderrPipe)
+					for scanner.Scan() {
+						line := scanner.Text()
+						if strings.HasPrefix(line, "PROGRESS:") {
+							parts := strings.SplitN(line[9:], ":", 3)
+							if len(parts) == 3 {
+								cur, _ := strconv.Atoi(parts[0])
+								tot, _ := strconv.Atoi(parts[1])
+								progress(cur, tot, parts[2])
+							}
+						}
+					}
+					if err := cmd.Wait(); err == nil {
+						var result ScanResult
+						if err := json.Unmarshal(stdoutBuf.Bytes(), &result); err == nil {
+							return &result, nil
+						}
+					}
+				}
+			}
+		} else {
+			output, err := cmd.Output()
+			if err == nil {
+				var result ScanResult
+				if err := json.Unmarshal(output, &result); err == nil {
+					return &result, nil
+				}
 			}
 		}
 	}
