@@ -3,7 +3,7 @@
     "critical",
     "high"
   ],
-  "scan_mode": "full",
+  "scan_mode": "changed",
   "dependency_scan": true,
   "secret_scan": true,
   "source_scan": true,
