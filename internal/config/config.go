@@ -44,6 +44,8 @@ func DefaultConfig() *Config {
 			"test3.md",
 			"test4.md",
 			"test5.md",
+			"NEW_LAPTOP_SETUP.md",
+			"rules",
 		},
 	}
 }

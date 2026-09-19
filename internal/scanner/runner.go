@@ -56,9 +56,15 @@ func FindScannerExecutable() (string, bool) {
 		// Beside the current Go binary
 		filepath.Join(exeDir, "vibeguard-scanner.exe"),
 		filepath.Join(exeDir, "vibeguard-scanner"),
+		filepath.Join(exeDir, "scanner.exe"),
+		filepath.Join(exeDir, "scanner", "scanner.exe"),
+		filepath.Join(exeDir, "scanner", "vibeguard-scanner.exe"),
 		// In current working directory
 		filepath.Join(cwd, "vibeguard-scanner.exe"),
 		filepath.Join(cwd, "vibeguard-scanner"),
+		filepath.Join(cwd, "scanner.exe"),
+		filepath.Join(cwd, "scanner", "scanner.exe"),
+		filepath.Join(cwd, "scanner", "vibeguard-scanner.exe"),
 		// In scanner target directories
 		filepath.Join(cwd, "scanner", "target", "release", "vibeguard-scanner.exe"),
 		filepath.Join(cwd, "scanner", "target", "release", "vibeguard-scanner"),

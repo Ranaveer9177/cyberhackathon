@@ -4,39 +4,44 @@
 
 ---
 
-## 0. Development Environment Provisioning & CLI Installation (`setup.bat`)
+## 0. Workstation Setup & Verification Lifecycle (`NEW_LAPTOP_SETUP.md`)
 
-Windows developers configure and verify their workstation environment in a single command:
+### 0.1 Demo & User Mode Setup (`setup.bat`)
+On a fresh Windows laptop, run:
 ```cmd
 .\setup.bat
 ```
-The script performs:
-1. Validates Windows Package Manager (`winget`).
-2. Checks for pre-installed Git, Go, Rust, Cargo, Node.js, Python, and Docker without redundant re-downloads.
-3. Installs any missing tools silently via `winget`.
-4. Copies `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin`.
-5. Permanently registers `%LOCALAPPDATA%\VibeGuard\bin` in the Windows User `PATH`.
-6. Dynamically injects `%LOCALAPPDATA%\VibeGuard\bin`, `%USERPROFILE%\.cargo\bin`, `C:\Program Files\Go\bin`, `C:\Program Files\Git\cmd`, and `C:\Program Files\nodejs` into the current session PATH.
-7. Verifies PATH resolution for Go, Rust, Cargo, and VibeGuard.
-8. Outputs a clean, formatted status summary confirming environment readiness.
+- Operates 100% on prebuilt binaries (`vibeguard.exe`, `vibeguard-scanner.exe`).
+- Requires zero compilers (no Go, no Rust, no Visual Studio Build Tools).
+- Automatically initializes `.vibeguard\`, `reports\`, `rules\`, and `tests\`.
+- Installs the Git pre-push hook.
+- Registers `%LOCALAPPDATA%\VibeGuard\bin` in the User `PATH` registry environment.
+
+### 0.2 Automated Health Check (`run_test.bat`)
+Verify complete scanner and hook pipeline:
+```cmd
+.\run_test.bat
+```
+- Validates CLI and scanner binary presence.
+- Executes full scan on intentionally vulnerable `test-project`.
+- Confirms findings are identified and deployment is correctly BLOCKED.
+
+### 0.3 Pre-Push Hook Control
+```cmd
+.\install_hook.bat     # Installs .git/hooks/pre-push
+.\uninstall_hook.bat   # Cleanly removes .git/hooks/pre-push
+```
 
 ---
 
-## 1. Development & Build Lifecycle
+## 1. Development & Source Build Lifecycle
 
-### 1.1 Local Build Process
-```powershell
-# 1. Build Rust Scanner (Release Mode)
-cd scanner
-cargo build --release
-cd ..
-
-# 2. Build Go Orchestrator Binary
-go build -buildvcs=false -o vibeguard.exe ./cmd/vibeguard
-
-# 3. Verify Version Output
-.\vibeguard.exe version
+### 1.1 One-Command Source Build (`build.bat`)
+For developers with Go 1.21+, Rust 1.70+, and Visual Studio Build Tools (`link.exe`):
+```cmd
+.\build.bat
 ```
+Automatically verifies compiler prerequisites, rebuilds the release Rust scanner, builds the Go orchestrator CLI, updates `%LOCALAPPDATA%\VibeGuard\bin`, and runs a self-verification check.
 
 ### 1.2 Automated Verification Pipeline
 ```powershell

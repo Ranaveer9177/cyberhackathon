@@ -130,63 +130,31 @@
 
 ---
 
-## 6. Automated Environment Setup (`setup.bat`)
+## 6. Portable Windows Distribution & Automation Suite (`NEW_LAPTOP_SETUP.md`)
 
-### 6.1 Architecture & Workflow
-```text
-VibeGuard Setup
-│
-├── Check winget
-├── Install Git
-├── Install Go
-├── Install Rust + Cargo
-├── Install Node.js
-├── Install Python
-├── Install Docker
-│
-└── Install VibeGuard CLI Permanently
-       ├── Copy vibeguard.exe
-       ├── Copy vibeguard-scanner.exe
-       └── Add %LOCALAPPDATA%\VibeGuard\bin to User PATH
-```
+### 6.1 Distribution Architecture
+- **Mode A (Demo / User Mode)**: Runs from prebuilt binaries (`vibeguard.exe` and `vibeguard-scanner.exe`). Never requires Go, Rust, or MSVC Build Tools.
+- **Mode B (Developer Mode)**: Full source rebuilds using `build.bat`, verifying Go, Rust, and Microsoft C++ linker (`link.exe`).
 
-### 6.2 Intelligent Pre-Check Before Download
-- Automatically probes system and user PATH for existing tool installations (`where <tool>`).
-- Completely avoids redundant downloads if a prerequisite (such as Go, Rust, Git, Node, Python, Docker) is already present.
-- Uses Microsoft Windows Package Manager (`winget`) with unattended acceptance flags (`--accept-source-agreements --accept-package-agreements --silent`) to install missing prerequisites.
+### 6.2 Automation Scripts
+1. **`setup.bat` (Mode A Setup)**:
+   - Dynamic repository root detection (`%~dp0`).
+   - Prebuilt binary presence verification.
+   - Automatically creates `.vibeguard\`, `reports\`, `rules\`, and `tests\`.
+   - Generates default `.vibeguard\config.json`.
+   - Installs Git pre-push hook into `.git\hooks\pre-push`.
+   - Copies binaries to `%LOCALAPPDATA%\VibeGuard\bin` and configures User `PATH`.
+   - Safe and idempotent.
+2. **`build.bat` (Mode B Source Build)**:
+   - Verifies Go compiler, Rust compiler, and MSVC `link.exe`.
+   - Recompiles Rust scanner in release mode and copies binary to root and `scanner/`.
+   - Recompiles Go orchestrator CLI.
+   - Updates `%LOCALAPPDATA%\VibeGuard\bin`.
+3. **`run_test.bat` (Health Check & Fixture Validation)**:
+   - Validates CLI and scanner binaries.
+   - Executes security scan against intentionally vulnerable `test-project`.
+   - Confirms exit code `1` (BLOCKED) with formatted test banners.
+4. **`install_hook.bat` & `uninstall_hook.bat`**:
+   - Single-command lifecycle management for the Git pre-push hook.
 
-### 6.3 Dynamic PATH Configuration & Verification
-- Ensures essential directories (e.g. `%USERPROFILE%\.cargo\bin`, `C:\Program Files\Go\bin`, `C:\Program Files\Git\cmd`, `C:\Program Files\nodejs`, `%LOCALAPPDATA%\VibeGuard\bin`) are dynamically available in the running session.
-- Runs verification checks against Go, Rust, Cargo, and VibeGuard executables.
-- Formats status output with precise version strings:
-  ```text
-  ================================
-   VibeGuard Development Setup
-  ================================
-
-  [OK] Git
-  [OK] Go 1.27.0
-  [OK] Rust 1.98.1
-  [OK] Cargo 1.98.1
-  [OK] Node.js
-  [OK] Python
-  [OK] Docker
-
-  [OK] VibeGuard CLI installed permanently: C:\Users\ranua\AppData\Local\VibeGuard\bin
-  [OK] Global Command: vibeguard
-
-  PATH verification:
-  [OK] Go
-  [OK] Rust
-  [OK] Cargo
-  [OK] VibeGuard
-
-  VibeGuard development environment ready.
-  ```
-
-### 6.4 Universal Global Execution
-- Installs `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin`.
-- Adds `%LOCALAPPDATA%\VibeGuard\bin` permanently to the Windows User `PATH` registry environment.
-- Developers can immediately execute `vibeguard scan .`, `vibeguard init`, `vibeguard push`, and `vibeguard status` from any directory on the workstation without needing binary copies inside individual repositories.
-- The Git pre-push hook in any repository automatically resolves and executes the global `vibeguard` installation.
 

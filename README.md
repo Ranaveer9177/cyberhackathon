@@ -155,40 +155,57 @@ cyberhackathon/
 
 ---
 
-## Installation & Build
+## Installation & Distribution Modes
 
-### Automated Environment Setup (`setup.bat`)
-On Windows workstations, run the automated setup script to check, install, configure, and verify all development prerequisites via `winget`. Existing installations are preserved without redundant re-downloads:
+VibeGuard supports two distinct distribution modes for zero-friction portability:
 
-```cmd
-.\setup.bat
-```
+### Mode A — Demo / User Mode (No Compilers Required)
+Prebuilt Windows binaries (`vibeguard.exe` and `vibeguard-scanner.exe`) are bundled directly with the repository. You **do not need Go, Rust, or Visual Studio Build Tools** to run VibeGuard on a demo laptop:
 
-Example Output:
-```text
-================================
- VibeGuard Development Setup
-================================
+1. **One-Command Setup**:
+   ```cmd
+   setup.bat
+   ```
+   *Verifies prebuilt binaries, checks required directories (`.vibeguard`, `reports`, `rules`, `tests`), installs the Git pre-push hook, copies the CLI to `%LOCALAPPDATA%\VibeGuard\bin`, and registers User `PATH` for universal terminal access.*
 
-[OK] Git
-[OK] Go 1.27.0
-[OK] Rust 1.98.1
-[OK] Cargo 1.98.1
-[OK] Node.js
-[OK] Python
-[OK] Docker
+2. **Verify Health & Scan Test Project**:
+   ```cmd
+   run_test.bat
+   ```
+   *Executes a full self-test against the intentionally vulnerable fixture `test-project`, verifying that security findings are correctly detected and blocked.*
 
-[OK] VibeGuard CLI installed permanently: C:\Users\ranua\AppData\Local\VibeGuard\bin
-[OK] Global Command: vibeguard
+3. **Hook Management Scripts**:
+   ```cmd
+   install_hook.bat     # Installs the pre-push hook in .git/hooks/pre-push
+   uninstall_hook.bat   # Cleanly removes the pre-push hook
+   ```
 
-PATH verification:
-[OK] Go
-[OK] Rust
-[OK] Cargo
-[OK] VibeGuard
+---
 
-VibeGuard development environment ready.
-```
+### Mode B — Developer / Source Build Mode
+Developers who want to recompile VibeGuard from source:
+
+1. **Prerequisites**:
+   - **Go** (1.21 or higher)
+   - **Git** (2.20 or higher)
+   - **Rust & Cargo** (1.70 or higher)
+   - **Visual Studio Build Tools** (Desktop development with C++ for `link.exe`)
+
+2. **One-Command Source Build**:
+   ```cmd
+   build.bat
+   ```
+   *Verifies Go, Rust, and `link.exe`, compiles the release Rust scanner (`cargo build --release`), compiles the Go orchestrator CLI (`go build ./cmd/vibeguard`), and updates the local binaries.*
+
+3. **Manual CLI Build**:
+   ```powershell
+   cd scanner
+   cargo build --release
+   cd ..
+   go build -buildvcs=false -o vibeguard.exe ./cmd/vibeguard
+   ```
+
+---
 
 ### Permanent Global CLI Installation
 `setup.bat` automatically copies `vibeguard.exe` and `vibeguard-scanner.exe` into `%LOCALAPPDATA%\VibeGuard\bin\` and permanently adds it to your User `PATH`. Once configured, `vibeguard` runs globally from any command prompt or terminal window across any project folder:
@@ -203,32 +220,6 @@ vibeguard version
 ```
 
 This also enables any repository's `.git/hooks/pre-push` to automatically locate and execute VibeGuard without needing the binary inside every repository.
-
-### Manual Prerequisites
-- **Go** (1.21 or higher)
-- **Git** (2.20 or higher)
-- *(Optional)* **Rust & Cargo** (1.70 or higher) if rebuilding the Rust scanning engine
-- *(Optional)* **Docker CLI / Desktop** for container testing
-
-### Build Steps
-
-1. **Clone Repository**:
-   ```powershell
-   git clone https://github.com/Ranaveer9177/cyberhackathon.git
-   cd cyberhackathon
-   ```
-
-2. **Build the Rust Scanner Engine** *(optional, fallback Go engine included)*:
-   ```powershell
-   cd scanner
-   cargo build --release
-   cd ..
-   ```
-
-3. **Build the VibeGuard Go CLI**:
-   ```powershell
-   go build -buildvcs=false -o vibeguard.exe ./cmd/vibeguard
-   ```
 
 4. **Verify Installation**:
    ```powershell

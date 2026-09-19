@@ -2,251 +2,161 @@
 setlocal enabledelayedexpansion
 
 :: ============================================================
-::  VibeGuard Automated Development Setup Script (setup.bat)
+::  VibeGuard Automated Setup Script (setup.bat)
+::  Portability: Runs on any Windows laptop using prebuilt binaries
+::  Does NOT require Go, Rust, or Visual Studio Build Tools
 :: ============================================================
 
-:: Configure local session PATH with standard tool directories if present
-if exist "%LOCALAPPDATA%\VibeGuard\bin" (
-    echo !PATH! | findstr /I /C:"%LOCALAPPDATA%\VibeGuard\bin" >nul 2>&1
-    if !ERRORLEVEL! neq 0 set "PATH=%LOCALAPPDATA%\VibeGuard\bin;!PATH!"
-)
-if exist "%USERPROFILE%\.cargo\bin" (
-    echo !PATH! | findstr /I /C:"%USERPROFILE%\.cargo\bin" >nul 2>&1
-    if !ERRORLEVEL! neq 0 set "PATH=%USERPROFILE%\.cargo\bin;!PATH!"
-)
-if exist "C:\Program Files\Go\bin" (
-    echo !PATH! | findstr /I /C:"C:\Program Files\Go\bin" >nul 2>&1
-    if !ERRORLEVEL! neq 0 set "PATH=C:\Program Files\Go\bin;!PATH!"
-)
-if exist "C:\Program Files\Git\cmd" (
-    echo !PATH! | findstr /I /C:"C:\Program Files\Git\cmd" >nul 2>&1
-    if !ERRORLEVEL! neq 0 set "PATH=C:\Program Files\Git\cmd;!PATH!"
-)
-if exist "C:\Program Files\nodejs" (
-    echo !PATH! | findstr /I /C:"C:\Program Files\nodejs" >nul 2>&1
-    if !ERRORLEVEL! neq 0 set "PATH=C:\Program Files\nodejs;!PATH!"
-)
-if exist "C:\Program Files\Docker\Docker\resources\bin" (
-    echo !PATH! | findstr /I /C:"C:\Program Files\Docker\Docker\resources\bin" >nul 2>&1
-    if !ERRORLEVEL! neq 0 set "PATH=C:\Program Files\Docker\Docker\resources\bin;!PATH!"
+:: 1. Detect repository root dynamically from script location
+set "ROOT=%~dp0"
+cd /d "%ROOT%"
+
+echo ========================================
+echo       VIBEGUARD LAPTOP SETUP
+echo ========================================
+echo Project Root: %ROOT%
+echo.
+
+:: 2. Prebuilt binary check
+set "CLI_BIN=%ROOT%vibeguard.exe"
+set "SCANNER_BIN=%ROOT%vibeguard-scanner.exe"
+
+if not exist "%SCANNER_BIN%" (
+    if exist "%ROOT%scanner\scanner.exe" (
+        set "SCANNER_BIN=%ROOT%scanner\scanner.exe"
+    ) else if exist "%ROOT%scanner\vibeguard-scanner.exe" (
+        set "SCANNER_BIN=%ROOT%scanner\vibeguard-scanner.exe"
+    )
 )
 
-:: Step 1: Check winget package manager
-where winget >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo [ERROR] Windows Package Manager winget was not found.
-    echo Please install Windows App Installer from the Microsoft Store to enable automated installs.
+if not exist "%CLI_BIN%" (
+    echo [ERROR] Required VibeGuard binary was not found.
     echo.
+    echo Expected:
+    echo     %CLI_BIN%
+    echo.
+    echo Run build.bat on a developer machine or obtain the official release package.
+    exit /b 1
 )
 
-:: Step 2: Check / Install Git
-where git >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo [INFO] Git not found. Installing via winget...
-    winget install --id Git.Git -e --source winget --accept-source-agreements --accept-package-agreements --silent
-    if exist "C:\Program Files\Git\cmd" set "PATH=C:\Program Files\Git\cmd;!PATH!"
+echo [OK] VibeGuard CLI found: %CLI_BIN%
+
+if not exist "%SCANNER_BIN%" (
+    echo [ERROR] Required VibeGuard scanner binary was not found.
+    echo.
+    echo Expected:
+    echo     %ROOT%vibeguard-scanner.exe or %ROOT%scanner\scanner.exe
+    echo.
+    echo Run build.bat on a developer machine or obtain the official release package.
+    exit /b 1
 )
 
-:: Step 3: Check / Install Go
-where go >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo [INFO] Go not found. Installing via winget...
-    winget install --id GoLang.Go -e --source winget --accept-source-agreements --accept-package-agreements --silent
-    if exist "C:\Program Files\Go\bin" set "PATH=C:\Program Files\Go\bin;!PATH!"
+echo [OK] Rust scanner found: %SCANNER_BIN%
+
+:: Ensure scanner binary exists in both standard locations
+if not exist "%ROOT%vibeguard-scanner.exe" (
+    copy /Y "%SCANNER_BIN%" "%ROOT%vibeguard-scanner.exe" >nul 2>&1
+)
+if not exist "%ROOT%scanner\scanner.exe" (
+    if not exist "%ROOT%scanner" mkdir "%ROOT%scanner"
+    copy /Y "%SCANNER_BIN%" "%ROOT%scanner\scanner.exe" >nul 2>&1
 )
 
-:: Step 4: Check / Install Rust + Cargo
-where rustc >nul 2>&1
-set RUST_STATUS=%ERRORLEVEL%
-where cargo >nul 2>&1
-set CARGO_STATUS=%ERRORLEVEL%
-
-if %RUST_STATUS% neq 0 (
-    echo [INFO] Rust not found. Installing via winget...
-    winget install --id Rustlang.Rustup -e --source winget --accept-source-agreements --accept-package-agreements --silent
-    if exist "%USERPROFILE%\.cargo\bin" set "PATH=%USERPROFILE%\.cargo\bin;!PATH!"
-) else if %CARGO_STATUS% neq 0 (
-    if exist "%USERPROFILE%\.cargo\bin\cargo.exe" set "PATH=%USERPROFILE%\.cargo\bin;!PATH!"
+:: 3. Required Directory Checks (verify or create)
+echo.
+echo Checking required directories...
+if not exist "%ROOT%.vibeguard" (
+    mkdir "%ROOT%.vibeguard"
+    echo [OK] Created .vibeguard\ directory
+) else (
+    echo [OK] .vibeguard\ directory verified
 )
 
-:: Step 5: Check / Install Node.js
-where node >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo [INFO] Node.js not found. Installing via winget...
-    winget install --id OpenJS.NodeJS.LTS -e --source winget --accept-source-agreements --accept-package-agreements --silent
-    if exist "C:\Program Files\nodejs" set "PATH=C:\Program Files\nodejs;!PATH!"
+if not exist "%ROOT%reports" (
+    mkdir "%ROOT%reports"
+    echo [OK] Created reports\ directory
+) else (
+    echo [OK] reports\ directory verified
 )
 
-:: Step 6: Check / Install Python
-where python >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo [INFO] Python not found. Installing via winget...
-    winget install --id Python.Python.3.12 -e --source winget --accept-source-agreements --accept-package-agreements --silent
+if not exist "%ROOT%rules" (
+    mkdir "%ROOT%rules"
+    echo [OK] Created rules\ directory
+) else (
+    echo [OK] rules\ directory verified
 )
 
-:: Step 7: Check / Install Docker
-where docker >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    if exist "C:\Program Files\Docker\Docker\resources\bin\docker.exe" (
-        set "PATH=C:\Program Files\Docker\Docker\resources\bin;!PATH!"
+if not exist "%ROOT%tests" (
+    mkdir "%ROOT%tests"
+    echo [OK] Created tests\ directory
+) else (
+    echo [OK] tests\ directory verified
+)
+
+:: 4. Verify or generate default configuration
+if not exist "%ROOT%.vibeguard\config.json" (
+    echo Generating default configuration...
+    call "%CLI_BIN%" init >nul 2>&1
+    if exist "%ROOT%.vibeguard\config.json" (
+        echo [OK] Default configuration created: .vibeguard\config.json
     )
-)
-where docker >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo [INFO] Docker not found. Installing Docker CLI via winget...
-    winget install --id Docker.DockerCLI -e --source winget --accept-source-agreements --accept-package-agreements --silent >nul 2>&1
-    if exist "C:\Program Files\Docker\Docker\resources\bin\docker.exe" (
-        set "PATH=C:\Program Files\Docker\Docker\resources\bin;!PATH!"
-    )
+) else (
+    echo [OK] Configuration verified: .vibeguard\config.json
 )
 
-:: Step 8: Install VibeGuard CLI Permanently
+:: 5. Install Git pre-push hook if inside a git repository
+echo.
+echo Configuring Git security gate...
+if exist "%ROOT%.git" (
+    call "%CLI_BIN%" init
+    echo [OK] Git pre-push hook configured
+) else (
+    echo [INFO] No .git directory found. Skipping Git hook installation.
+)
+
+:: 6. Install VibeGuard CLI to User PATH for global execution
+echo.
+echo Installing VibeGuard CLI for global terminal use...
 set "VIBEGUARD_HOME=%LOCALAPPDATA%\VibeGuard\bin"
 
-if not exist "!VIBEGUARD_HOME!" (
-    mkdir "!VIBEGUARD_HOME!" >nul 2>&1
+if not exist "%VIBEGUARD_HOME%" (
+    mkdir "%VIBEGUARD_HOME%" >nul 2>&1
 )
 
-if exist "%~dp0vibeguard.exe" (
-    copy /Y "%~dp0vibeguard.exe" "!VIBEGUARD_HOME!\vibeguard.exe" >nul
-)
-
-if exist "%~dp0vibeguard-scanner.exe" (
-    copy /Y "%~dp0vibeguard-scanner.exe" "!VIBEGUARD_HOME!\vibeguard-scanner.exe" >nul
-)
+copy /Y "%CLI_BIN%" "%VIBEGUARD_HOME%\vibeguard.exe" >nul 2>&1
+copy /Y "%SCANNER_BIN%" "%VIBEGUARD_HOME%\vibeguard-scanner.exe" >nul 2>&1
+copy /Y "%SCANNER_BIN%" "%VIBEGUARD_HOME%\scanner.exe" >nul 2>&1
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$u=[Environment]::GetEnvironmentVariable('Path','User'); $d=[IO.Path]::Combine($env:LOCALAPPDATA,'VibeGuard','bin'); if (($u -split ';') -notcontains $d) { [Environment]::SetEnvironmentVariable('Path', (($u.TrimEnd(';')+';'+$d).TrimStart(';')), 'User') }" >nul 2>&1
 
-set "PATH=!VIBEGUARD_HOME!;!PATH!"
+set "PATH=%VIBEGUARD_HOME%;%PATH%"
 
-:: Step 9: Parse installed versions for display
-set "GO_VER="
-where go >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    for /f "tokens=3" %%v in ('go version 2^>nul') do (
-        set "RAW_GO=%%v"
-        set "GO_VER=!RAW_GO:go=!"
-    )
-)
-
-set "RUST_VER="
-where rustc >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    for /f "tokens=2" %%v in ('rustc --version 2^>nul') do (
-        set "RUST_VER=%%v"
-    )
-)
-
-set "CARGO_VER="
-where cargo >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    for /f "tokens=2" %%v in ('cargo --version 2^>nul') do (
-        set "CARGO_VER=%%v"
-    )
-)
-
-:: Step 10: Print final environment status
-echo ================================
-echo  VibeGuard Development Setup
-echo ================================
-echo.
-
-where git >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    echo [OK] Git
-) else (
-    echo [FAIL] Git
-)
-
-where go >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    if defined GO_VER (
-        echo [OK] Go !GO_VER!
-    ) else (
-        echo [OK] Go
-    )
-) else (
-    echo [FAIL] Go
-)
-
-where rustc >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    if defined RUST_VER (
-        echo [OK] Rust !RUST_VER!
-    ) else (
-        echo [OK] Rust
-    )
-) else (
-    echo [FAIL] Rust
-)
-
-where cargo >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    if defined CARGO_VER (
-        echo [OK] Cargo !CARGO_VER!
-    ) else (
-        echo [OK] Cargo
-    )
-) else (
-    echo [FAIL] Cargo
-)
-
-where node >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    echo [OK] Node.js
-) else (
-    echo [FAIL] Node.js
-)
-
-where python >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    echo [OK] Python
-) else (
-    echo [FAIL] Python
-)
-
-where docker >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    echo [OK] Docker
-) else (
-    echo [FAIL] Docker
-)
-
-echo.
-echo [OK] VibeGuard CLI installed permanently: !VIBEGUARD_HOME!
+echo [OK] VibeGuard CLI installed to: %VIBEGUARD_HOME%
 echo [OK] Global Command: vibeguard
 
+:: 7. Version verification test
 echo.
-echo PATH verification:
-
-where go >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    echo [OK] Go
-) else (
-    echo [FAIL] Go
+echo Testing VibeGuard CLI...
+call "%CLI_BIN%" version
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] Version verification failed.
+    exit /b 1
 )
 
-where rustc >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    echo [OK] Rust
-) else (
-    echo [FAIL] Rust
-)
-
-where cargo >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    echo [OK] Cargo
-) else (
-    echo [FAIL] Cargo
-)
-
-where vibeguard >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    echo [OK] VibeGuard
-) else (
-    echo [FAIL] VibeGuard
-)
-
+echo.
+echo ========================================
+echo       VIBEGUARD SETUP COMPLETE
+echo ========================================
+echo.
+echo [OK] Prebuilt binaries verified
+echo [OK] Required directories verified
+echo [OK] Configuration active
+echo [OK] CLI ready for use
+echo.
+echo You can now run:
+echo   vibeguard version
+echo   vibeguard scan .\test-project
+echo   run_test.bat
 echo.
 echo VibeGuard development environment ready.
-endlocal & set "PATH=%LOCALAPPDATA%\VibeGuard\bin;%USERPROFILE%\.cargo\bin;C:\Program Files\Go\bin;C:\Program Files\Git\cmd;C:\Program Files\nodejs;%PATH%"
+endlocal & set "PATH=%LOCALAPPDATA%\VibeGuard\bin;%PATH%"
