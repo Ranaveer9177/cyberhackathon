@@ -321,22 +321,25 @@ func CreatePushSnapshot(repoPath, localSha string) (string, error) {
 		return "", fmt.Errorf("failed to create temp directory: %w", err)
 	}
 
-	cmd := exec.Command("git", "archive", "--format=tar", localSha)
+	tarPath := filepath.Join(tempDir, "commit.tar")
+	cmd := exec.Command("git", "archive", "--format=tar", "-o", tarPath, localSha)
 	cmd.Dir = root
-	out, err := cmd.StdoutPipe()
+	if out, err := cmd.CombinedOutput(); err != nil {
+		os.RemoveAll(tempDir)
+		return "", fmt.Errorf("git archive failed: %v: %s", err, string(out))
+	}
+
+	tarFile, err := os.Open(tarPath)
 	if err != nil {
 		os.RemoveAll(tempDir)
-		return "", err
+		return "", fmt.Errorf("failed to open archive tar: %w", err)
 	}
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
+	defer func() {
+		tarFile.Close()
+		_ = os.Remove(tarPath)
+	}()
 
-	if err := cmd.Start(); err != nil {
-		os.RemoveAll(tempDir)
-		return "", fmt.Errorf("failed to start git archive: %w", err)
-	}
-
-	tr := tar.NewReader(out)
+	tr := tar.NewReader(tarFile)
 	for {
 		header, err := tr.Next()
 		if err == io.EOF {
@@ -359,7 +362,7 @@ func CreatePushSnapshot(repoPath, localSha string) (string, error) {
 				os.RemoveAll(tempDir)
 				return "", err
 			}
-			outFile, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR|os.O_TRUNC, header.FileInfo().Mode())
+			outFile, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
 			if err != nil {
 				os.RemoveAll(tempDir)
 				return "", err
@@ -371,11 +374,6 @@ func CreatePushSnapshot(repoPath, localSha string) (string, error) {
 			}
 			outFile.Close()
 		}
-	}
-
-	if err := cmd.Wait(); err != nil {
-		os.RemoveAll(tempDir)
-		return "", fmt.Errorf("git archive failed: %v: %s", err, stderr.String())
 	}
 
 	return tempDir, nil
