@@ -15,6 +15,13 @@ pub fn scan_source_code(file_path: &str, content: &str, finding_counter: &mut us
 
     for (line_idx, line) in content.lines().enumerate() {
         let line_num = line_idx + 1;
+        let trimmed = line.trim();
+
+        // Skip comment lines
+        if trimmed.starts_with("//") || trimmed.starts_with('#') || trimmed.starts_with("/*") || trimmed.starts_with('*') || trimmed.starts_with("--") {
+            continue;
+        }
+
         for rule in &rules {
             if rule.pattern.is_match(line) {
                 if line.contains("Regex::new") || line.contains("regexp.MustCompile") || line.contains("pattern:") {
@@ -26,7 +33,22 @@ pub fn scan_source_code(file_path: &str, content: &str, finding_counter: &mut us
                     }
                 }
                 if rule.id == "SAST-006" {
-                    if line.contains("http://localhost") || line.contains("http://127.0.0.1") {
+                    let line_lower = line.to_lowercase();
+                    if line_lower.contains("http://localhost")
+                        || line_lower.contains("http://127.0.0.1")
+                        || line_lower.contains("http://0.0.0.0")
+                        || line_lower.contains("http://::1")
+                        || line_lower.contains("http://[::1]")
+                        || line_lower.contains("w3.org")
+                        || line_lower.contains("schemas.")
+                        || line_lower.contains("json-schema.org")
+                        || line_lower.contains("apache.org")
+                        || line_lower.contains("example.com")
+                        || line_lower.contains("example.org")
+                        || line_lower.contains("http://{")
+                        || line_lower.contains("http://${")
+                        || line_lower.contains("http://%")
+                    {
                         continue;
                     }
                 }
@@ -46,6 +68,7 @@ pub fn scan_source_code(file_path: &str, content: &str, finding_counter: &mut us
             }
         }
     }
+
 
     findings
 }

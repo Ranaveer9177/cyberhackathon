@@ -7,6 +7,17 @@ All notable changes to the VibeGuard project are documented in this file.
 > **Version Finalization Note**: Reconciled prior draft tags (`v2.2.0` vs `v3.0.0`) and established **`v3.0.0`** as the canonical version across the CLI binary, Rust engine, Git hooks, and documentation.
 
 ### Added & Enhanced
+- **Eliminated False Positives across Code, Docs, and Build Artifacts**:
+  - Automatically skips test coverage output, virtual environments, and cache directories (`htmlcov`, `.coverage`, `coverage`, `.pytest_cache`, `.mypy_cache`, `.tox`, `venv`, `env`, `.idea`, `.vscode`).
+  - Added native `.gitignore` pattern resolution in both Rust and Go engines.
+  - Excluded documentation extensions (`.md`, `.markdown`, `.rst`, `.txt`, `.adoc`, `.html`) from generic credential rules.
+  - Filtered out placeholder / dummy passwords (`"admin"`, `"password"`, `"changeme"`, `"your_password"`, `""`, etc.) and variable / parameter declarations (PowerShell `param(`, `[string]`, `Read-Host`, Python `os.getenv`, `os.environ`, `$env:`).
+  - Insecure HTTP rule ignores localhost, loopback (`127.0.0.1`, `0.0.0.0`, `::1`), schema/namespace URIs (`w3.org`, `schemas.`, `json-schema.org`, `apache.org`, `example.com`), and template strings.
+- **Redesigned Clean Terminal Report**:
+  - Eliminated repetitive dump of hundreds of individual dependency advisories.
+  - Grouped dependency vulnerabilities into an aligned, structured table (`PACKAGE | CURRENT | SEVERITY | ADVISORIES | RECOMMENDED FIX`).
+  - Added compact **Key Advisory Highlights** showing top advisory IDs with concise summaries and remainder counts.
+  - Separated `Code & Configuration Findings` cleanly with distinct severity colors, IDs, file locations, titles, and actionable recommendations.
 - **High-Performance Concurrent OSV Engine**:
   - Replaced serial HTTPS lookups with an asynchronous 10-worker pool and shared connection-pooled `http.Client`.
   - Reduced batch dependency lookup latency by over 80% (~400ms vs ~8s) while preserving thread-safe live progress updates.
