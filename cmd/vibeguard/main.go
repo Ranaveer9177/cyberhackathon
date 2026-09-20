@@ -952,6 +952,7 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 		Branch:          branchName,
 		Remote:          remoteURL,
 		ScanTime:        scanDuration.Round(time.Millisecond).String(),
+		Timestamp:       time.Now().Format("2006-01-02 15:04:05 MST"),
 		FilesScanned:    scanResult.FilesScanned,
 		FilesSkipped:    scanResult.FilesSkipped,
 		ExcludedFiles:   scanResult.ExcludedFiles,
