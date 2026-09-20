@@ -17,8 +17,9 @@ import (
 )
 
 var (
-	user32DLL    = syscall.NewLazyDLL("user32.dll")
-	messageBoxW  = user32DLL.NewProc("MessageBoxW")
+	user32DLL          = syscall.NewLazyDLL("user32.dll")
+	messageBoxW        = user32DLL.NewProc("MessageBoxW")
+	messageBoxTimeoutW = user32DLL.NewProc("MessageBoxTimeoutW")
 )
 
 const (
@@ -138,6 +139,11 @@ func DetectActiveSecuritySoftware() string {
 
 // ShowBlockPopup displays a native Windows MessageBox modal pop-up and prints diagnostic text to stderr.
 func ShowBlockPopup(rep *BlockReport) {
+	ShowBlockPopupWithTimeout(rep, 5)
+}
+
+// ShowBlockPopupWithTimeout displays the modal pop-up and auto-dismisses after timeoutSeconds if unattended.
+func ShowBlockPopupWithTimeout(rep *BlockReport, timeoutSeconds int) {
 	if rep == nil || !rep.Blocked {
 		return
 	}
@@ -153,13 +159,16 @@ func ShowBlockPopup(rep *BlockReport) {
 	title := "VibeGuard v4.5 Security Alert — Execution Blocked"
 	body := FormatPopupBody(rep)
 
-	// Show modal on a background goroutine with timeout so CLI never indefinitely freezes
-	go func() {
-		titlePtr, _ := syscall.UTF16PtrFromString(title)
-		bodyPtr, _ := syscall.UTF16PtrFromString(body)
-		flags := uintptr(MB_OK | MB_ICONWARNING | MB_SYSTEMMODAL)
+	titlePtr, _ := syscall.UTF16PtrFromString(title)
+	bodyPtr, _ := syscall.UTF16PtrFromString(body)
+	flags := uintptr(MB_OK | MB_ICONWARNING | MB_SYSTEMMODAL)
+
+	if timeoutSeconds > 0 && messageBoxTimeoutW.Find() == nil {
+		ms := uintptr(timeoutSeconds * 1000)
+		_, _, _ = messageBoxTimeoutW.Call(0, uintptr(unsafe.Pointer(bodyPtr)), uintptr(unsafe.Pointer(titlePtr)), flags, 0, ms)
+	} else {
 		_, _, _ = messageBoxW.Call(0, uintptr(unsafe.Pointer(bodyPtr)), uintptr(unsafe.Pointer(titlePtr)), flags)
-	}()
+	}
 }
 
 // FormatPopupBody creates the text displayed inside the native Windows MessageBox.
