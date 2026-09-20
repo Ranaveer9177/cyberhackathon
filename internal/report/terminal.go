@@ -36,6 +36,7 @@ type Report struct {
 	Branch          string                `json:"branch,omitempty"`
 	Remote          string                `json:"remote,omitempty"`
 	ScanTime        string                `json:"scan_time"`
+	Timestamp       string                `json:"timestamp,omitempty"`
 	FilesScanned    int                   `json:"files_scanned"`
 	FilesSkipped    int                   `json:"files_skipped,omitempty"`
 	ExcludedFiles   int                   `json:"excluded_files,omitempty"`
