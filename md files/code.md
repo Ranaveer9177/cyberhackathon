@@ -704,6 +704,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -1051,7 +1052,7 @@ func handlePush(dir string) int {
 			RemoteSHA: upstreamHash,
 		},
 	}
-	exitCode := runScanWithRefs(root, "terminal", "", true, explicitRefs)
+	exitCode := runScanWithRefs(root, "terminal", "", true, explicitRefs, true)
 	if exitCode != 0 {
 		fmt.Println()
 		fmt.Println("========================================")
@@ -1065,7 +1066,6 @@ func handlePush(dir string) int {
 
 	// 6. If PASS -> prompt "Push to GitHub? [Y/n]"
 	fmt.Println()
-	fmt.Println("Security scan PASSED. Code is SAFE to push.")
 	fmt.Print("Push to GitHub? [Y/n]: ")
 	ans, _ := reader.ReadString('\n')
 	ans = strings.TrimSpace(strings.ToLower(ans))
@@ -1084,6 +1084,29 @@ func handlePush(dir string) int {
 	return 0
 }
 
+func promptConsole(promptText string) (string, error) {
+	fmt.Print(promptText)
+	var f *os.File
+	var err error
+	if runtime.GOOS == "windows" {
+		f, err = os.Open("CONIN$")
+	} else {
+		f, err = os.Open("/dev/tty")
+	}
+	if err != nil {
+		reader := bufio.NewReader(os.Stdin)
+		ans, err := reader.ReadString('\n')
+		return strings.TrimSpace(ans), err
+	}
+	defer f.Close()
+	reader := bufio.NewReader(f)
+	ans, err := reader.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(ans), nil
+}
+
 func determineOSVSeverity(v osv.Vulnerability) string {
 	return osv.DetermineSeverity(v)
 }
@@ -1091,10 +1114,10 @@ func determineOSVSeverity(v osv.Vulnerability) string {
 
 
 func runScan(projectPath string, format string, customOutput string, isHook bool) int {
-	return runScanWithRefs(projectPath, format, customOutput, isHook, nil)
+	return runScanWithRefs(projectPath, format, customOutput, isHook, nil, false)
 }
 
-func runScanWithRefs(projectPath string, format string, customOutput string, isHook bool, explicitRefs []git.PushRef) int {
+func runScanWithRefs(projectPath string, format string, customOutput string, isHook bool, explicitRefs []git.PushRef, isVibePush bool) int {
 	absPath, err := filepath.Abs(projectPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: invalid project path: %v\n", err)
@@ -1134,8 +1157,7 @@ func runScanWithRefs(projectPath string, format string, customOutput string, isH
 		}
 
 		if len(pushedRefs) == 0 {
-			fmt.Println("Git pre-push: everything up-to-date (no refs to push). Allowing push.")
-			return 0
+			return scanSingleTarget(absPath, root, cfg, format, customOutput, true, nil, isVibePush, false)
 		}
 
 		var activeRefs []git.PushRef
@@ -1150,13 +1172,12 @@ func runScanWithRefs(projectPath string, format string, customOutput string, isH
 		}
 
 		if len(activeRefs) == 0 {
-			fmt.Println("Git pre-push: everything up-to-date (no new commits to push). Allowing push.")
-			return 0
+			return scanSingleTarget(absPath, root, cfg, format, customOutput, true, nil, isVibePush, false)
 		}
 
 		overallExitCode := 0
 		failedCount := 0
-
+		skipPrompt := len(activeRefs) > 1
 
 		for idx, pRef := range activeRefs {
 			if len(activeRefs) > 1 {
@@ -1165,7 +1186,7 @@ func runScanWithRefs(projectPath string, format string, customOutput string, isH
 				fmt.Printf("========================================\n")
 			}
 
-			code := scanSingleTarget(absPath, root, cfg, format, customOutput, true, &pRef)
+			code := scanSingleTarget(absPath, root, cfg, format, customOutput, true, &pRef, isVibePush, skipPrompt)
 			if code != 0 {
 				overallExitCode = code
 				failedCount++
@@ -1177,7 +1198,21 @@ func runScanWithRefs(projectPath string, format string, customOutput string, isH
 			fmt.Println("========================================")
 			if overallExitCode == 0 {
 				fmt.Printf("STATUS: ALL %d PUSHED REFS PASSED\n", len(activeRefs))
-				fmt.Println("Continuing Git push...")
+				if isHook && !isVibePush {
+					fmt.Println()
+					ans, err := promptConsole("Proceed with Git push? [Y/N]: ")
+					if err != nil {
+						fmt.Println("Continuing Git push...")
+						return 0
+					}
+					lower := strings.ToLower(ans)
+					if lower == "n" || lower == "no" {
+						fmt.Println("Push cancelled by user.")
+						return 1
+					}
+					fmt.Println("Continuing Git push...")
+					return 0
+				}
 			} else {
 				fmt.Printf("STATUS: PUSH BLOCKED (%d of %d refs failed security gate)\n", failedCount, len(activeRefs))
 			}
@@ -1188,19 +1223,16 @@ func runScanWithRefs(projectPath string, format string, customOutput string, isH
 	}
 
 	// Single target scan (CLI scan, report command, or working tree scan)
-	return scanSingleTarget(absPath, absPath, cfg, format, customOutput, isHook, nil)
+	return scanSingleTarget(absPath, absPath, cfg, format, customOutput, isHook, nil, isVibePush, false)
 }
 
-func scanSingleTarget(absPath string, root string, cfg *config.Config, format string, customOutput string, isHook bool, pRef *git.PushRef) int {
+func scanSingleTarget(absPath string, root string, cfg *config.Config, format string, customOutput string, isHook bool, pRef *git.PushRef, isVibePush bool, skipPrompt bool) int {
 	projectName := filepath.Base(absPath)
 	scanStart := time.Now()
 
 	var commitHash, branchName, remoteURL string
 	var pushedCommitDiff string
-	var pushRange string
 	var pushedFiles []string
-	var filesInPushCount int
-	var excludedFilesCount int
 	targetScanPath := absPath
 	var cleanupSnapshot func()
 
@@ -1219,24 +1251,7 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 				remoteURL = pRef.RemoteRef
 			}
 
-			locShort := pRef.LocalSHA
-			if len(locShort) > 7 {
-				locShort = locShort[:7]
-			}
-			remShort := pRef.RemoteSHA
-			if len(remShort) > 7 {
-				remShort = remShort[:7]
-			}
-			pushRange = fmt.Sprintf("%s -> %s", locShort, remShort)
-
 			pushedFiles = git.GetPushedCommitFiles(root, pRef.RemoteSHA, pRef.LocalSHA)
-			filesInPushCount = len(pushedFiles)
-			for _, pf := range pushedFiles {
-				if cfg.IsExcluded(pf) {
-					excludedFilesCount++
-				}
-			}
-
 			pushedCommitDiff = git.GetPushedCommitDiff(root, pRef.RemoteSHA, pRef.LocalSHA)
 
 			// Create push snapshot of local commit so we scan the exact committed tree
@@ -1261,46 +1276,26 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 	}
 
 	// Banner
-	if isHook {
+	if isHook || isVibePush {
 		fmt.Println("========================================")
 		fmt.Println("       VIBEGUARD SECURITY GATE")
 		fmt.Println("========================================")
-		fmt.Printf("Project:        %s\n", projectName)
-		if commitHash != "" {
-			fmt.Printf("Commit:         %s\n", commitHash)
-		}
-		if branchName != "" {
-			fmt.Printf("Branch:         %s\n", branchName)
-		}
-		if pushRange != "" {
-			fmt.Printf("Push Range:     %s\n", pushRange)
-		}
-		if filesInPushCount > 0 {
-			fmt.Printf("Files in Push:  %d (Excluded: %d)\n", filesInPushCount, excludedFilesCount)
-		}
 		fmt.Println()
 	} else {
 		fmt.Println("========================================")
 		fmt.Println("       VIBEGUARD SECURITY SCANNER")
 		fmt.Println("========================================")
-		fmt.Printf("Project: %s\n", projectName)
-		fmt.Printf("Path:    %s\n", absPath)
-		if commitHash != "" {
-			fmt.Printf("Commit:  %s\n", commitHash)
-		}
-		if branchName != "" {
-			fmt.Printf("Branch:  %s\n", branchName)
-		}
 		fmt.Println()
 	}
 
-	// Step 1: Run security scanner
-	fmt.Println("[1/4] Running security scanner...")
-	pb := report.NewProgressBar(20, os.Stdout)
-	scanResult, err := scanner.RunScannerWithProgress(targetScanPath, func(cur, tot int, curFile string) {
-		pb.Render(cur, tot, fmt.Sprintf("Files: %d/%d", cur, tot), fmt.Sprintf("Current: %s", curFile))
-	})
-	pb.Reset()
+	passStr := report.ColorGreen + "PASS" + report.ColorReset
+	failStr := report.ColorRed + "FAIL" + report.ColorReset
+
+	// Step 1: Detecting project
+	fmt.Printf("[1/5] Detecting project ........ %s\n", passStr)
+
+	// Step 2 & 3: Run scanner for secrets & source code
+	scanResult, err := scanner.RunScanner(targetScanPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Scanner error: %v\n", err)
 		if cfg.FailClosed {
@@ -1317,65 +1312,6 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 		if rel, err := filepath.Rel(targetScanPath, f.File); err == nil && !strings.HasPrefix(rel, "..") {
 			f.File = filepath.ToSlash(rel)
 		}
-	}
-	fmt.Printf("  Files scanned: %d\n", scanResult.FilesScanned)
-	fmt.Printf("  Findings from scanner: %d\n", len(scanResult.Findings))
-
-	// Step 2: Detect and check dependencies
-	var vulnResults []osv.VulnResult
-	if cfg.DependencyScan {
-		fmt.Println("[2/4] Checking dependencies...")
-		deps, err := dependencies.DetectDependencies(targetScanPath)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Dependency detection error: %v\n", err)
-			deps = []dependencies.Dependency{}
-		}
-		if len(deps) > 0 {
-			for idx, d := range deps {
-				pb.Render(idx+1, len(deps), fmt.Sprintf("Dependencies: %d/%d", idx+1, len(deps)), fmt.Sprintf("Current: %s@%s", d.Name, d.Version))
-				time.Sleep(5 * time.Millisecond)
-			}
-			pb.Reset()
-		}
-		fmt.Printf("  Dependencies found: %d\n", len(deps))
-
-		var osvDeps []osv.DependencyInfo
-		for _, d := range deps {
-			osvDeps = append(osvDeps, osv.DependencyInfo{
-				Name:       d.Name,
-				Version:    d.Version,
-				Ecosystem:  d.Ecosystem,
-				SourceFile: d.SourceFile,
-			})
-		}
-
-		fmt.Println("[3/4] Querying vulnerability database (OSV)...")
-		var osvErr error
-		vulnResults, osvErr = osv.CheckAllDependenciesWithProgress(osvDeps, func(cur, tot int) {
-			pb.Render(cur, tot, fmt.Sprintf("OSV queries: %d/%d", cur, tot), "")
-		})
-		pb.Reset()
-		if osvErr != nil && len(osvDeps) > 0 {
-			fmt.Fprintf(os.Stderr, "Warning: OSV vulnerability database unavailable: %v\n", osvErr)
-			if cfg.FailClosed {
-				fmt.Fprintln(os.Stderr, "Security policy failure: OSV unavailable and fail_closed is enabled.")
-				return 4
-			}
-		}
-
-		totalVulns := 0
-		for _, vr := range vulnResults {
-			totalVulns += len(vr.Vulnerabilities)
-		}
-		if totalVulns > 0 {
-			fmt.Printf("  Vulnerable packages: %d\n", len(vulnResults))
-			fmt.Printf("  Total vulnerabilities: %d\n", totalVulns)
-		} else {
-			fmt.Println("  No known vulnerabilities found in dependencies")
-		}
-	} else {
-		fmt.Println("[2/4] Skipping dependency checks (disabled in config)")
-		fmt.Println("[3/4] Skipping OSV lookup")
 	}
 
 	// Combine findings
@@ -1446,6 +1382,92 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 		}
 	}
 
+	// Filter findings to only changed files when scan_mode is "changed"
+	if isHook && strings.ToLower(cfg.ScanMode) == "changed" && len(pushedFiles) > 0 {
+		pushedMap := make(map[string]bool)
+		for _, pf := range pushedFiles {
+			pushedMap[filepath.ToSlash(filepath.Clean(pf))] = true
+		}
+
+		var filteredFindings []scanner.Finding
+		for _, f := range allFindings {
+			cleanF := filepath.ToSlash(filepath.Clean(f.File))
+			if pushedMap[cleanF] {
+				filteredFindings = append(filteredFindings, f)
+			}
+		}
+		allFindings = filteredFindings
+	}
+
+	// Secret and Source findings evaluation
+	secretCount := 0
+	sourceCritHighCount := 0
+	for _, f := range allFindings {
+		if strings.ToLower(f.Category) == "secret" {
+			secretCount++
+		} else if strings.ToLower(f.Category) != "dependency" {
+			if f.Severity == "CRITICAL" || f.Severity == "HIGH" {
+				sourceCritHighCount++
+			}
+		}
+	}
+
+	if secretCount > 0 {
+		fmt.Printf("[2/5] Secret scan .............. %s\n", failStr)
+	} else {
+		fmt.Printf("[2/5] Secret scan .............. %s\n", passStr)
+	}
+
+	if sourceCritHighCount > 0 {
+		fmt.Printf("[3/5] Source scan .............. %s\n", failStr)
+	} else {
+		fmt.Printf("[3/5] Source scan .............. %s\n", passStr)
+	}
+
+	// Step 4: Detect and check dependencies
+	var vulnResults []osv.VulnResult
+	depCritHighCount := 0
+	if cfg.DependencyScan {
+		deps, err := dependencies.DetectDependencies(targetScanPath)
+		if err != nil {
+			deps = []dependencies.Dependency{}
+		}
+
+		var osvDeps []osv.DependencyInfo
+		for _, d := range deps {
+			osvDeps = append(osvDeps, osv.DependencyInfo{
+				Name:       d.Name,
+				Version:    d.Version,
+				Ecosystem:  d.Ecosystem,
+				SourceFile: d.SourceFile,
+			})
+		}
+
+		if len(osvDeps) > 0 {
+			var osvErr error
+			vulnResults, osvErr = osv.CheckAllDependenciesWithStatus(osvDeps)
+			if osvErr != nil && len(osvDeps) > 0 && cfg.FailClosed {
+				fmt.Fprintln(os.Stderr, "Security policy failure: OSV unavailable and fail_closed is enabled.")
+				return 4
+			}
+		}
+
+		for _, vr := range vulnResults {
+			for _, v := range vr.Vulnerabilities {
+				sev := determineOSVSeverity(v)
+				if sev == "CRITICAL" || sev == "HIGH" {
+					depCritHighCount++
+				}
+			}
+		}
+	}
+
+	if depCritHighCount > 0 {
+		fmt.Printf("[4/5] Dependency/CVE scan ...... %s\n", failStr)
+	} else {
+		fmt.Printf("[4/5] Dependency/CVE scan ...... %s\n", passStr)
+	}
+
 	depFindingCounter := len(allFindings) + 1
 	for _, vr := range vulnResults {
 		for _, v := range vr.Vulnerabilities {
@@ -1506,26 +1528,7 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 		}
 	}
 
-	// Filter findings to only changed files when scan_mode is "changed"
-	if isHook && strings.ToLower(cfg.ScanMode) == "changed" {
-		pushedMap := make(map[string]bool)
-		for _, pf := range pushedFiles {
-			pushedMap[filepath.ToSlash(filepath.Clean(pf))] = true
-		}
-
-		var filteredFindings []scanner.Finding
-		for _, f := range allFindings {
-			cleanF := filepath.ToSlash(filepath.Clean(f.File))
-			if pushedMap[cleanF] {
-				filteredFindings = append(filteredFindings, f)
-			}
-		}
-		allFindings = filteredFindings
-	}
-
-
-	// Step 4: Calculate risk score
-	fmt.Println("[4/4] Calculating risk score...")
+	// Calculate risk score
 	var findingInfos []risk.FindingInfo
 	for _, f := range allFindings {
 		findingInfos = append(findingInfos, risk.FindingInfo{
@@ -1534,12 +1537,9 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 	}
 	scoreResult := risk.CalculateScore(findingInfos)
 
-	// Final Stage: scan complete indicator
-	pb.Finish("Security analysis complete.")
-
 	// Evaluate deployment gate with config policy
 	blockPolicy := []string{"critical", "high"}
-	if isHook && cfg != nil && len(cfg.BlockOn) > 0 {
+	if cfg != nil && len(cfg.BlockOn) > 0 {
 		blockPolicy = cfg.BlockOn
 	}
 	gateResult := gate.EvaluateGateWithPolicy(
@@ -1549,6 +1549,14 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 		scoreResult.LowCount,
 		blockPolicy,
 	)
+
+	// Step 5: Security policy
+	if gateResult.Status == "PASSED" {
+		fmt.Printf("[5/5] Security policy .......... %s\n", passStr)
+	} else {
+		fmt.Printf("[5/5] Security policy .......... %s\n", failStr)
+	}
+	fmt.Println()
 
 	// Count categories
 	catCounts := report.CategoryCounts{}
@@ -1586,8 +1594,6 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 		CategoryCounts: catCounts,
 	}
 
-	fmt.Println()
-
 	reportsDir := "reports"
 	_ = os.MkdirAll(reportsDir, 0755)
 
@@ -1601,7 +1607,7 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 			fmt.Fprintf(os.Stderr, "Error writing JSON report: %v\n", err)
 			return 2
 		}
-		fmt.Printf("JSON report saved to: %s\n", jsonPath)
+		fmt.Printf("JSON report saved to: %s\n\n", jsonPath)
 		report.PrintTerminalReport(r)
 
 	case "html":
@@ -1613,32 +1619,54 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 			fmt.Fprintf(os.Stderr, "Error writing HTML report: %v\n", err)
 			return 2
 		}
-		fmt.Printf("HTML report saved to: %s\n", htmlPath)
+		fmt.Printf("HTML report saved to: %s\n\n", htmlPath)
 		report.PrintTerminalReport(r)
 
 	default:
 		report.PrintTerminalReport(r)
 	}
 
-	if isHook {
-		fmt.Println("---------------------------------------------")
-		if gateResult.Status == "PASSED" {
-			fmt.Println("STATUS: SAFE TO PUSH")
+	fmt.Println()
+	fmt.Println("----------------------------------------")
+	fmt.Printf("Security Score: %d/100\n", scoreResult.Score)
+	fmt.Println("----------------------------------------")
+	fmt.Println()
+	fmt.Printf("%-8s : %d\n", "Critical", scoreResult.CriticalCount)
+	fmt.Printf("%-8s : %d\n", "High", scoreResult.HighCount)
+	fmt.Printf("%-8s : %d\n", "Medium", scoreResult.MediumCount)
+	fmt.Printf("%-8s : %d\n", "Low", scoreResult.LowCount)
+	fmt.Println()
+
+	if gateResult.Status == "PASSED" {
+		fmt.Println("STATUS: SAFE TO PUSH")
+		fmt.Println()
+
+		if isHook && !isVibePush && !skipPrompt {
+			ans, err := promptConsole("Proceed with Git push? [Y/N]: ")
+			if err != nil {
+				fmt.Println("Continuing Git push...")
+				return 0
+			}
+			lower := strings.ToLower(ans)
+			if lower == "n" || lower == "no" {
+				fmt.Println("Push cancelled by user.")
+				return 1
+			}
 			fmt.Println("Continuing Git push...")
-		} else {
-			fmt.Println("STATUS: PUSH BLOCKED")
-			fmt.Printf("Reason: %s\n", gateResult.Reason)
-			fmt.Println("Resolve the findings above before pushing.")
+			return 0
 		}
+	} else {
+		fmt.Println("STATUS: PUSH BLOCKED")
+		if gateResult.Reason != "" {
+			fmt.Printf("Reason: %s\n", gateResult.Reason)
+		}
+		fmt.Println("Resolve the findings above before pushing.")
 		fmt.Println("========================================")
+		return gateResult.ExitCode
 	}
 
 	return gateResult.ExitCode
 }
-
-`
-
----
 ## go.mod
 
 `
