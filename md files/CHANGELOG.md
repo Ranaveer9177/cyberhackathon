@@ -10,6 +10,11 @@ All notable changes to the VibeGuard project are documented in this file.
 - **Dependency Fix Version Now Shows Proper Semver (not Git Hashes)**: The `RECOMMENDED FIX` column in the dependency table was displaying raw 40-character Git commit hashes (e.g. `afd63b16170b7c...`) instead of human-readable version numbers (e.g. `>= 3.1.3`). Root cause: the OSV API returns both `SEMVER` ranges (version numbers) and `GIT` ranges (commit hashes) — the old `getBestFixedVersion` compared all values as plain strings, causing long git hashes to always win. Fix: `getBestFixedVersion` now explicitly skips `GIT` ranges and selects the highest version from `SEMVER` ranges first, falling back to `ECOSYSTEM` ranges. A numeric `compareVersions` helper replaces the broken string comparison.
 
 ### Added & Enhanced
+- **5-Stage Security Gate Verification Checklist & Interactive Hook Confirmation**:
+  - Structured the pre-push gate into an aligned 5-stage checklist: `[1/5] Detecting project`, `[2/5] Secret scan`, `[3/5] Source scan`, `[4/5] Dependency/CVE scan`, `[5/5] Security policy` with real-time `PASS`/`FAIL` evaluation.
+  - Appended structured score summary (`Security Score: X/100`, severity breakdown for Critical/High/Medium/Low, and `STATUS: SAFE TO PUSH` or `STATUS: PUSH BLOCKED`).
+  - Added interactive `Proceed with Git push? [Y/N]:` prompt reading directly from console input (`CONIN$` on Windows / `/dev/tty` on Unix), enabling interactive confirmation inside Git pre-push hooks.
+  - Preserved the complete interactive `vibeguard push` flow (`Stage modified files? [Y/n]`, `Enter commit message:`, full verification report, `Push to GitHub? [Y/n]`).
 - **Eliminated False Positives across Code, Docs, and Build Artifacts**:
   - Automatically skips test coverage output, virtual environments, and cache directories (`htmlcov`, `.coverage`, `coverage`, `.pytest_cache`, `.mypy_cache`, `.tox`, `venv`, `env`, `.idea`, `.vscode`).
   - Added native `.gitignore` pattern resolution in both Rust and Go engines.

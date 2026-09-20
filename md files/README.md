@@ -290,36 +290,45 @@ Cleanly removes the VibeGuard pre-push hook and restores any previous user hook 
 
 ---
 
-## Live Scan Progress (v3.0)
+## 5-Stage Security Gate Verification & Interactive Push (v3.0)
 
-During scans, VibeGuard renders terminal progress indicators with real-time feedback across all 4 stages:
+When running `git push` (or `vibeguard push`), VibeGuard executes an aligned 5-stage verification gate directly inside developer terminals:
 
-### 1. File Scanning
 ```text
-[██████████████░░░░░░] 70%
-Files: 56/80
-Current: internal/scanner/runner.go
+========================================
+       VIBEGUARD SECURITY GATE
+========================================
+
+[1/5] Detecting project ........ PASS
+[2/5] Secret scan .............. PASS
+[3/5] Source scan .............. PASS
+[4/5] Dependency/CVE scan ...... PASS
+[5/5] Security policy .......... PASS
 ```
 
-### 2. Dependency Scanning
+Followed by the complete security report, severity summary, and interactive console prompt:
+
 ```text
-[████████████████░░░░] 80%
-Dependencies: 36/45
-Current: lodash@4.17.20
+----------------------------------------
+Security Score: 94/100
+----------------------------------------
+
+Critical : 0
+High     : 0
+Medium   : 2
+Low      : 3
+
+STATUS: SAFE TO PUSH
+
+Proceed with Git push? [Y/N]: 
 ```
 
-### 3. Vulnerability Database (OSV) Lookup
-```text
-[██████████████████░░] 90%
-OSV queries: 41/45
-```
-
-### 4. Final Completion Stage
-```text
-[████████████████████] 100%
-
-Security analysis complete.
-```
+### Guided `vibeguard push` Interactive Flow
+Developers can use `vibeguard push` to stage, commit, verify, and push in a single guided command:
+1. `Stage these modified files for commit? [Y/n]: `
+2. `Enter commit message: `
+3. Automatic commit creation & 5-stage security gate verification.
+4. `Push to GitHub? [Y/n]: ` — securely pushes to remote upon passing.
 
 ---
 
