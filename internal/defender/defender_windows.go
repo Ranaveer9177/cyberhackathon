@@ -17,13 +17,13 @@ import (
 )
 
 var (
-	user32DLL          = syscall.NewLazyDLL("user32.dll")
-	messageBoxW        = user32DLL.NewProc("MessageBoxW")
-	messageBoxTimeoutW = user32DLL.NewProc("MessageBoxTimeoutW")
+	user32DLL   = syscall.NewLazyDLL("user32.dll")
+	messageBoxW = user32DLL.NewProc("MessageBoxW")
 )
 
 const (
 	MB_OK          = 0x00000000
+	MB_OKCANCEL    = 0x00000001
 	MB_ICONWARNING = 0x00000030
 	MB_SYSTEMMODAL = 0x00001000
 )
@@ -138,12 +138,8 @@ func DetectActiveSecuritySoftware() string {
 }
 
 // ShowBlockPopup displays a native Windows MessageBox modal pop-up and prints diagnostic text to stderr.
+// It waits indefinitely until the user explicitly dismisses or cancels the dialog (clicks OK, Cancel, or [X]).
 func ShowBlockPopup(rep *BlockReport) {
-	ShowBlockPopupWithTimeout(rep, 5)
-}
-
-// ShowBlockPopupWithTimeout displays the modal pop-up and auto-dismisses after timeoutSeconds if unattended.
-func ShowBlockPopupWithTimeout(rep *BlockReport, timeoutSeconds int) {
 	if rep == nil || !rep.Blocked {
 		return
 	}
@@ -161,14 +157,15 @@ func ShowBlockPopupWithTimeout(rep *BlockReport, timeoutSeconds int) {
 
 	titlePtr, _ := syscall.UTF16PtrFromString(title)
 	bodyPtr, _ := syscall.UTF16PtrFromString(body)
-	flags := uintptr(MB_OK | MB_ICONWARNING | MB_SYSTEMMODAL)
+	flags := uintptr(MB_OKCANCEL | MB_ICONWARNING | MB_SYSTEMMODAL)
 
-	if timeoutSeconds > 0 && messageBoxTimeoutW.Find() == nil {
-		ms := uintptr(timeoutSeconds * 1000)
-		_, _, _ = messageBoxTimeoutW.Call(0, uintptr(unsafe.Pointer(bodyPtr)), uintptr(unsafe.Pointer(titlePtr)), flags, 0, ms)
-	} else {
-		_, _, _ = messageBoxW.Call(0, uintptr(unsafe.Pointer(bodyPtr)), uintptr(unsafe.Pointer(titlePtr)), flags)
-	}
+	_, _, _ = messageBoxW.Call(0, uintptr(unsafe.Pointer(bodyPtr)), uintptr(unsafe.Pointer(titlePtr)), flags)
+}
+
+// ShowBlockPopupWithTimeout is kept for backward compatibility; it delegates directly to ShowBlockPopup
+// waiting indefinitely until the user dismisses or cancels it.
+func ShowBlockPopupWithTimeout(rep *BlockReport, _ int) {
+	ShowBlockPopup(rep)
 }
 
 // FormatPopupBody creates the text displayed inside the native Windows MessageBox.

@@ -217,6 +217,7 @@ func handleDefenderCheck(args []string) {
 
 	if testPopup {
 		fmt.Println("Triggering simulated Windows Defender / Antivirus block modal alert...")
+		fmt.Println("Waiting for user acknowledgement / cancellation in pop-up dialog...")
 		testRep := &defender.BlockReport{
 			Blocked:         true,
 			Component:       "vibeguard-scanner.exe (Simulation Test)",
@@ -230,7 +231,7 @@ func handleDefenderCheck(args []string) {
 			},
 		}
 		defender.ShowBlockPopup(testRep)
-		fmt.Println("[OK] Modal pop-up dispatched. Check your screen.")
+		fmt.Println("[OK] Modal pop-up dialog closed by user.")
 	} else {
 		fmt.Println("Tip: Run 'vibeguard defender-check --test-popup' to test the modal alert window.")
 	}
