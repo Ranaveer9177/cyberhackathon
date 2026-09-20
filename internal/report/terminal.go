@@ -160,7 +160,7 @@ func PrintTerminalReport(r *Report) {
 	if r.SuppressedCount > 0 {
 		fmt.Printf("Suppressed:    %d (via baseline)\n", r.SuppressedCount)
 	}
-	if r.OSVMode != "" {
+	if r.OSVMode != "" && r.OSVMode != "online" {
 		fmt.Printf("OSV Intel:     %s\n", r.OSVMode)
 	}
 
