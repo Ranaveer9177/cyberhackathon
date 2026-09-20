@@ -32,6 +32,10 @@ func ShowBlockPopup(rep *BlockReport) {
 	PrintTerminalAlert(rep)
 }
 
+func ShowBlockPopupWithTimeout(rep *BlockReport, timeoutSeconds int) {
+	ShowBlockPopup(rep)
+}
+
 func FormatPopupBody(rep *BlockReport) string {
 	return fmt.Sprintf("Blocked Component: %s\nReason: %s", rep.Component, rep.Reason)
 }

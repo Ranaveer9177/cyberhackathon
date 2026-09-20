@@ -93,6 +93,15 @@ if %GATE_EXIT% equ 1 (
     exit /b 1
 )
 
+:: Check 7: Windows Defender & Antivirus diagnostic
+call "%CLI_BIN%" defender-check >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    echo [PASS] Defender diagnostic
+) else (
+    echo [FAIL] Defender diagnostic failed: exit code %ERRORLEVEL%
+    exit /b 1
+)
+
 echo.
 echo ========================================
 echo        ALL TESTS PASSED

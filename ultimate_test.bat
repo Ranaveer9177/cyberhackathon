@@ -4,7 +4,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 set "ROOT=%~dp0"
 cd /d "%ROOT%"
 
-set /a TOTAL=7
+set /a TOTAL=8
 set /a PASSED=0
 set /a FAILED=0
 
@@ -21,6 +21,7 @@ call :run_step 4 "Rust format check" "cargo fmt --manifest-path scanner\Cargo.to
 call :run_step 5 "Rust Clippy" "cargo clippy --manifest-path scanner\Cargo.toml --all-targets --all-features -- -D warnings"
 call :run_step 6 "Source build" ""
 call :run_step 7 "CLI health test" ""
+call :run_step 8 "Windows Defender & pop-up verification" ""
 
 set /a PERCENT=PASSED*100/TOTAL
 echo.
@@ -50,6 +51,9 @@ if "!STEP!"=="6" (
     call "%ROOT%scripts\windows\build.bat"
 ) else if "!STEP!"=="7" (
     call "%ROOT%scripts\windows\run_test.bat"
+) else if "!STEP!"=="8" (
+    call "%ROOT%vibeguard.exe" defender-check
+    call "%ROOT%vibeguard.exe" defender-check --test-popup
 ) else (
     cmd /d /c "!COMMAND!"
 )
