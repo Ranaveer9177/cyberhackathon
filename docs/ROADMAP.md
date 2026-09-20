@@ -22,6 +22,7 @@
 - [x] **v4.1 — Strict Workspace Isolation**: Relocated all vulnerable fixtures to external `VibeGuard-test` workspace, inlined mocks in tests to ensure clean 100/100 self-scan.
 - [x] **v4.2 — Standalone CLI Parity & Test Harness**: Rust scanner `--help`/`--version` CLI parity, baseline validation error handling (`VG-E007`), Git hook E2E test suite, `scripts/windows/` reorganization, and `ultimate_test.bat`.
 - [x] **v4.4 — Context-Aware Secret Detection & Confidence Scoring**: Sensitive filename detection (`VG-SECRET-FILE`), credential assignment detection (`VG-SECRET-001`), 10-factor mathematical confidence scoring (+30 to -40), evidence masking (`password=********`), and confidence-aware pre-push gate policy.
+- [x] **v4.5 — Windows Defender & Antivirus Interception Detection**: Interception heuristics for Win32 errors (225 / 5 / 0xC0000022), active AV identification via WMI, native Windows modal pop-up alerts (`MessageBoxW`), CLI diagnostic command (`vibeguard defender-check`), and executive dark theme HTML reporting with PDF export.
 
 
 ---

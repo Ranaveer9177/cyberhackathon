@@ -1,4 +1,4 @@
-# VibeGuard v4.4.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
+# VibeGuard v4.5.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
 
 > **The Autonomous Pre-Push Security Firewall for Engineering Teams**  
 > *"Make security verification an automatic, non-negotiable step before code ever leaves your machine."*
@@ -7,9 +7,11 @@
 
 ## Overview
 
-**VibeGuard v4.4.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST), vulnerable third-party dependencies (SCA via Google OSV), Dockerfile misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
+**VibeGuard v4.5.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST), vulnerable third-party dependencies (SCA via Google OSV), Dockerfile misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
 
 VibeGuard operates directly in developer terminal workflows and CI/CD pipelines:
+- **Windows Defender & Antivirus Interception Detection (v4.5)**: Detects when Windows Defender, SmartScreen, or 3rd-party EDR/AV solutions block, quarantine, or deny execution (`ERROR_VIRUS_INFECTED` / `ERROR_ACCESS_DENIED` / `0x800700E1` / `0xC0000022`), immediately launches a native Windows modal pop-up alert (`MessageBoxW`), explains what blocked it, and provides remediation steps.
+- **Dedicated Diagnostic Command (`vibeguard defender-check`)**: Queries Windows Security Center via WMI (`root\SecurityCenter2`) to report the active antivirus software, scanner accessibility, recommended exclusions, and allows interactive alert testing with `--test-popup`.
 - **Context-Aware Secret & Credential Detection (v4.4)**: Advanced multi-factor scoring model (+30 filename, +25 key, +20 assignment, +15 non-placeholder value, +10 entropy/symbols, +10 source/config file) with intelligent penalty suppression (-30 documentation, -25 obvious placeholder, -20 comments/examples, -40 test fixtures). Distinguishes genuine credential leaks from benign examples and documentation.
 - **Sensitive Filename Auditing (`VG-SECRET-FILE`)**: Flags credential-bearing files (`password.txt`, `passwords.txt`, `credentials.txt`, `credential.txt`, `secret.txt`, `secrets.txt`) at `HIGH` severity.
 - **Credential Assignment Auditing (`VG-SECRET-001`)**: Identifies direct hardcoded assignments (`password=...`, `passwd=...`, `pwd=...`, `db_password=...`, `api_key=...`, `secret=...`) with comprehensive evidence masking (`password=********`).
@@ -284,7 +286,17 @@ Performs security verification on any path.
 .\vibeguard.exe report ..\VibeGuard-test\test-project --format json
 ```
 
-### 6. `vibeguard uninstall` — Remove Git Pre-Push Hook
+### 6. `vibeguard defender-check` — Antivirus & Windows Defender Diagnostic (v4.5)
+Inspects active security products, scanner accessibility, and tests pop-up alert dialogs.
+```powershell
+# Check active security product and scanner accessibility
+vibeguard defender-check
+
+# Test the native Windows modal alert pop-up window
+vibeguard defender-check --test-popup
+```
+
+### 7. `vibeguard uninstall` — Remove Git Pre-Push Hook
 Cleanly removes the VibeGuard pre-push hook and restores any previous user hook backup.
 ```powershell
 .\vibeguard.exe uninstall

@@ -2,7 +2,27 @@
 
 All notable changes to the VibeGuard project are documented in this file.
 
-## [v4.4.0] — 2026-09-20 (Current Release)
+## [v4.5.0] — 2026-09-20 (Current Release)
+
+### Added & Enhanced
+- **Windows Defender & Antivirus Interception Detection (`internal/defender`)**:
+  - Automatically identifies when VibeGuard or its scanner binaries are blocked, quarantined, or intercepted by security software.
+  - Detects Win32 error signatures:
+    - Error `225` (`0x800700E1` / `ERROR_VIRUS_INFECTED`): "Operation did not complete successfully because the file contains a virus or potentially unwanted software".
+    - Error `5` (`ERROR_ACCESS_DENIED`): Process execution denied by Windows Defender, SmartScreen, or Controlled Folder Access.
+    - NTSTATUS `0xC0000005` (Access Violation), `0xC0000022` (Access Denied), exit status `1392`, `1260`.
+- **Native Windows Pop-up Notification Dialog**:
+  - Automatically raises a native `MessageBoxW` system modal dialog (`user32.dll`) over terminal or IDE windows showing **what blocked VibeGuard**, the component intercepted, and step-by-step remediation instructions.
+  - Automatically skips the GUI modal in headless CI/CD environments (`VIBEGUARD_NON_INTERACTIVE=1`), while logging complete diagnostic output to `os.Stderr`.
+- **Antivirus & Security Software Discovery**:
+  - Queries Windows Security Center via WMI (`root\SecurityCenter2\AntiVirusProduct`) to report the exact active antivirus product (e.g. *Microsoft Defender Antivirus*, *CrowdStrike*, *Bitdefender*, etc.).
+- **Diagnostic Command (`vibeguard defender-check`)**:
+  - Added CLI command to inspect active security software, scanner binary accessibility, and test the native modal pop-up alert (`--test-popup`).
+- **Dark Theme HTML Security Report**:
+  - Executive cybersecurity dark theme (`#0b0f19` canvas, `#0f172a` slate container, glowing translucent cards, pitch-black masked evidence boxes).
+  - Print-to-PDF export preserving the complete dark dashboard styling without white washout.
+
+## [v4.4.0] — 2026-09-20
 
 ### Added & Enhanced
 - **Sensitive Filename Auditing (`VG-SECRET-FILE`)**:

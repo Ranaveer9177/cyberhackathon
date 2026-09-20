@@ -17,11 +17,12 @@ import (
 	"github.com/vibeguard/vibeguard/internal/git"
 	"github.com/vibeguard/vibeguard/internal/osv"
 	"github.com/vibeguard/vibeguard/internal/report"
+	"github.com/vibeguard/vibeguard/internal/defender"
 	"github.com/vibeguard/vibeguard/internal/risk"
 	"github.com/vibeguard/vibeguard/internal/scanner"
 )
 
-const version = "4.4.0"
+const version = "4.5.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -94,6 +95,10 @@ func main() {
 		exitCode := runScan(projectPath, format, outputPath, isHook)
 		os.Exit(exitCode)
 
+	case "defender-check", "check-av", "check-defender":
+		handleDefenderCheck(os.Args[2:])
+		os.Exit(0)
+
 	case "version", "--version", "-v":
 		fmt.Printf("VibeGuard v%s\n", version)
 		os.Exit(0)
@@ -159,6 +164,7 @@ func printUsage() {
 	fmt.Println("  vibeguard push [<repo-path>]                     Controlled commit + scan + push interactive workflow")
 	fmt.Println("  vibeguard scan [<project-path>] [options]        Run security scan")
 	fmt.Println("  vibeguard report [<project-path>] [options]      Generate HTML/JSON security report")
+	fmt.Println("  vibeguard defender-check [--test-popup]          Inspect Windows Defender / Antivirus status & test pop-up")
 	fmt.Println("  vibeguard version                                Show VibeGuard version")
 	fmt.Println("  vibeguard help                                   Show this help message")
 	fmt.Println()
@@ -174,6 +180,61 @@ func printUsage() {
 	fmt.Println("  2  ERROR — Scanner or runtime error")
 	fmt.Println("  3  CONFIG / FORMAT ERROR — Unsupported format or configuration error")
 	fmt.Println("  4  OSV UNAVAILABLE — Vulnerability intelligence unreachable with fail_closed enabled")
+}
+
+func handleDefenderCheck(args []string) {
+	fmt.Println("============================================================")
+	fmt.Printf("   VIBEGUARD v%s — SECURITY SOFTWARE & DEFENDER DIAGNOSTIC\n", version)
+	fmt.Println("============================================================")
+
+	blocker := defender.DetectActiveSecuritySoftware()
+	fmt.Printf("Active Security Product : %s\n", blocker)
+
+	homeDir := defender.GetVibeGuardHomeDir()
+	fmt.Printf("VibeGuard Installation  : %s\n", homeDir)
+
+	scannerPath, found := scanner.FindScannerExecutable()
+	if found {
+		fmt.Printf("Rust Scanner Engine     : %s [ACCESSIBLE]\n", scannerPath)
+	} else {
+		fmt.Printf("Rust Scanner Engine     : NOT FOUND (or quarantined by %s)\n", blocker)
+		fmt.Println("                          VibeGuard will fallback to its internal Go scanner.")
+	}
+
+	fmt.Printf("Headless / Non-Interactive: %v\n", defender.IsNonInteractive())
+	fmt.Println("------------------------------------------------------------")
+	fmt.Println("Recommended Antivirus Exclusion:")
+	fmt.Printf("  Folder: %s\n", homeDir)
+	fmt.Println("------------------------------------------------------------")
+
+	testPopup := false
+	for _, arg := range args {
+		if arg == "--test-popup" || arg == "-t" {
+			testPopup = true
+			break
+		}
+	}
+
+	if testPopup {
+		fmt.Println("Triggering simulated Windows Defender / Antivirus block modal alert...")
+		testRep := &defender.BlockReport{
+			Blocked:         true,
+			Component:       "vibeguard-scanner.exe (Simulation Test)",
+			DetectedBlocker: blocker,
+			Reason:          "Simulated security block test requested via --test-popup flag.",
+			Details:         "User executed 'vibeguard defender-check --test-popup' to verify the pop-up alert dialog.",
+			Remediation: []string{
+				"Open Windows Security -> Virus & threat protection -> Protection history.",
+				"Locate the blocked entry and select 'Actions' -> 'Allow on device'.",
+				"Add an exclusion folder for:\n   " + homeDir,
+			},
+		}
+		defender.ShowBlockPopup(testRep)
+		fmt.Println("[OK] Modal pop-up dispatched. Check your screen.")
+	} else {
+		fmt.Println("Tip: Run 'vibeguard defender-check --test-popup' to test the modal alert window.")
+	}
+	fmt.Println("============================================================")
 }
 
 // handleInit: installs hook, creates default config, preserves existing user hook
