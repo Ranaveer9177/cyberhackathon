@@ -13,9 +13,10 @@ go test -v ./...
 ```
 
 ### Passing Packages:
-- `cmd/vibeguard`: CLI input validation, version (`v4.4.0`), format parsing, and exit codes.
+- `cmd/vibeguard`: CLI input validation, version (`v4.6.0`), format parsing, and exit codes.
 - `internal/baseline`: Baseline loading, suppression matching, expiration, and corrupt file fail-closed logic.
 - `internal/config`: Default configuration loading, JSON validation, and exclusion path matching.
+- `internal/defender`: Windows Defender & AV detection, WMI product queries, Win32 error analysis, and pop-up modal logic.
 - `internal/dependencies`: Manifest parsing (Go, npm, Python, Cargo) and exclusion filtering.
 - `internal/errors`: Structured machine-readable error codes (`VG-E001` through `VG-E008`).
 - `internal/gate`: Policy threshold evaluation and exit code mapping.
@@ -23,7 +24,7 @@ go test -v ./...
 - `internal/osv`: Google OSV API client, persistent SHA-256 disk cache (`.vibeguard/cache/osv/`), and offline mode.
 - `internal/report`: JSON, HTML (with contextual escaping), SARIF 2.1.0 report generation, and terminal formatting.
 - `internal/risk`: Deterministic mathematical risk scoring calculations.
-- `internal/scanner`: Dual-engine scanner execution, finding deduplication, exclusion skipping, and v4.4 context-aware secret & filename detection tests (`secrets_test.go`).
+- `internal/scanner`: Dual-engine scanner execution, finding deduplication, exclusion skipping, and context-aware secret & filename detection tests (`secrets_test.go`).
 - `tests/integration`: End-to-end integration workflows.
 
 ### Rust Scanner Tests (`scanner/`):
@@ -87,13 +88,16 @@ scripts\windows\run_test.bat
   - `[PASS] Test project scan`
   - `[PASS] Report generation`
   - `[PASS] Security gate`
-  - All 6 tests pass with exit code `0`.
+  - `[PASS] Defender diagnostic`
+  - All 7 tests pass with exit code `0`.
 
-### 3.5 Complete Repository Test Runner (`ultimate_test.bat`)
+### 3.5 Complete Repository Test Runner (`ultimate_test.bat` v4.6.0)
 ```cmd
 .\ultimate_test.bat
+# Or with native modal alert simulation:
+.\ultimate_test.bat --test-popup
 ```
-- **Expected Result**: Executes all 7 verification steps (Go packages, Go vet, Rust tests, Rust fmt, Rust Clippy, Source build, CLI health test) and reports the actual `Passed/Failed` percentage. A complete pass is `Passed: 7/7`, while a missing Windows linker may leave the source-build step failed.
+- **Expected Result**: Executes the 8-stage weighted evaluation engine (Go package tests: 15 pts, Go vet: 10 pts, Rust tests: 15 pts, Rust format check: 5 pts, Rust Clippy: 10 pts, Source build: 20 pts, CLI health test: 15 pts, Windows Defender verification: 10 pts). Reports sub-second stopwatch timing for each stage, detailed package/test metrics, and final summary (**Score: 100/100, Minimum: 90/100, Result: PASS**).
 
 ### 3.6 Fail-Closed & Multi-Ref Verification
 - **Fail-Closed Test**: Rename local/global `vibeguard.exe` and invoke `git push`; pre-push hook immediately prints `[SECURITY BLOCKED]` and returns exit code `1`.

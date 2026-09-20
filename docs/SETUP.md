@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary
 
-VibeGuard v4.4.0 installs as a native, self-locating global CLI utility on Windows. Running `scripts\windows\setup.bat` configures the tool into `%LOCALAPPDATA%\VibeGuard` and idempotently registers the directory into the Current User's `PATH`.
+VibeGuard v4.6.0 installs as a native, self-locating global CLI utility on Windows. Running `scripts\windows\setup.bat` configures the tool into `%LOCALAPPDATA%\VibeGuard` and idempotently registers the directory into the Current User's `PATH`.
 
 Once installed:
 - `vibeguard` runs from **ANY** CMD or PowerShell directory without typing `.\` or running from the repository root.
@@ -92,8 +92,9 @@ To prevent untrusted repositories from spoofing the security scanner (Section 19
 
 | Script | Purpose | Prerequisites |
 | :--- | :--- | :--- |
+| `ultimate_test.bat` | 8-stage weighted test engine: validates packages, vet, rust tests, formatting, Clippy, compilation, CLI health, and Windows Defender. | Source code |
 | `setup.bat` | One-step global installation of prebuilt binaries into `%LOCALAPPDATA%\VibeGuard`, User `PATH` configuration, and Git hook init. | None (No Go/Rust needed) |
-| `run_test.bat` | Comprehensive health check suite: verifies CLI, Scanner, Version, Test Project Scan, Report Generation, and Security Gate. | Prebuilt binaries or source build |
+| `run_test.bat` | Comprehensive health check suite: verifies CLI, Scanner, Version, Test Project Scan, Report Generation, Security Gate, and Defender. | Prebuilt binaries or source build |
 | `scripts\windows\build.bat` | Mode B developer script: verifies Go and Rust, reports linker availability, compiles release binaries, and copies to `%LOCALAPPDATA%\VibeGuard`. | Go 1.21+, Rust 1.70+, compatible Windows linker/toolchain |
 | `install_hook.bat` | Wrapper to install `.git/hooks/pre-push` security gate into current repository. | Installed VibeGuard |
 | `uninstall_hook.bat`| Cleanly removes `.git/hooks/pre-push` security gate. | None |
