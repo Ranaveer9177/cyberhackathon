@@ -84,9 +84,9 @@ scripts\windows\run_test.bat
 
 ### 3.5 Complete Repository Test Runner (`ultimate_test.bat`)
 ```cmd
-ultimate_test.bat
+.\ultimate_test.bat
 ```
-- **Expected Result**: Executes all 7 verification steps (Go packages, Go vet, Rust tests, Rust fmt, Rust Clippy, Source build, CLI health test) and outputs `Passed: 7/7 (100%), Result: PASS`.
+- **Expected Result**: Executes all 7 verification steps (Go packages, Go vet, Rust tests, Rust fmt, Rust Clippy, Source build, CLI health test) and reports the actual `Passed/Failed` percentage. A complete pass is `Passed: 7/7`, while a missing Windows linker may leave the source-build step failed.
 
 ### 3.6 Fail-Closed & Multi-Ref Verification
 - **Fail-Closed Test**: Rename local/global `vibeguard.exe` and invoke `git push`; pre-push hook immediately prints `[SECURITY BLOCKED]` and returns exit code `1`.
@@ -95,5 +95,4 @@ ultimate_test.bat
 ### 3.7 False-Positive Elimination & Clean Terminal Verification
 - **Doc & Coverage Test**: Scan projects containing `README.md` code snippets, `htmlcov/`, virtual environments (`venv/`), or PowerShell scripts (`start.ps1`); verify 0 false-positive findings.
 - **Grouped Dependency Output**: Verify that packages with multiple advisories (e.g. Django or cryptography) are rendered in a clean table row rather than hundreds of lines of duplicated findings.
-
 

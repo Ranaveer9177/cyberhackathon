@@ -94,7 +94,7 @@ To prevent untrusted repositories from spoofing the security scanner (Section 19
 | :--- | :--- | :--- |
 | `setup.bat` | One-step global installation of prebuilt binaries into `%LOCALAPPDATA%\VibeGuard`, User `PATH` configuration, and Git hook init. | None (No Go/Rust needed) |
 | `run_test.bat` | Comprehensive health check suite: verifies CLI, Scanner, Version, Test Project Scan, Report Generation, and Security Gate. | Prebuilt binaries or source build |
-| `build.bat` | Mode B developer script: verifies Go, Rust, and MSVC `link.exe`, compiles release binaries, and copies to `%LOCALAPPDATA%\VibeGuard`. | Go 1.21+, Rust 1.70+, MSVC linker |
+| `scripts\windows\build.bat` | Mode B developer script: verifies Go and Rust, reports linker availability, compiles release binaries, and copies to `%LOCALAPPDATA%\VibeGuard`. | Go 1.21+, Rust 1.70+, compatible Windows linker/toolchain |
 | `install_hook.bat` | Wrapper to install `.git/hooks/pre-push` security gate into current repository. | Installed VibeGuard |
 | `uninstall_hook.bat`| Cleanly removes `.git/hooks/pre-push` security gate. | None |
 
@@ -113,7 +113,7 @@ To prevent untrusted repositories from spoofing the security scanner (Section 19
 - [x] `vibeguard scan <target>` scans target independently of VibeGuard install folder.
 - [x] Scanner binary path is independent of current working directory.
 - [x] Pre-push hook uses trusted `%LOCALAPPDATA%\VibeGuard` binary.
-- [x] `build.bat` checks Go, Rust, and MSVC `link.exe` with clear guidance.
+- [x] `scripts\windows\build.bat` checks Go and Rust and reports `link.exe` availability with clear guidance.
 - [x] `build.bat` executes Go build from repository root, not `scanner\`.
 - [x] Prebuilt release mode requires no compilers.
 - [x] `run_test.bat` passes all 6 validation checks.

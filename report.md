@@ -10,6 +10,12 @@
 
 ## 1. Overall Rating
 
+> **Report maintenance note:** This is the canonical cumulative test report.
+> Historical version results remain preserved below. New test evidence and
+> version summaries should be added here rather than creating separate report
+> files in the source repository. Detailed fixtures, generated outputs, and
+> version-specific evidence belong in the external `VibeGuard-test` workspace.
+
 | Area | Rating |
 |---|---:|
 | Core functionality | 8.5/10 |
@@ -192,7 +198,7 @@ cargo fmt --manifest-path scanner\Cargo.toml -- --check
 Command:
 
 ```cmd
-C:\Users\ranua\Music\cyberhackathon\run_test.bat
+C:\Users\ranua\Music\cyberhackathon\scripts\windows\run_test.bat
 ```
 
 Result: **PASS**
@@ -275,7 +281,7 @@ Exit Code: 0
 Command:
 
 ```powershell
-.\vibeguard.exe scan .\test-project
+.\vibeguard.exe scan ..\VibeGuard-test\test-project
 ```
 
 Result: **PASS — Correctly Blocked**
@@ -314,7 +320,7 @@ Detected problems included:
 Command:
 
 ```powershell
-.\vibeguard.exe scan .\test-project --format json --output report.json
+.\vibeguard.exe scan ..\VibeGuard-test\test-project --format json --output report.json
 ```
 
 Result: **PASS**
@@ -338,7 +344,7 @@ The generated JSON includes:
 Command:
 
 ```powershell
-.\vibeguard.exe report .\test-project --format html --output report.html
+.\vibeguard.exe report ..\VibeGuard-test\test-project --format html --output report.html
 ```
 
 Result: **PASS**
@@ -595,7 +601,7 @@ The default configuration excludes:
 ```text
 tests
 reports
-md files
+docs
 rules
 .vibeguard
 ```
@@ -710,7 +716,7 @@ Functional checks:
 
 ```powershell
 .\vibeguard.exe scan .\scanner\src --format json --output clean.json
-.\vibeguard.exe scan .\test-project --format json --output vulnerable.json
+.\vibeguard.exe scan ..\VibeGuard-test\test-project --format json --output vulnerable.json
 ```
 
 Expected exit codes:

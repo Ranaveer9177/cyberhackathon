@@ -407,15 +407,9 @@ VibeGuard is configured via `.vibeguard/config.json` at the root of your project
     ".git",
     ".vibeguard",
     "reports",
-    "md files",
     "tests",
     "VibeGuard-test",
-    "code.md",
-    "finalreport.md",
-    "output.md",
-    "output2.md",
-    "test output.md",
-    "test3.md"
+    "docs"
   ]
 }
 ```
