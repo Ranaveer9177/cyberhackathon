@@ -16,40 +16,49 @@ const htmlTemplateStr = `<!DOCTYPE html>
     <title>VibeGuard Security Report — {{.ProjectName}}</title>
     <style>
         :root {
-            --bg-primary: #0f172a;
-            --bg-surface: #ffffff;
-            --bg-muted: #f8fafc;
-            --text-primary: #0f172a;
-            --text-secondary: #475569;
-            --text-muted: #94a3b8;
-            --border-color: #e2e8f0;
-            --critical-bg: #fef2f2;
-            --critical-border: #fca5a5;
-            --critical-text: #dc2626;
-            --high-bg: #fff7ed;
-            --high-border: #fdba74;
-            --high-text: #ea580c;
-            --medium-bg: #fffbeb;
-            --medium-border: #fcd34d;
-            --medium-text: #d97706;
-            --low-bg: #f0f9ff;
-            --low-border: #bae6fd;
-            --low-text: #0284c7;
-            --info-bg: #f8fafc;
-            --info-border: #cbd5e1;
-            --info-text: #475569;
-            --passed-bg: #ecfdf5;
-            --passed-border: #6ee7b7;
-            --passed-text: #059669;
-            --blocked-bg: #fff1f2;
-            --blocked-border: #fda4af;
-            --blocked-text: #e11d48;
+            --bg-page: #0b0f19;
+            --bg-surface: #0f172a;
+            --bg-card: #1e293b;
+            --bg-muted: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #334155;
+            --border-subtle: #1e293b;
+
+            --critical-bg: rgba(239, 68, 68, 0.12);
+            --critical-border: rgba(239, 68, 68, 0.35);
+            --critical-text: #f87171;
+
+            --high-bg: rgba(249, 115, 22, 0.12);
+            --high-border: rgba(249, 115, 22, 0.35);
+            --high-text: #fb923c;
+
+            --medium-bg: rgba(245, 158, 11, 0.12);
+            --medium-border: rgba(245, 158, 11, 0.35);
+            --medium-text: #fbbf24;
+
+            --low-bg: rgba(14, 165, 233, 0.12);
+            --low-border: rgba(14, 165, 233, 0.35);
+            --low-text: #38bdf8;
+
+            --info-bg: rgba(148, 163, 184, 0.12);
+            --info-border: rgba(148, 163, 184, 0.35);
+            --info-text: #cbd5e1;
+
+            --passed-bg: rgba(16, 185, 129, 0.12);
+            --passed-border: rgba(16, 185, 129, 0.4);
+            --passed-text: #34d399;
+
+            --blocked-bg: rgba(239, 68, 68, 0.12);
+            --blocked-border: rgba(239, 68, 68, 0.4);
+            --blocked-text: #f87171;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #f1f5f9;
+            background-color: var(--bg-page);
             color: var(--text-primary);
             line-height: 1.5;
             padding: 24px 16px;
@@ -60,14 +69,14 @@ const htmlTemplateStr = `<!DOCTYPE html>
             margin: 0 auto;
             background: var(--bg-surface);
             border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
             overflow: hidden;
             border: 1px solid var(--border-color);
         }
 
         /* Top Executive Header */
         .exec-header {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            background: linear-gradient(135deg, #070b14 0%, #0f172a 100%);
             color: #ffffff;
             padding: 28px 32px;
             display: flex;
@@ -75,6 +84,7 @@ const htmlTemplateStr = `<!DOCTYPE html>
             align-items: center;
             flex-wrap: wrap;
             gap: 20px;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .brand-section {
@@ -108,6 +118,7 @@ const htmlTemplateStr = `<!DOCTYPE html>
             display: flex;
             align-items: center;
             gap: 10px;
+            color: #ffffff;
         }
 
         .brand-text h1 .version-badge {
@@ -154,7 +165,7 @@ const htmlTemplateStr = `<!DOCTYPE html>
 
         /* Metadata Strip */
         .meta-strip {
-            background: #f8fafc;
+            background: #090d16;
             border-bottom: 1px solid var(--border-color);
             padding: 14px 32px;
             display: flex;
@@ -227,13 +238,13 @@ const htmlTemplateStr = `<!DOCTYPE html>
         }
 
         .posture-banner.passed .posture-icon {
-            background: #d1fae5;
-            color: #059669;
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
         }
 
         .posture-banner.blocked .posture-icon {
-            background: #ffe4e6;
-            color: #e11d48;
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
         }
 
         .posture-title {
@@ -252,11 +263,13 @@ const htmlTemplateStr = `<!DOCTYPE html>
             border-radius: 30px;
             font-size: 20px;
             font-weight: 800;
-            background: #ffffff;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            background: #1e293b;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
             display: flex;
             align-items: center;
             gap: 6px;
+            color: var(--text-primary);
         }
 
         /* Severity Cards Grid */
@@ -278,11 +291,11 @@ const htmlTemplateStr = `<!DOCTYPE html>
 
         .sev-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
         }
 
         .sev-card.active {
-            outline: 2px solid #2563eb;
+            outline: 2px solid #3b82f6;
             outline-offset: 2px;
         }
 
@@ -330,10 +343,11 @@ const htmlTemplateStr = `<!DOCTYPE html>
         .badge-count {
             font-size: 12px;
             font-weight: 600;
-            background: #e2e8f0;
-            color: var(--text-secondary);
+            background: #1e293b;
+            color: #cbd5e1;
             padding: 2px 8px;
             border-radius: 10px;
+            border: 1px solid var(--border-color);
         }
 
         .search-box {
@@ -345,6 +359,8 @@ const htmlTemplateStr = `<!DOCTYPE html>
             width: 100%;
             padding: 8px 14px 8px 34px;
             font-size: 13px;
+            background: #1e293b;
+            color: var(--text-primary);
             border: 1px solid var(--border-color);
             border-radius: 6px;
             outline: none;
@@ -352,8 +368,8 @@ const htmlTemplateStr = `<!DOCTYPE html>
         }
 
         .search-box input:focus {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
 
         .search-box svg {
@@ -372,6 +388,7 @@ const htmlTemplateStr = `<!DOCTYPE html>
             border: 1px solid var(--border-color);
             border-radius: 8px;
             margin-bottom: 36px;
+            background: var(--bg-surface);
         }
 
         table {
@@ -382,7 +399,7 @@ const htmlTemplateStr = `<!DOCTYPE html>
         }
 
         th {
-            background: #f8fafc;
+            background: #1e293b;
             color: var(--text-secondary);
             font-weight: 700;
             font-size: 12px;
@@ -394,8 +411,9 @@ const htmlTemplateStr = `<!DOCTYPE html>
 
         td {
             padding: 14px 16px;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-subtle);
             vertical-align: top;
+            color: #cbd5e1;
         }
 
         tr:last-child td {
@@ -403,7 +421,7 @@ const htmlTemplateStr = `<!DOCTYPE html>
         }
 
         tr:hover td {
-            background-color: #f8fafc;
+            background-color: rgba(30, 41, 59, 0.5);
         }
 
         /* Badges */
@@ -418,25 +436,26 @@ const htmlTemplateStr = `<!DOCTYPE html>
             white-space: nowrap;
         }
 
-        .pill.critical { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; }
-        .pill.high     { background: #ffedd5; color: #ea580c; border: 1px solid #fdba74; }
-        .pill.medium   { background: #fef3c7; color: #d97706; border: 1px solid #fcd34d; }
-        .pill.low      { background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; }
-        .pill.info     { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+        .pill.critical { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }
+        .pill.high     { background: rgba(249, 115, 22, 0.2); color: #fdba74; border: 1px solid rgba(249, 115, 22, 0.4); }
+        .pill.medium   { background: rgba(245, 158, 11, 0.2); color: #fde047; border: 1px solid rgba(245, 158, 11, 0.4); }
+        .pill.low      { background: rgba(14, 165, 233, 0.2); color: #7dd3fc; border: 1px solid rgba(14, 165, 233, 0.4); }
+        .pill.info     { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.4); }
 
         .cat-tag {
             font-size: 11px;
             color: var(--text-secondary);
-            background: #e2e8f0;
+            background: #1e293b;
             padding: 2px 6px;
             border-radius: 4px;
             font-weight: 500;
+            border: 1px solid var(--border-color);
         }
 
         .file-location {
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
             font-size: 12px;
-            color: #0f172a;
+            color: #f1f5f9;
             font-weight: 600;
             word-break: break-all;
         }
@@ -444,18 +463,19 @@ const htmlTemplateStr = `<!DOCTYPE html>
         .evidence-box {
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
             font-size: 12px;
-            background: #1e293b;
+            background: #030712;
             color: #38bdf8;
             padding: 6px 10px;
             border-radius: 6px;
             margin-top: 6px;
             display: inline-block;
             word-break: break-all;
+            border: 1px solid #1e293b;
         }
 
         .rec-box {
             margin-top: 4px;
-            color: #059669;
+            color: #34d399;
             font-size: 12px;
             display: flex;
             align-items: flex-start;
@@ -465,7 +485,7 @@ const htmlTemplateStr = `<!DOCTYPE html>
         .rec-box svg {
             width: 14px;
             height: 14px;
-            fill: #059669;
+            fill: #34d399;
             flex-shrink: 0;
             margin-top: 2px;
         }
@@ -473,8 +493,9 @@ const htmlTemplateStr = `<!DOCTYPE html>
         .empty-state {
             padding: 36px 20px;
             text-align: center;
-            color: #059669;
-            background: #ecfdf5;
+            color: #34d399;
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px dashed rgba(16, 185, 129, 0.3);
             border-radius: 8px;
             font-weight: 600;
             font-size: 14px;
@@ -483,7 +504,7 @@ const htmlTemplateStr = `<!DOCTYPE html>
         /* Footer */
         .report-footer {
             padding: 20px 32px;
-            background: #f8fafc;
+            background: #090d16;
             border-top: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
@@ -491,7 +512,7 @@ const htmlTemplateStr = `<!DOCTYPE html>
             flex-wrap: wrap;
             gap: 12px;
             font-size: 12px;
-            color: var(--text-secondary);
+            color: var(--text-muted);
         }
 
         /* Print / PDF Styling */
@@ -502,19 +523,22 @@ const htmlTemplateStr = `<!DOCTYPE html>
             }
 
             body {
-                background: #ffffff !important;
+                background: #0b0f19 !important;
                 padding: 0 !important;
-                color: #000000 !important;
+                color: #f8fafc !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
 
             .report-wrapper {
+                background: #0f172a !important;
                 box-shadow: none !important;
-                border: none !important;
+                border: 1px solid #334155 !important;
                 max-width: 100% !important;
             }
 
             .exec-header {
-                background: #0f172a !important;
+                background: #070b14 !important;
                 color: #ffffff !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
@@ -533,7 +557,6 @@ const htmlTemplateStr = `<!DOCTYPE html>
 
             .sev-card {
                 padding: 10px !important;
-                border: 1px solid #ccc !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
@@ -544,7 +567,8 @@ const htmlTemplateStr = `<!DOCTYPE html>
 
             .table-responsive {
                 overflow: visible !important;
-                border: 1px solid #ddd !important;
+                border: 1px solid #334155 !important;
+                background: #0f172a !important;
             }
 
             table {
@@ -561,10 +585,24 @@ const htmlTemplateStr = `<!DOCTYPE html>
                 font-size: 11px !important;
             }
 
+            th {
+                background: #1e293b !important;
+                color: #94a3b8 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            td {
+                color: #cbd5e1 !important;
+                border-bottom: 1px solid #1e293b !important;
+            }
+
             .evidence-box {
-                background: #f1f5f9 !important;
-                color: #0f172a !important;
-                border: 1px solid #cbd5e1 !important;
+                background: #030712 !important;
+                color: #38bdf8 !important;
+                border: 1px solid #1e293b !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
         }
     </style>
@@ -642,7 +680,7 @@ const htmlTemplateStr = `<!DOCTYPE html>
                 </div>
                 <div class="score-pill">
                     <span>Score:</span>
-                    <span style="{{if eq .GateResult.Status "PASSED"}}color: #059669;{{else}}color: #e11d48;{{end}}">{{.ScoreResult.Score}}/100</span>
+                    <span style="{{if eq .GateResult.Status "PASSED"}}color: #34d399;{{else}}color: #f87171;{{end}}">{{.ScoreResult.Score}}/100</span>
                 </div>
             </div>
 
@@ -765,7 +803,7 @@ const htmlTemplateStr = `<!DOCTYPE html>
                                 <td style="font-weight: 700;">{{$pkg}}</td>
                                 <td><code>{{$ver}}</code></td>
                                 <td><span class="cat-tag">{{$eco}}</span></td>
-                                <td style="font-weight: 600; font-family: monospace; color: #2563eb;">{{.ID}}</td>
+                                <td style="font-weight: 600; font-family: monospace; color: #38bdf8;">{{.ID}}</td>
                                 <td>{{.Summary}}</td>
                             </tr>
                             {{end}}
