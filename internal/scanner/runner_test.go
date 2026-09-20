@@ -1,17 +1,43 @@
 package scanner
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 )
 
-func TestInternalScannerOnTestProject(t *testing.T) {
-	testProjDir, err := filepath.Abs("../../test-project")
-	if err != nil {
-		t.Fatalf("failed to resolve test-project path: %v", err)
+func TestInternalScannerOnEphemeralProject(t *testing.T) {
+	tempDir := t.TempDir()
+
+	mockAWS := string([]byte{'A', 'K', 'I', 'A'}) + "IOSFODNN7EXAMPLE"
+
+	// 1. Ephemeral Secret File (.env)
+	envPath := filepath.Join(tempDir, ".env")
+	if err := os.WriteFile(envPath, []byte(mockAWS+"\n"), 0644); err != nil {
+		t.Fatalf("failed to write ephemeral secret file: %v", err)
 	}
 
-	result, err := RunInternalScanner(testProjDir)
+	// 2. Ephemeral SAST Source File (query.go)
+	srcDir := filepath.Join(tempDir, "src")
+	if err := os.MkdirAll(srcDir, 0755); err != nil {
+		t.Fatalf("failed to create src dir: %v", err)
+	}
+	sqlStmt := "fmt.Sprintf(\"" + "SELECT * FROM items WHERE id = '%s'\", id)"
+	goCode := "package main\nimport \"fmt\"\nfunc search(id string) {\n\tquery := " + sqlStmt + "\n\t_ = query\n}\n"
+	if err := os.WriteFile(filepath.Join(srcDir, "query.go"), []byte(goCode), 0644); err != nil {
+		t.Fatalf("failed to write ephemeral go file: %v", err)
+	}
+
+	// 3. Ephemeral Dockerfile
+	dockerContent := `FROM alpine:latest
+ENV SECRET_KEY=1234567890
+CMD ["sh"]
+`
+	if err := os.WriteFile(filepath.Join(tempDir, "Dockerfile"), []byte(dockerContent), 0644); err != nil {
+		t.Fatalf("failed to write ephemeral Dockerfile: %v", err)
+	}
+
+	result, err := RunInternalScanner(tempDir)
 	if err != nil {
 		t.Fatalf("RunInternalScanner failed: %v", err)
 	}
@@ -21,7 +47,7 @@ func TestInternalScannerOnTestProject(t *testing.T) {
 	}
 
 	if len(result.Findings) == 0 {
-		t.Errorf("expected findings in vulnerable test-project, got 0")
+		t.Errorf("expected findings in ephemeral project, got 0")
 	}
 
 	foundSecret := false
@@ -41,31 +67,58 @@ func TestInternalScannerOnTestProject(t *testing.T) {
 	}
 
 	if !foundSecret {
-		t.Errorf("expected at least one secret finding in test-project")
+		t.Errorf("expected at least one secret finding in ephemeral project")
 	}
 	if !foundSQL {
-		t.Errorf("expected Potential SQL injection finding in test-project")
+		t.Errorf("expected Potential SQL injection finding in ephemeral project")
 	}
 	if !foundDocker {
-		t.Errorf("expected docker finding in test-project")
+		t.Errorf("expected docker finding in ephemeral project")
 	}
 }
 
 func TestInternalScannerExclusions(t *testing.T) {
-	root, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatalf("failed to get root: %v", err)
+	tempDir := t.TempDir()
+
+	// Create .vibeguard/config.json with exclusions
+	vgDir := filepath.Join(tempDir, ".vibeguard")
+	if err := os.MkdirAll(vgDir, 0755); err != nil {
+		t.Fatalf("failed to create .vibeguard dir: %v", err)
+	}
+	cfgJSON := `{
+  "secret_scan": true,
+  "source_scan": true,
+  "dependency_scan": false,
+  "exclude": ["excluded_dir", "secret.go"]
+}`
+	if err := os.WriteFile(filepath.Join(vgDir, "config.json"), []byte(cfgJSON), 0644); err != nil {
+		t.Fatalf("failed to write config: %v", err)
 	}
 
-	result, err := RunInternalScanner(root)
+	// Create excluded file containing a secret
+	excDir := filepath.Join(tempDir, "excluded_dir")
+	if err := os.MkdirAll(excDir, 0755); err != nil {
+		t.Fatalf("failed to create excluded dir: %v", err)
+	}
+	secretContent := "package main\nconst key = \"" + string([]byte{'A', 'K', 'I', 'A'}) + "IOSFODNN7EXAMPLE\"\n"
+	if err := os.WriteFile(filepath.Join(excDir, "secret.go"), []byte(secretContent), 0644); err != nil {
+		t.Fatalf("failed to write excluded file: %v", err)
+	}
+
+	// Create non-excluded file
+	if err := os.WriteFile(filepath.Join(tempDir, "safe.go"), []byte("package main\nfunc main() {}\n"), 0644); err != nil {
+		t.Fatalf("failed to write safe file: %v", err)
+	}
+
+	result, err := RunInternalScanner(tempDir)
 	if err != nil {
-		t.Fatalf("RunInternalScanner on root failed: %v", err)
+		t.Fatalf("RunInternalScanner failed: %v", err)
 	}
 
 	// Verify excluded files are not reported as findings
 	for _, f := range result.Findings {
-		if f.File == "tests/sast/vulnerable.go" {
-			t.Errorf("excluded test file %s was scanned and reported as finding", f.File)
+		if f.File == "excluded_dir/secret.go" {
+			t.Errorf("excluded file %s was scanned and reported as finding", f.File)
 		}
 	}
 }

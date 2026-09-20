@@ -31,17 +31,22 @@ type CategoryCounts struct {
 }
 
 type Report struct {
-	ProjectName    string
-	CommitHash     string
-	Branch         string
-	Remote         string
-	ScanTime       string
-	FilesScanned   int
-	Findings       []scanner.Finding
-	Dependencies   []osv.VulnResult
-	ScoreResult    risk.ScoreResult
-	GateResult     gate.GateResult
-	CategoryCounts CategoryCounts
+	ProjectName     string                `json:"project_name"`
+	CommitHash      string                `json:"commit_hash,omitempty"`
+	Branch          string                `json:"branch,omitempty"`
+	Remote          string                `json:"remote,omitempty"`
+	ScanTime        string                `json:"scan_time"`
+	FilesScanned    int                   `json:"files_scanned"`
+	FilesSkipped    int                   `json:"files_skipped,omitempty"`
+	ExcludedFiles   int                   `json:"excluded_files,omitempty"`
+	SuppressedCount int                   `json:"suppressed_count,omitempty"`
+	OSVMode         string                `json:"osv_mode,omitempty"`
+	ScanWarnings    []scanner.ScanWarning `json:"scan_warnings,omitempty"`
+	Findings        []scanner.Finding     `json:"findings"`
+	Dependencies    []osv.VulnResult      `json:"dependencies"`
+	ScoreResult     risk.ScoreResult      `json:"score_result"`
+	GateResult      gate.GateResult       `json:"gate_result"`
+	CategoryCounts  CategoryCounts        `json:"category_counts"`
 }
 
 func severityRank(sev string) int {
@@ -146,6 +151,18 @@ func PrintTerminalReport(r *Report) {
 	}
 	fmt.Printf("Scan Time:     %s\n", r.ScanTime)
 	fmt.Printf("Files Scanned: %d\n", r.FilesScanned)
+	if r.FilesSkipped > 0 {
+		fmt.Printf("Files Skipped: %d\n", r.FilesSkipped)
+	}
+	if r.ExcludedFiles > 0 {
+		fmt.Printf("Files Excluded:%d\n", r.ExcludedFiles)
+	}
+	if r.SuppressedCount > 0 {
+		fmt.Printf("Suppressed:    %d (via baseline)\n", r.SuppressedCount)
+	}
+	if r.OSVMode != "" {
+		fmt.Printf("OSV Intel:     %s\n", r.OSVMode)
+	}
 
 	fmt.Println("---------------------------------------------")
 	riskLevel := "LOW RISK"

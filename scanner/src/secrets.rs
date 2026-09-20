@@ -1,11 +1,15 @@
-use crate::types::{Category, Finding, Severity};
 use crate::rules::get_secret_rules;
+use crate::types::{Category, Finding, Severity};
 
 pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize) -> Vec<Finding> {
     let mut findings = Vec::new();
     let rules = get_secret_rules();
 
-    let ext = std::path::Path::new(file_path).extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    let ext = std::path::Path::new(file_path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
     let doc_exts = ["md", "markdown", "rst", "txt", "adoc", "html", "htm"];
     let is_doc = doc_exts.contains(&ext.as_str());
 
@@ -14,7 +18,11 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
         let trimmed = line.trim();
 
         // Skip pure comments for assignment rules
-        let is_comment = trimmed.starts_with("//") || trimmed.starts_with('#') || trimmed.starts_with("/*") || trimmed.starts_with('*') || trimmed.starts_with("--");
+        let is_comment = trimmed.starts_with("//")
+            || trimmed.starts_with('#')
+            || trimmed.starts_with("/*")
+            || trimmed.starts_with('*')
+            || trimmed.starts_with("--");
 
         for rule in &rules {
             // Generic assignment rules should not run on documentation files
@@ -22,7 +30,8 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
                 continue;
             }
 
-            if is_comment && (rule.id == "SEC-006" || rule.id == "SEC-007" || rule.id == "SEC-008") {
+            if is_comment && (rule.id == "SEC-006" || rule.id == "SEC-007" || rule.id == "SEC-008")
+            {
                 continue;
             }
 
@@ -48,13 +57,42 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
 
                     // Check if the value is a dummy/placeholder/variable
                     let dummy_values = [
-                        "\"\"", "''", "\"admin\"", "'admin'", "\"password\"", "'password'",
-                        "\"passwd\"", "'passwd'", "\"changeme\"", "'changeme'",
-                        "\"your_password\"", "'your_password'", "\"<password>\"", "'<password>'",
-                        "\"dummy\"", "'dummy'", "\"example\"", "'example'", "\"test\"", "'test'",
-                        "\"sample\"", "'sample'", "\"placeholder\"", "'placeholder'",
-                        "\"default\"", "'default'", "\"root\"", "'root'", "\"null\"", "'null'",
-                        "\"none\"", "'none'", "\"123456\"", "'123456'", "\"secret\"", "'secret'",
+                        "\"\"",
+                        "''",
+                        "\"admin\"",
+                        "'admin'",
+                        "\"password\"",
+                        "'password'",
+                        "\"passwd\"",
+                        "'passwd'",
+                        "\"changeme\"",
+                        "'changeme'",
+                        "\"your_password\"",
+                        "'your_password'",
+                        "\"<password>\"",
+                        "'<password>'",
+                        "\"dummy\"",
+                        "'dummy'",
+                        "\"example\"",
+                        "'example'",
+                        "\"test\"",
+                        "'test'",
+                        "\"sample\"",
+                        "'sample'",
+                        "\"placeholder\"",
+                        "'placeholder'",
+                        "\"default\"",
+                        "'default'",
+                        "\"root\"",
+                        "'root'",
+                        "\"null\"",
+                        "'null'",
+                        "\"none\"",
+                        "'none'",
+                        "\"123456\"",
+                        "'123456'",
+                        "\"secret\"",
+                        "'secret'",
                     ];
                     let mut is_dummy = false;
                     for dv in &dummy_values {
@@ -64,7 +102,11 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
                         }
                     }
                     // Variable reference in string: e.g. "$password" or "%password%" or "${password}"
-                    if matched_str.contains("=\"$") || matched_str.contains(":'$") || matched_str.contains("=\"%") || matched_str.contains("=\"${") {
+                    if matched_str.contains("=\"$")
+                        || matched_str.contains(":'$")
+                        || matched_str.contains("=\"%")
+                        || matched_str.contains("=\"${")
+                    {
                         is_dummy = true;
                     }
 
@@ -74,7 +116,7 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
                 }
 
                 *finding_counter += 1;
-                
+
                 let mut evidence = caps.get(0).map_or("", |m| m.as_str()).to_string();
                 if evidence.len() > 8 {
                     evidence = format!("{}****", &evidence[..8]);
@@ -98,7 +140,6 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
         }
     }
 
-
     let file_name = std::path::Path::new(file_path)
         .file_name()
         .and_then(|n| n.to_str())
@@ -107,12 +148,19 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
     let bad_filenames = [".env", "id_rsa", "id_dsa", ".htpasswd"];
     let bad_exts = ["pem", "key"];
 
-    let ext = std::path::Path::new(file_path).extension().and_then(|e| e.to_str()).unwrap_or("");
-    let source_exts = ["go", "js", "ts", "py", "java", "rs", "rb", "php", "c", "cpp", "cs"];
+    let ext = std::path::Path::new(file_path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("");
+    let source_exts = [
+        "go", "js", "ts", "py", "java", "rs", "rb", "php", "c", "cpp", "cs",
+    ];
 
     let mut is_bad_file = false;
     if !source_exts.contains(&ext) {
-        is_bad_file = bad_filenames.contains(&file_name) || file_name.starts_with("credentials.") || file_name.starts_with("secrets.");
+        is_bad_file = bad_filenames.contains(&file_name)
+            || file_name.starts_with("credentials.")
+            || file_name.starts_with("secrets.");
         if !is_bad_file && bad_exts.contains(&ext) {
             is_bad_file = true;
         }

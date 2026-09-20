@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vibeguard/vibeguard/internal/baseline"
 	"github.com/vibeguard/vibeguard/internal/config"
 	"github.com/vibeguard/vibeguard/internal/dependencies"
 	"github.com/vibeguard/vibeguard/internal/gate"
@@ -20,7 +21,7 @@ import (
 	"github.com/vibeguard/vibeguard/internal/scanner"
 )
 
-const version = "3.0.0"
+const version = "4.2.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -64,7 +65,14 @@ func main() {
 		os.Exit(exitCode)
 
 	case "scan":
-		projectPath, format, outputPath, isHook := parseScanArgs(os.Args[2:], "terminal")
+		projectPath, format, outputPath, isHook, err := parseScanArgs(os.Args[2:], "terminal")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			if strings.Contains(err.Error(), "unsupported output format") || strings.Contains(err.Error(), "missing format") {
+				os.Exit(3)
+			}
+			os.Exit(2)
+		}
 		if projectPath == "" {
 			projectPath = "."
 		}
@@ -72,7 +80,14 @@ func main() {
 		os.Exit(exitCode)
 
 	case "report":
-		projectPath, format, outputPath, isHook := parseScanArgs(os.Args[2:], "html")
+		projectPath, format, outputPath, isHook, err := parseScanArgs(os.Args[2:], "html")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			if strings.Contains(err.Error(), "unsupported output format") || strings.Contains(err.Error(), "missing format") {
+				os.Exit(3)
+			}
+			os.Exit(2)
+		}
 		if projectPath == "" {
 			projectPath = "."
 		}
@@ -94,23 +109,44 @@ func main() {
 	}
 }
 
-func parseScanArgs(args []string, defaultFormat string) (projectPath, format, outputPath string, isHook bool) {
+func parseScanArgs(args []string, defaultFormat string) (projectPath, format, outputPath string, isHook bool, err error) {
 	format = defaultFormat
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
-		if (arg == "--format" || arg == "-f") && i+1 < len(args) {
-			format = args[i+1]
-			i++
-		} else if (arg == "--output" || arg == "-o") && i+1 < len(args) {
-			outputPath = args[i+1]
-			i++
+		if (arg == "--format" || arg == "-f") {
+			if i+1 < len(args) {
+				format = args[i+1]
+				i++
+			} else {
+				return "", "", "", false, fmt.Errorf("Error: missing format argument\nSupported formats: terminal, json, html, sarif")
+			}
+		} else if (arg == "--output" || arg == "-o") {
+			if i+1 < len(args) {
+				outputPath = args[i+1]
+				i++
+			} else {
+				return "", "", "", false, fmt.Errorf("Error: missing output path argument")
+			}
 		} else if arg == "--hook" {
 			isHook = true
+		} else if arg == "--offline" {
+			osv.SetOfflineMode(true)
 		} else if !strings.HasPrefix(arg, "-") && projectPath == "" {
 			projectPath = arg
+		} else if strings.HasPrefix(arg, "-") {
+			return "", "", "", false, fmt.Errorf("Error: unknown option '%s'", arg)
 		}
 	}
-	return
+
+	normFormat := strings.ToLower(format)
+	switch normFormat {
+	case "terminal", "json", "html", "sarif":
+		format = normFormat
+	default:
+		return "", "", "", false, fmt.Errorf("Error: unsupported output format: %s\nSupported formats: terminal, json, html, sarif", format)
+	}
+
+	return projectPath, format, outputPath, isHook, nil
 }
 
 func printUsage() {
@@ -127,15 +163,16 @@ func printUsage() {
 	fmt.Println("  vibeguard help                                   Show this help message")
 	fmt.Println()
 	fmt.Println("Scan Options:")
-	fmt.Println("  --format, -f <fmt>     Output format: terminal (default), json, html")
+	fmt.Println("  --format, -f <fmt>     Output format: terminal (default), json, html, sarif")
 	fmt.Println("  --output, -o <path>    Custom report output path (default: reports/scan.json or reports/scan.html)")
+	fmt.Println("  --offline              Query only local cached vulnerability intelligence")
 	fmt.Println("  --hook                 Apply gate policy thresholds from .vibeguard/config.json")
 	fmt.Println()
 	fmt.Println("Exit Codes:")
 	fmt.Println("  0  PASS — Security scan passed, safe to deploy/push")
 	fmt.Println("  1  BLOCK — Security policy blocked push (critical or high findings)")
 	fmt.Println("  2  ERROR — Scanner or runtime error")
-	fmt.Println("  3  CONFIG ERROR — Configuration file error")
+	fmt.Println("  3  CONFIG / FORMAT ERROR — Unsupported format or configuration error")
 	fmt.Println("  4  OSV UNAVAILABLE — Vulnerability intelligence unreachable with fail_closed enabled")
 }
 
@@ -387,6 +424,10 @@ func handlePush(dir string) int {
 }
 
 func promptConsole(promptText string) (string, error) {
+	if os.Getenv("CI") != "" || os.Getenv("VIBEGUARD_NON_INTERACTIVE") != "" {
+		fmt.Println(promptText + "Y (non-interactive)")
+		return "y", nil
+	}
 	fmt.Print(promptText)
 	var f *os.File
 	var err error
@@ -764,10 +805,14 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 		}
 	}
 
+	osvMode := "online"
+	if osv.IsOfflineMode() {
+		osvMode = "offline/cache"
+	}
 	if depCritHighCount > 0 {
-		fmt.Printf("[4/5] Dependency/CVE scan ...... %s\n", failStr)
+		fmt.Printf("[4/5] Dependency/CVE scan (%s) ...... %s\n", osvMode, failStr)
 	} else {
-		fmt.Printf("[4/5] Dependency/CVE scan ...... %s\n", passStr)
+		fmt.Printf("[4/5] Dependency/CVE scan (%s) ...... %s\n", osvMode, passStr)
 	}
 
 	depFindingCounter := len(allFindings) + 1
@@ -830,6 +875,25 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 		}
 	}
 
+	// Deduplicate findings
+	allFindings = scanner.DeduplicateFindings(allFindings)
+
+	// Filter baseline suppressions
+	baseDir := root
+	if baseDir == "" {
+		baseDir = absPath
+	}
+	suppressions, err := baseline.LoadBaseline(baseDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Baseline Error: %v\n", err)
+		if cfg.FailClosed {
+			fmt.Fprintln(os.Stderr, "Security policy failure: malformed baseline and fail_closed is enabled.")
+			return 3
+		}
+	}
+	activeFindings, suppressedCount := baseline.FilterSuppressedFindings(allFindings, suppressions)
+	allFindings = activeFindings
+
 	// Calculate risk score
 	var findingInfos []risk.FindingInfo
 	for _, f := range allFindings {
@@ -883,17 +947,22 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 
 	// Build the report
 	r := &report.Report{
-		ProjectName:    projectName,
-		CommitHash:     commitHash,
-		Branch:         branchName,
-		Remote:         remoteURL,
-		ScanTime:       scanDuration.Round(time.Millisecond).String(),
-		FilesScanned:   scanResult.FilesScanned,
-		Findings:       allFindings,
-		Dependencies:   vulnResults,
-		ScoreResult:    scoreResult,
-		GateResult:     gateResult,
-		CategoryCounts: catCounts,
+		ProjectName:     projectName,
+		CommitHash:      commitHash,
+		Branch:          branchName,
+		Remote:          remoteURL,
+		ScanTime:        scanDuration.Round(time.Millisecond).String(),
+		FilesScanned:    scanResult.FilesScanned,
+		FilesSkipped:    scanResult.FilesSkipped,
+		ExcludedFiles:   scanResult.ExcludedFiles,
+		SuppressedCount: suppressedCount,
+		OSVMode:         osvMode,
+		ScanWarnings:    scanResult.ScanWarnings,
+		Findings:        allFindings,
+		Dependencies:    vulnResults,
+		ScoreResult:     scoreResult,
+		GateResult:      gateResult,
+		CategoryCounts:  catCounts,
 	}
 
 	reportsDir := "reports"
@@ -922,6 +991,18 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 			return 2
 		}
 		fmt.Printf("HTML report saved to: %s\n\n", htmlPath)
+		report.PrintTerminalReport(r)
+
+	case "sarif":
+		sarifPath := customOutput
+		if sarifPath == "" {
+			sarifPath = filepath.Join(reportsDir, "scan.sarif")
+		}
+		if err := report.WriteSarifReport(r, sarifPath); err != nil {
+			fmt.Fprintf(os.Stderr, "Error writing SARIF report: %v\n", err)
+			return 2
+		}
+		fmt.Printf("SARIF report saved to: %s\n\n", sarifPath)
 		report.PrintTerminalReport(r)
 
 	default:
