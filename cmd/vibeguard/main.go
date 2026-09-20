@@ -810,9 +810,9 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 		osvMode = "offline/cache"
 	}
 	if depCritHighCount > 0 {
-		fmt.Printf("[4/5] Dependency/CVE scan (%s) ...... %s\n", osvMode, failStr)
+		fmt.Printf("[4/5] Dependency/CVE scan ...... %s\n", failStr)
 	} else {
-		fmt.Printf("[4/5] Dependency/CVE scan (%s) ...... %s\n", osvMode, passStr)
+		fmt.Printf("[4/5] Dependency/CVE scan ...... %s\n", passStr)
 	}
 
 	depFindingCounter := len(allFindings) + 1
