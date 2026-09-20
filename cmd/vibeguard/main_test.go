@@ -144,8 +144,8 @@ func TestPrintUsage(t *testing.T) {
 }
 
 func TestVersionString(t *testing.T) {
-	if version != "4.2.0" {
-		t.Errorf("expected version 4.2.0, got %s", version)
+	if version != "4.4.0" {
+		t.Errorf("expected version 4.4.0, got %s", version)
 	}
 }
 

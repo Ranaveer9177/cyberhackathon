@@ -795,3 +795,25 @@ Self-Scan Score:      100/100 (LOW RISK, 0 findings in 786ms)
 Production Rating:    10/10 — Enterprise-grade Autonomous Security Gate
 ========================================
 ```
+
+---
+
+## 13. v4.4.0 Context-Aware Secret Detection Verification
+
+### Overview
+VibeGuard v4.4.0 introduces high-precision, context-aware secret detection designed to eliminate false alarms in documentation and sample code while deterministically blocking genuine credential leaks.
+
+### Verification Results
+
+| Test Target | Component | Findings | Confidence | Gate Decision | Exit Code | Result |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: |
+| `..\VibeGuard-test\test-project\password.txt` | Sensitive Filename (`VG-SECRET-FILE`) | `Sensitive Credential File Detected` | `HIGH` | **BLOCKED** | `1` | **PASS** |
+| `..\VibeGuard-test\test-project\password.txt` | Credential Assignment (`VG-SECRET-001`) | `Hardcoded Password Detected` (`password=********`) | Context | **BLOCKED** | `1` | **PASS** |
+| `cyberhackathon\README.md` | Doc example: `"password=123@admin"` | Suppressed by doc penalty (-30) | `LOW` | **PASSED** | `0` | **PASS** |
+| `internal/scanner/secrets_test.go` | Go Unit Tests | 7 test cases covering all scoring weights | N/A | **PASSED** | `0` | **PASS** |
+| `scanner/src/secrets.rs` | Rust Unit Tests | 9 unit tests verifying context scoring | N/A | **PASSED** | `0` | **PASS** |
+| `cyberhackathon` (self-scan) | Clean Codebase Audit | 0 findings | N/A | **PASSED** (100/100) | `0` | **PASS** |
+
+### Verified Evidence Masking
+Reports across terminal, JSON, HTML, and SARIF strictly mask raw password values (`password=********`). At no point are unmasked credentials displayed or persisted.
+

@@ -1,6 +1,6 @@
 # VibeGuard — Technical Architecture Documentation
 
-> **VibeGuard v4.2.0 — Multi-Engine Autonomous Pre-Push Security Firewall**
+> **VibeGuard v4.4.0 — Multi-Engine Autonomous Pre-Push Security Firewall**
 
 ---
 
@@ -70,11 +70,12 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
   - Automatically parses and respects `.gitignore` rules in the scanned repository.
   - Accepts `--progress` flag and streams live file scan progress (`PROGRESS:<cur>:<tot>:<file>`) on `stderr` while delivering pure JSON results on `stdout`.
   - Executes regex pattern rules for secrets and static code vulnerabilities.
+  - **Context-Aware Secret Engine (v4.4)**: Evaluates sensitive filenames (`VG-SECRET-FILE`), credential assignments (`VG-SECRET-001`), and computes mathematical confidence scores (0–100) taking into account entropy, key names, assignment operators, and penalty weights for docs, comments, and placeholders.
   - False-positive filters for documentation examples, PowerShell parameters, placeholder passwords, and loopback/schema URLs.
-  - Masks detected credentials (`sk-demo-****`) to protect secrets in logs.
-- **Fallback Go Scanner Engine (`internal/scanner/runner.go`)**:
+  - Masks detected credentials (`sk-demo-****`, `password=********`) to protect secrets in logs.
+- **Fallback Go Scanner Engine (`internal/scanner/runner.go` & `internal/scanner/secrets.go`)**:
   - Automatically invoked if the compiled Rust binary is not present in the environment.
-  - Implements identical rule definitions, `.gitignore` parsing, and false-positive filtering for 100% feature parity.
+  - Implements identical rule definitions, `.gitignore` parsing, sensitive filename detection, confidence scoring algorithm, and false-positive filtering for 100% feature parity.
   - Emits real-time progress callbacks (`ScanProgressFunc`) reporting file index, total count, and current file path.
 
 ### 2.3 Dependency Vulnerability Engine (`internal/dependencies/` & `internal/osv/`)

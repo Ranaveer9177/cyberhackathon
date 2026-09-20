@@ -18,6 +18,10 @@
 - [x] **v1.0 — Stable MVP**: Multi-shell support, comprehensive test fixtures, end-to-end integration.
 - [x] **v3.0 — Live Scan Progress & Scoped Pre-Push Gate**: Real-time terminal progress bars across all scanning stages (files, dependencies, OSV queries, 100% completion indicator), pure Go `git archive` snapshot scanning, `.vibeguard/config.json` exclusions, refined SAST terminology, double-scan elimination.
 - [x] **v3.0.0 — Production Hardening & Global Architecture**: Intelligent Windows environment setup (`setup.bat`) installing Git, Go, Rust, Cargo, Node.js, Python, and Docker via `winget`; global CLI in `%LOCALAPPDATA%\VibeGuard`; fail-closed pre-push hook; multi-ref verification; streaming Rust engine (`--progress`); concurrent 10-worker OSV engine (~400ms); and Windows pipe-deadlock-free disk tar snapshotting.
+- [x] **v4.0 — Enterprise Compliance & Baseline Engine**: OASIS SARIF 2.1.0 output, `.vibeguard/baseline.json` suppression system, finding deduplication, deterministic OSV disk caching, and HTML contextual escaping.
+- [x] **v4.1 — Strict Workspace Isolation**: Relocated all vulnerable fixtures to external `VibeGuard-test` workspace, inlined mocks in tests to ensure clean 100/100 self-scan.
+- [x] **v4.2 — Standalone CLI Parity & Test Harness**: Rust scanner `--help`/`--version` CLI parity, baseline validation error handling (`VG-E007`), Git hook E2E test suite, `scripts/windows/` reorganization, and `ultimate_test.bat`.
+- [x] **v4.4 — Context-Aware Secret Detection & Confidence Scoring**: Sensitive filename detection (`VG-SECRET-FILE`), credential assignment detection (`VG-SECRET-001`), 10-factor mathematical confidence scoring (+30 to -40), evidence masking (`password=********`), and confidence-aware pre-push gate policy.
 
 
 ---

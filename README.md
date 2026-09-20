@@ -1,4 +1,4 @@
-# VibeGuard v4.2.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
+# VibeGuard v4.4.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
 
 > **The Autonomous Pre-Push Security Firewall for Engineering Teams**  
 > *"Make security verification an automatic, non-negotiable step before code ever leaves your machine."*
@@ -7,9 +7,13 @@
 
 ## Overview
 
-**VibeGuard v4.2.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST), vulnerable third-party dependencies (SCA via Google OSV), Dockerfile misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
+**VibeGuard v4.4.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST), vulnerable third-party dependencies (SCA via Google OSV), Dockerfile misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
 
 VibeGuard operates directly in developer terminal workflows and CI/CD pipelines:
+- **Context-Aware Secret & Credential Detection (v4.4)**: Advanced multi-factor scoring model (+30 filename, +25 key, +20 assignment, +15 non-placeholder value, +10 entropy/symbols, +10 source/config file) with intelligent penalty suppression (-30 documentation, -25 obvious placeholder, -20 comments/examples, -40 test fixtures). Distinguishes genuine credential leaks from benign examples and documentation.
+- **Sensitive Filename Auditing (`VG-SECRET-FILE`)**: Flags credential-bearing files (`password.txt`, `passwords.txt`, `credentials.txt`, `credential.txt`, `secret.txt`, `secrets.txt`) at `HIGH` severity.
+- **Credential Assignment Auditing (`VG-SECRET-001`)**: Identifies direct hardcoded assignments (`password=...`, `passwd=...`, `pwd=...`, `db_password=...`, `api_key=...`, `secret=...`) with comprehensive evidence masking (`password=********`).
+- **Confidence-Filtered Security Gate**: Only High/Critical findings with High (80–100) or Medium (50–79) confidence fail the pre-push security gate, while Low confidence (20–49) findings remain purely advisory.
 - **SARIF 2.1.0 Standard Compliance**: Generates OASIS SARIF output (`--format sarif`) directly consumable by GitHub Code Scanning, IDEs, and SIEM security dashboards.
 - **Baseline & Suppression System**: Team-friendly `.vibeguard/baseline.json` support for suppressing approved exceptions with optional time-based expiration (`expires: "YYYY-MM-DD"`).
 - **Finding Deduplication**: Eliminates duplicate alerts across multi-phase scans using normalized finding identity signatures.
@@ -19,7 +23,7 @@ VibeGuard operates directly in developer terminal workflows and CI/CD pipelines:
 - **Zero False-Positive Scanner Engine**: Automatically ignores test coverage folders (`htmlcov/`, `.coverage`), caches, virtual environments, IDE configs, and `.gitignore` patterns. Filters documentation code blocks, PowerShell parameter prompts, placeholder passwords (`"admin"`, `"password"`), loopback HTTP (`localhost`, `127.0.0.1`, `0.0.0.0`), and schema URIs.
 - **Clean Grouped Terminal Reporting**: Replaces 250+ lines of redundant advisory dumps with an aligned dependency table (`PACKAGE | CURRENT | SEVERITY | ADVISORIES | RECOMMENDED FIX`) showing proper semver version numbers (e.g. `>= 3.1.3`), and compact key advisory highlights.
 - **Autonomous Git Pre-Push Gate**: Intercepts `git push` via standard pre-push hooks. Scans only the exact commits being pushed using disk-staged `git archive` snapshotting. Iterates over all pushed refs independently and fails closed if the CLI executable is missing.
-- **Zero Cloud Uploads / 100% On-Machine Privacy**: Code and files never leave your workstation. Discovered credentials are automatically masked (`sk-demo-****`).
+- **Zero Cloud Uploads / 100% On-Machine Privacy**: Code and files never leave your workstation. Discovered credentials are automatically masked (`sk-demo-****`, `password=********`).
 - **Multi-Engine Speed & Precision**: High-performance Rust scanner coupled with Go orchestrator and fallback engine.
 
 ---
@@ -143,7 +147,7 @@ version-specific test evidence are maintained in the separate
 
 | Category | Checks & Rules | Default Severity |
 | :--- | :--- | :---: |
-| **Secrets & Keys** | AWS Access Keys (`AKIA...`), GitHub PATs (`ghp_...`), Slack Tokens (`xox...`), Private Cryptographic Keys (`BEGIN RSA/OPENSSH PRIVATE KEY`), Hardcoded Passwords & Tokens, Sensitive Files (`.env`, `*.pem`, `*.key`, `id_rsa`) | `CRITICAL` |
+| **Secrets & Keys** | Sensitive Credential Filenames (`password.txt`, `credentials.txt`, `secret.txt`), Hardcoded Credential Assignments (`password=...`, `api_key=...`, `secret=...`), AWS Access Keys (`AKIA...`), GitHub PATs (`ghp_...`), Slack Tokens (`xox...`), Private Cryptographic Keys (`BEGIN RSA/OPENSSH PRIVATE KEY`), Sensitive Files (`.env`, `*.pem`, `*.key`, `id_rsa`) | `CRITICAL` / `HIGH` |
 | **SAST — Code Analysis** | Potential OS Command Injection, Potential SQL Injection, Potential TLS Misconfiguration (`InsecureSkipVerify: true`), Potential Insecure HTTP Connection, Dangerous `eval()` / `Function()`, Weak Cryptography (`MD5`, `SHA1`, `DES`, `RC4`), Hardcoded Credentials | `HIGH` / `MEDIUM` |
 | **Container & Docker** | Container running as `root` (missing non-root `USER`), Secrets stored in `ENV` instructions, Unbounded `COPY . .` without `.dockerignore` | `CRITICAL` / `HIGH` / `MEDIUM` |
 | **SCA — Dependencies** | Direct & transitive package CVE lookup against live Google OSV database (`go.mod`, `package.json`, `package-lock.json`, `requirements.txt`, `Cargo.toml`, `Cargo.lock`) | `CRITICAL` to `LOW` |

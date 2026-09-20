@@ -13,7 +13,7 @@ go test -v ./...
 ```
 
 ### Passing Packages:
-- `cmd/vibeguard`: CLI input validation, version, format parsing, and exit codes.
+- `cmd/vibeguard`: CLI input validation, version (`v4.4.0`), format parsing, and exit codes.
 - `internal/baseline`: Baseline loading, suppression matching, expiration, and corrupt file fail-closed logic.
 - `internal/config`: Default configuration loading, JSON validation, and exclusion path matching.
 - `internal/dependencies`: Manifest parsing (Go, npm, Python, Cargo) and exclusion filtering.
@@ -23,8 +23,15 @@ go test -v ./...
 - `internal/osv`: Google OSV API client, persistent SHA-256 disk cache (`.vibeguard/cache/osv/`), and offline mode.
 - `internal/report`: JSON, HTML (with contextual escaping), SARIF 2.1.0 report generation, and terminal formatting.
 - `internal/risk`: Deterministic mathematical risk scoring calculations.
-- `internal/scanner`: Dual-engine scanner execution, finding deduplication, and exclusion skipping.
+- `internal/scanner`: Dual-engine scanner execution, finding deduplication, exclusion skipping, and v4.4 context-aware secret & filename detection tests (`secrets_test.go`).
 - `tests/integration`: End-to-end integration workflows.
+
+### Rust Scanner Tests (`scanner/`):
+```powershell
+cargo test --manifest-path scanner/Cargo.toml
+cargo clippy --manifest-path scanner/Cargo.toml -- -D warnings
+```
+- 9 unit tests verifying recursive scanning, sensitive filenames (`password.txt`), credential assignments (`password=123@admin`), evidence masking, and non-blocking documentation/placeholder negative cases. 100% clean Clippy.
 
 ---
 
@@ -95,4 +102,18 @@ scripts\windows\run_test.bat
 ### 3.7 False-Positive Elimination & Clean Terminal Verification
 - **Doc & Coverage Test**: Scan projects containing `README.md` code snippets, `htmlcov/`, virtual environments (`venv/`), or PowerShell scripts (`start.ps1`); verify 0 false-positive findings.
 - **Grouped Dependency Output**: Verify that packages with multiple advisories (e.g. Django or cryptography) are rendered in a clean table row rather than hundreds of lines of duplicated findings.
+
+### 3.8 Sensitive Credential Filename & Assignment Verification (v4.4)
+- **Test File**: `..\VibeGuard-test\test-project\password.txt` containing `password=123@admin`
+- **Command**:
+  ```powershell
+  vibeguard scan ..\VibeGuard-test\test-project
+  ```
+- **Expected Results**:
+  - `VG-SECRET-FILE`: `Sensitive Credential File Detected` (`HIGH` severity, `HIGH` confidence).
+  - `VG-SECRET-001`: `Hardcoded Password Detected` (`HIGH` severity, context confidence, masked evidence `password=********`).
+  - `Security Score`: Penalized accordingly.
+  - `Deployment Status`: `BLOCKED` with exit code `1`.
+- **Negative Verification**: Verify that `README.md` containing `"Example: password=123@admin"` receives confidence penalty (-30) and does not block the gate.
+
 
