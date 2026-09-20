@@ -135,12 +135,12 @@
 ### 6.1 Distribution Architecture
 - **Global User Installation**: Self-locating CLI installed to `%LOCALAPPDATA%\VibeGuard`, added to Windows User `PATH` idempotently.
 - **Mode A (Demo / User Mode)**: Runs from prebuilt binaries (`vibeguard.exe` and `scanner.exe`). Never requires Go, Rust, or MSVC Build Tools.
-- **Mode B (Developer Mode)**: Full source rebuilds using `build.bat`, verifying Go, Rust, and Microsoft C++ linker (`link.exe`).
+- **Mode B (Developer Mode)**: Full source rebuilds using `scripts\windows\build.bat`, verifying Go and Rust plus a compatible Windows linker/toolchain.
 - **Dynamic Self-Locating Engine**: Prioritizes executable path and `%LOCALAPPDATA%\VibeGuard` so `vibeguard scan <path>` executes anywhere.
 - **Hardened Git Pre-Push Hook**: Prefers global `%LOCALAPPDATA%\VibeGuard` installation over untrusted repository-local executables (Section 19 Security Policy).
 
 ### 6.2 Automation Scripts
-1. **`setup.bat` (Mode A Setup)**:
+1. **`scripts\windows\setup.bat` (Mode A Setup)**:
    - Dynamic repository root detection (`%~dp0`).
    - Prebuilt binary presence verification.
    - Automatically creates `.vibeguard\`, `reports\`, `rules\`, and `tests\`.
@@ -148,15 +148,15 @@
    - Installs Git pre-push hook into `.git\hooks\pre-push`.
    - Copies binaries to `%LOCALAPPDATA%\VibeGuard` and registers User `PATH`.
    - Safe, idempotent, and non-destructive.
-2. **`build.bat` (Mode B Source Build)**:
-   - Verifies Go compiler, Rust compiler, and MSVC `link.exe`.
+2. **`scripts\windows\build.bat` (Mode B Source Build)**:
+   - Verifies Go and Rust toolchains and reports whether `link.exe` is directly available.
    - Recompiles Rust scanner in release mode and copies binary to root and `scanner/`.
    - Recompiles Go orchestrator CLI from repository root.
    - Refreshes `%LOCALAPPDATA%\VibeGuard`.
-3. **`run_test.bat` (Health Check & Fixture Validation)**:
+3. **`scripts\windows\run_test.bat` (Health Check & Fixture Validation)**:
    - Validates CLI, Scanner, Version, Test Project Scan, HTML Report Generation, and Security Gate Blocking.
    - Formatted `[PASS]` status output across all 6 core criteria.
-4. **`install_hook.bat` & `uninstall_hook.bat`**:
+4. **`scripts\windows\install_hook.bat` & `scripts\windows\uninstall_hook.bat`**:
    - Single-command lifecycle management for the Git pre-push hook.
 
 ---
@@ -206,4 +206,3 @@
 - **Key Advisory Highlights**: Displays top 2–3 advisory IDs per package with concise summaries and remainder counts (`... and X more advisories`).
 - **Distinct Code & Secrets Section**: Non-dependency issues (secrets, SAST, Docker, Git) are displayed separately with color-coded severity badges, IDs, files, lines, titles, and recommendations.
 - **Zero-Issue Confirmation State**: Renders clean green checkmark states (`✓ No code, secret, or configuration issues detected.`, `✓ No known vulnerabilities found in dependencies.`).
-
