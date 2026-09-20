@@ -152,7 +152,7 @@ func ShowBlockPopup(rep *BlockReport) {
 		return
 	}
 
-	title := "VibeGuard v4.5 Security Alert — Execution Blocked"
+	title := "VibeGuard v4.6 Security Alert — Execution Blocked"
 	body := FormatPopupBody(rep)
 
 	titlePtr, _ := syscall.UTF16PtrFromString(title)
