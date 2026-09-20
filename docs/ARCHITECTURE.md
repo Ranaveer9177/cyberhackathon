@@ -1,6 +1,6 @@
 # VibeGuard — Technical Architecture Documentation
 
-> **VibeGuard v4.4.0 — Multi-Engine Autonomous Pre-Push Security Firewall**
+> **VibeGuard v4.6.0 — Multi-Engine Autonomous Pre-Push Security Firewall**
 
 ---
 
@@ -141,5 +141,13 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
 - **Dynamic Self-Locating Engine (`FindScannerExecutable`)**: Prioritizes `os.Executable()` directory and `%LOCALAPPDATA%\VibeGuard` before current working directory, allowing `vibeguard scan <target>` to run from any folder.
 - **Hardened Git Pre-Push Hook**: Hook prioritizes trusted `%LOCALAPPDATA%\VibeGuard\vibeguard.exe` and global PATH over repository-local binaries to prevent rogue executable substitution attacks.
 
+### 2.8 Windows Defender & Antivirus Interception Detection (`internal/defender/`)
+- **Interception Heuristics**: Automatically inspects execution errors for Win32 virus/malware block codes (`ERROR_VIRUS_INFECTED` / `225` / `0x800700E1`, `ERROR_ACCESS_DENIED` / `5` / `0xC0000022`, exit status `1392`, `1260`).
+- **WMI Antivirus Discovery**: Queries Windows Security Center via WMI (`root\SecurityCenter2\AntiVirusProduct`) to detect the active security software product (e.g. *Microsoft Defender Antivirus*).
+- **Native Modal Alert Pop-up**: Invokes `MessageBoxW` with `MB_OKCANCEL | MB_ICONWARNING | MB_SYSTEMMODAL` to display high-visibility alerts on the desktop explaining what blocked VibeGuard with step-by-step remediation instructions.
+- **Headless Environment Awareness**: Bypasses GUI modals when `VIBEGUARD_NON_INTERACTIVE=1` or `CI=true` is present, while outputting full diagnostic alerts to `stderr`.
 
-
+### 2.9 Ultimate Test & Weighted Metrics Engine (`ultimate_test.bat`)
+- **8-Stage Weighted Scoring**: Implements an enterprise validation runner with 100 total points and 90 minimum passing score across Go unit tests (15), Go vet (10), Rust tests (15), Rust format (5), Rust Clippy (10), source build (20), CLI health validation (15), and Defender verification (10).
+- **High-Precision Stopwatch Tracking**: Measures sub-second elapsed time per stage using `System.Diagnostics.Stopwatch`.
+- **Clean Process Sandboxing**: Executes background checks with segregated temporary standard output and error handles, ensuring clean formatted metrics without terminal pollution.
