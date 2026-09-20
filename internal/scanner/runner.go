@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/vibeguard/vibeguard/internal/config"
+	"github.com/vibeguard/vibeguard/internal/defender"
 )
 
 type ScanWarning struct {
@@ -165,6 +166,7 @@ func RunScannerWithProgress(projectPath string, progress ScanProgressFunc) (*Sca
 		}
 
 		cmd := exec.CommandContext(ctx, scannerExe, args...)
+		var execErr error
 
 		if progress != nil {
 			var stdoutBuf bytes.Buffer
@@ -189,8 +191,14 @@ func RunScannerWithProgress(projectPath string, progress ScanProgressFunc) (*Sca
 						if err := json.Unmarshal(stdoutBuf.Bytes(), &result); err == nil {
 							return &result, nil
 						}
+					} else {
+						execErr = err
 					}
+				} else {
+					execErr = err
 				}
+			} else {
+				execErr = err
 			}
 		} else {
 			output, err := cmd.Output()
@@ -199,6 +207,15 @@ func RunScannerWithProgress(projectPath string, progress ScanProgressFunc) (*Sca
 				if err := json.Unmarshal(output, &result); err == nil {
 					return &result, nil
 				}
+			} else {
+				execErr = err
+			}
+		}
+
+		// If execution failed, check if Windows Defender or security software blocked the binary
+		if execErr != nil {
+			if blockRep, isBlocked := defender.IsBlockedByDefenderOrAV(execErr, scannerExe); isBlocked {
+				defender.ShowBlockPopup(blockRep)
 			}
 		}
 	}

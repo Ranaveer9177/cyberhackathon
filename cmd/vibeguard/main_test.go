@@ -144,9 +144,14 @@ func TestPrintUsage(t *testing.T) {
 }
 
 func TestVersionString(t *testing.T) {
-	if version != "4.4.0" {
-		t.Errorf("expected version 4.4.0, got %s", version)
+	if version != "4.5.0" {
+		t.Errorf("expected version 4.5.0, got %s", version)
 	}
+}
+
+func TestHandleDefenderCheck(t *testing.T) {
+	// Should run diagnostic without panicking
+	handleDefenderCheck([]string{})
 }
 
 func TestPromptConsole(t *testing.T) {

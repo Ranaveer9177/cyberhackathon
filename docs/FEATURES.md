@@ -1,6 +1,6 @@
 # VibeGuard — Feature Specifications
 
-> **Complete Feature Reference for VibeGuard v4.4.0**
+> **Complete Feature Reference for VibeGuard v4.5.0**
 
 ---
 
@@ -82,6 +82,17 @@
   - Debug mode enabled in production configs (`MEDIUM`).
   - Wildcard CORS (`Access-Control-Allow-Origin: *`) (`MEDIUM`).
   - Binding to insecure wildcard address `0.0.0.0` (`LOW`).
+
+### 2.6 Windows Defender & Antivirus Interception Detection (v4.5)
+- **Automatic Interception Detection**:
+  - Automatically identifies when VibeGuard or its scanner binaries are blocked, quarantined, or denied execution (`ERROR_VIRUS_INFECTED`, `ERROR_ACCESS_DENIED`, `0x800700E1`, `0xC0000022`).
+- **Native Windows Pop-up Notification (`MessageBoxW`)**:
+  - Automatically raises a native Win32 system modal dialog (`user32.dll`) over developer terminals and IDE windows explaining what blocked VibeGuard, which component was intercepted, and specific steps to unblock it.
+  - Headless/CI environments (`VIBEGUARD_NON_INTERACTIVE=1`) automatically bypass GUI dialogs while printing full diagnostics to `os.Stderr`.
+- **Security Software Discovery**:
+  - Queries Windows Security Center via WMI (`root\SecurityCenter2`) to detect the active antivirus/EDR product name.
+- **Diagnostic Command**:
+  - `vibeguard defender-check [--test-popup]` allows checking active AV status and testing the modal pop-up alert dialog on demand.
 
 ---
 
