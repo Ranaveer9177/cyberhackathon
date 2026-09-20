@@ -266,24 +266,6 @@ func getInternalRules() []internalRule {
 			description:    "Private cryptographic key detected.",
 			recommendation: "Remove private keys from the repository.",
 		},
-		{
-			id:             "VG-SEC-006",
-			name:           "Password Assignment",
-			category:       "secret",
-			severity:       "CRITICAL",
-			pattern:        regexp.MustCompile(`(?i)(password|passwd|pwd)\s*[:=]\s*['"][^'"]+['"]`),
-			description:    "Hardcoded password assignment detected.",
-			recommendation: "Use environment variables for passwords.",
-		},
-		{
-			id:             "VG-SEC-007",
-			name:           "Token/Secret Assignment",
-			category:       "secret",
-			severity:       "CRITICAL",
-			pattern:        regexp.MustCompile(`(?i)(token|secret|jwt_secret)\s*[:=]\s*['"][^'"]{8,}['"]`),
-			description:    "Hardcoded token or secret assignment detected.",
-			recommendation: "Move secrets to secure storage or environment variables.",
-		},
 		// SAST Rules
 		{
 			id:             "VG-SQL-001",
@@ -531,16 +513,16 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 		fileName := f.name
 		ext := f.ext
 
-		// Sensitive filename checks (excluding code source files)
-		if secretScan && !sourceExts[ext] && (fileName == ".env" || fileName == "id_rsa" || fileName == "id_dsa" || ext == ".pem" || ext == ".key" ||
-			strings.HasPrefix(fileName, "credentials.") || strings.HasPrefix(fileName, "secrets.")) {
+		// Sensitive filename checks
+		isSensitive, sensitiveDesc := IsSensitiveFilename(fileName, ext)
+		if secretScan && isSensitive {
 			counter++
 			findings = append(findings, Finding{
-				ID:             fmt.Sprintf("VG-%03d", counter),
+				ID:             "VG-SECRET-FILE",
 				Category:       "secret",
-				Severity:       "CRITICAL",
-				Title:          "Sensitive File Detected",
-				Description:    "A file commonly used to store secrets or credentials was found.",
+				Severity:       "HIGH",
+				Title:          "Sensitive Credential File Detected",
+				Description:    fmt.Sprintf("Credential-related filename detected: %s", sensitiveDesc),
 				File:           relPath,
 				Line:           1,
 				Recommendation: "Ensure this file is not committed to version control and does not contain sensitive data.",
@@ -621,6 +603,13 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 		for lineIdx, line := range lines {
 			lineNum := lineIdx + 1
 			trimmed := strings.TrimSpace(line)
+
+			// Scan credential assignments using context + confidence model
+			if secretScan {
+				credFindings := ScanCredentialAssignments(relPath, line, lineNum, isSensitive, &counter)
+				findings = append(findings, credFindings...)
+			}
+
 			if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "/*") || strings.HasPrefix(trimmed, "*") || strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, "--") || strings.HasPrefix(trimmed, ";") {
 				continue
 			}

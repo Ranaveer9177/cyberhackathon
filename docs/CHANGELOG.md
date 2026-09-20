@@ -2,7 +2,26 @@
 
 All notable changes to the VibeGuard project are documented in this file.
 
-## [v4.2.0] — 2026-09-20 (Current Release)
+## [v4.4.0] — 2026-09-20 (Current Release)
+
+### Added & Enhanced
+- **Sensitive Filename Auditing (`VG-SECRET-FILE`)**:
+  - Automatically flags files named `password.txt`, `passwords.txt`, `credentials.txt`, `credential.txt`, `secret.txt`, `secrets.txt` with severity `HIGH`, title `Sensitive Credential File Detected`, and confidence `HIGH`.
+  - Implemented with exact parity across both the Rust scanner (`scanner/src/secrets.rs`) and Go orchestrator (`internal/scanner/secrets.go`).
+- **Context-Aware Credential Assignment Detection (`VG-SECRET-001`)**:
+  - Detects hardcoded credential assignments across patterns such as `password=...`, `passwd=...`, `pwd=...`, `db_password=...`, `admin_password=...`, `api_key=...`, `secret=...`, `token=...`.
+  - Distinguishes real credentials from documentation examples, comments, and placeholder values using a 10-factor scoring model:
+    - Base additions: Sensitive filename (+30), Explicit key (+25), Assignment operator (+20), Non-placeholder value (+15), High-entropy/mixed chars (+10), Source/config location (+10).
+    - Context penalties: Documentation/markdown file (-30), Obvious placeholder (-25), Comment/example text (-20), Test fixture directory (-40).
+- **Evidence Masking**:
+  - All credential values are masked in terminal, JSON, HTML, and SARIF reports (`password=********`, `api_key=********`). Complete passwords are never written to disk or console.
+- **Confidence-Aware Security Gate Policy**:
+  - Only `CRITICAL` or `HIGH` severity findings with `HIGH` (80–100) or `MEDIUM` (50–79) confidence fail the pre-push security gate.
+  - `LOW` confidence (20–49) findings (such as in documentation examples or commented templates) are reported as advisory without blocking the push.
+- **Full Engine Parity & Automated Testing**:
+  - Comprehensive unit tests in Go (`internal/scanner/secrets_test.go`) and Rust (`scanner/src/secrets.rs`) verifying positive detection, evidence masking, and non-blocking negative test cases (README markdown, comments, placeholders, clean text).
+
+## [v4.2.0] — 2026-09-20
 
 ### Added & Enhanced
 - **Standalone Rust Scanner CLI Parity**:

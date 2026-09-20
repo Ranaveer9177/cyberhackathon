@@ -1,6 +1,6 @@
 # VibeGuard — Feature Specifications
 
-> **Complete Feature Reference for VibeGuard v4.2.0**
+> **Complete Feature Reference for VibeGuard v4.4.0**
 
 ---
 
@@ -33,15 +33,21 @@
 
 ## 2. Multi-Engine Security Scanners
 
-### 2.1 Secret & Credential Detection
-- High-entropy pattern recognition for:
+### 2.1 Secret & Credential Detection (v4.4 Context-Aware Model)
+- **Sensitive Filename Auditing (`VG-SECRET-FILE`)**:
+  - Flags sensitive credential files (`password.txt`, `passwords.txt`, `credentials.txt`, `credential.txt`, `secret.txt`, `secrets.txt`) with `HIGH` severity and `HIGH` confidence.
+- **Credential Assignment Detection (`VG-SECRET-001`)**:
+  - Detects hardcoded credential assignments: `password=...`, `passwd=...`, `pwd=...`, `db_password=...`, `admin_password=...`, `api_key=...`, `secret=...`, `token=...`.
+- **Entropy & Standard Credential Pattern Recognition**:
   - AWS Access Keys (`AKIA[0-9A-Z]{16}`)
   - GitHub Personal Access Tokens (`ghp_[a-zA-Z0-9]{36}`)
   - Slack Tokens (`xox[bprs]-[a-zA-Z0-9-]+`)
   - Private Cryptographic Keys (`-----BEGIN RSA/OPENSSH PRIVATE KEY-----`)
-  - Hardcoded Password & Token assignments
-  - Sensitive files (`.env`, `id_rsa`, `*.pem`, `*.key`, `credentials.*`, `secrets.*`)
-- **Evidence Masking**: Truncates secrets in all outputs (first 8 characters preserved, remainder replaced with `****`).
+  - Repository sensitive files (`.env`, `id_rsa`, `*.pem`, `*.key`)
+- **Context & Confidence Scoring Algorithm**:
+  - Computes score (0–100) using positive signals (+30 filename, +25 key, +20 assignment, +15 non-placeholder, +10 entropy, +10 source/config) and penalty signals (-30 documentation, -25 obvious placeholder, -20 comments/examples, -40 test fixtures).
+  - Only `HIGH` (80–100) and `MEDIUM` (50–79) confidence findings block the gate; `LOW` (20–49) confidence findings are advisory.
+- **Evidence Masking**: Truncates secrets in all outputs (`password=********`, `sk-demo-****`) to ensure zero sensitive exposure in reports and terminal displays.
 
 ### 2.2 Static Application Security Testing (SAST)
 - High-precision rules with zero internal tooling false positives:
