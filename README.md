@@ -1,4 +1,4 @@
-# VibeGuard v4.5.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
+# VibeGuard v4.6.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
 
 > **The Autonomous Pre-Push Security Firewall for Engineering Teams**  
 > *"Make security verification an automatic, non-negotiable step before code ever leaves your machine."*
@@ -7,10 +7,11 @@
 
 ## Overview
 
-**VibeGuard v4.5.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST), vulnerable third-party dependencies (SCA via Google OSV), Dockerfile misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
+**VibeGuard v4.6.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST), vulnerable third-party dependencies (SCA via Google OSV), Dockerfile misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
 
 VibeGuard operates directly in developer terminal workflows and CI/CD pipelines:
-- **Windows Defender & Antivirus Interception Detection (v4.5)**: Detects when Windows Defender, SmartScreen, or 3rd-party EDR/AV solutions block, quarantine, or deny execution (`ERROR_VIRUS_INFECTED` / `ERROR_ACCESS_DENIED` / `0x800700E1` / `0xC0000022`), immediately launches a native Windows modal pop-up alert (`MessageBoxW`), explains what blocked it, and provides remediation steps.
+- **Comprehensive Ultimate Test Engine (`ultimate_test.bat`) (v4.6)**: 8-stage weighted evaluation engine measuring Go unit tests (15 pts), Go vet (10 pts), Rust tests (15 pts), Rust format (5 pts), Rust Clippy (10 pts), source compilation (20 pts), CLI health validation (15 pts), and Windows Defender verification (10 pts) with exact sub-second timing and detailed status metrics.
+- **Windows Defender & Antivirus Interception Detection (v4.5/v4.6)**: Detects when Windows Defender, SmartScreen, or 3rd-party EDR/AV solutions block, quarantine, or deny execution (`ERROR_VIRUS_INFECTED` / `ERROR_ACCESS_DENIED` / `0x800700E1` / `0xC0000022`), immediately launches a native Windows modal pop-up alert (`MessageBoxW`), explains what blocked it, and provides remediation steps.
 - **Dedicated Diagnostic Command (`vibeguard defender-check`)**: Queries Windows Security Center via WMI (`root\SecurityCenter2`) to report the active antivirus software, scanner accessibility, recommended exclusions, and allows interactive alert testing with `--test-popup`.
 - **Context-Aware Secret & Credential Detection (v4.4)**: Advanced multi-factor scoring model (+30 filename, +25 key, +20 assignment, +15 non-placeholder value, +10 entropy/symbols, +10 source/config file) with intelligent penalty suppression (-30 documentation, -25 obvious placeholder, -20 comments/examples, -40 test fixtures). Distinguishes genuine credential leaks from benign examples and documentation.
 - **Sensitive Filename Auditing (`VG-SECRET-FILE`)**: Flags credential-bearing files (`password.txt`, `passwords.txt`, `credentials.txt`, `credential.txt`, `secret.txt`, `secrets.txt`) at `HIGH` severity.
@@ -470,7 +471,13 @@ A clean project receives a score of **100/100 (`STATUS: SAFE TO PUSH`)**.
 Run the full test suite:
 
 ```powershell
-# Run all Go package unit and integration tests
+# Run the complete 8-stage weighted evaluation engine
+.\ultimate_test.bat
+
+# Optionally run with native pop-up alert simulation
+.\ultimate_test.bat --test-popup
+
+# Run individual Go package unit and integration tests
 go test ./...
 
 # Run static analysis check

@@ -2,7 +2,25 @@
 
 All notable changes to the VibeGuard project are documented in this file.
 
-## [v4.5.0] — 2026-09-20 (Current Release)
+## [v4.6.0] — 2026-09-21 (Current Release)
+
+### Added & Enhanced
+- **Ultimate Test Suite v4.6 (`ultimate_test.bat` & `scripts/windows/ultimate_test.ps1`)**:
+  - Completely revamped terminal test runner into an 8-stage weighted evaluation engine (100 total points, 90 minimum passing threshold):
+    1. Go package unit tests (Weight 15/15, sub-second stopwatch duration, passed/failed package counts).
+    2. Go vet static analysis (Weight 10/10, issues count).
+    3. Rust scanner unit tests (Weight 15/15, passed/failed test counts).
+    4. Rust format check (Weight 5/5, clean check).
+    5. Rust Clippy linter (Weight 10/10, warnings and errors tally).
+    6. Source compilation (Weight 20/20, Go binary, Rust binary, version verification).
+    7. CLI health validation (Weight 15/15, CLI found, scanner found, version, test scan, report generation, security gate block).
+    8. Windows Defender verification (Weight 10/10, WinDefend service status, real-time protection, scanner accessibility, threat history, pop-up simulation option).
+  - High-precision sub-second stopwatch timing for each individual step and overall suite duration.
+  - Optional `--test-popup` flag cleanly runs the native Windows modal alert pop-up test while preserving alignment and structure.
+- **Indefinite Modal Alert Waiting**:
+  - Windows Defender pop-up alerts now persist on screen until user explicitly dismisses or cancels them (`MB_OKCANCEL | MB_ICONWARNING | MB_SYSTEMMODAL`), removing arbitrary timeouts.
+
+## [v4.5.0] — 2026-09-20
 
 ### Added & Enhanced
 - **Windows Defender & Antivirus Interception Detection (`internal/defender`)**:
