@@ -63,7 +63,7 @@ func TestIsExcluded(t *testing.T) {
 		path     string
 		expected bool
 	}{
-		{"tests/sast/vulnerable.go", true},
+		{"tests/safe.go", true},
 		{"md files/README.md", true},
 		{"code.md", true},
 		{"finalreport.md", true},
@@ -78,7 +78,7 @@ func TestIsExcluded(t *testing.T) {
 		{"test5.md", true},
 		{"NEW_LAPTOP_SETUP.md", true},
 		{"rules/README.md", true},
-		{"test-project/main.go", false},
+		{"src/main.go", false},
 		{"src/main.rs", false},
 		{"internal/scanner/runner.go", false},
 		{"cmd/vibeguard/main.go", false},

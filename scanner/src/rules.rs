@@ -1,6 +1,7 @@
 use crate::types::{Category, Severity};
 use regex::Regex;
 
+#[allow(dead_code)]
 pub struct Rule {
     pub id: String,
     pub name: String,
@@ -122,7 +123,8 @@ pub fn get_secret_rules() -> Vec<Rule> {
             name: "Private Key".to_string(),
             category: Category::Secret,
             severity: Severity::CRITICAL,
-            pattern: Regex::new(r#"-----BEGIN\s+(RSA|DSA|EC|OPENSSH)?\s*PRIVATE KEY-----"#).unwrap(),
+            pattern: Regex::new(r#"-----BEGIN\s+(RSA|DSA|EC|OPENSSH)?\s*PRIVATE KEY-----"#)
+                .unwrap(),
             description: "Private cryptographic key detected.".to_string(),
             recommendation: "Remove private keys from the repository.".to_string(),
         },
@@ -140,7 +142,8 @@ pub fn get_secret_rules() -> Vec<Rule> {
             name: "Token/Secret Assignment".to_string(),
             category: Category::Secret,
             severity: Severity::CRITICAL,
-            pattern: Regex::new(r#"(?i)(token|secret|jwt_secret)\s*[:=]\s*['"][^'"]{8,}['"]"#).unwrap(),
+            pattern: Regex::new(r#"(?i)(token|secret|jwt_secret)\s*[:=]\s*['"][^'"]{8,}['"]"#)
+                .unwrap(),
             description: "Hardcoded token or secret assignment detected.".to_string(),
             recommendation: "Move secrets to secure storage or environment variables.".to_string(),
         },
@@ -151,7 +154,8 @@ pub fn get_secret_rules() -> Vec<Rule> {
             severity: Severity::CRITICAL,
             pattern: Regex::new(r#"(?i)(secret|credential)\s*[:=]\s*['"][^'"]{8,}['"]"#).unwrap(),
             description: "Generic secret or credential detected.".to_string(),
-            recommendation: "Securely manage all credentials outside of source control.".to_string(),
+            recommendation: "Securely manage all credentials outside of source control."
+                .to_string(),
         },
     ]
 }

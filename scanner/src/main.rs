@@ -25,7 +25,66 @@ fn main() {
         std::process::exit(2);
     }
 
-    let project_path = &args[1];
+    if args.iter().any(|a| a == "--help" || a == "-h") {
+        println!("Usage: vibeguard-scanner <project_path> [options]");
+        println!();
+        println!("Options:");
+        println!("  --help");
+        println!("  --version");
+        println!("  --progress");
+        println!("  --no-secrets");
+        println!("  --no-sast");
+        std::process::exit(0);
+    }
+
+    if args.iter().any(|a| a == "--version" || a == "-v") {
+        println!("vibeguard-scanner v4.2.0");
+        std::process::exit(0);
+    }
+
+    // Validate all flags
+    let valid_flags = [
+        "--help",
+        "-h",
+        "--version",
+        "-v",
+        "--progress",
+        "--no-secrets",
+        "--no-sast",
+    ];
+    for arg in args.iter().skip(1) {
+        if arg.starts_with('-') && !valid_flags.contains(&arg.as_str()) {
+            eprintln!("Error: unknown option '{}'", arg);
+            eprintln!("{}", json!({ "error": format!("Unknown option: {}", arg) }));
+            std::process::exit(2);
+        }
+    }
+
+    let mut project_path = "";
+    for arg in args.iter().skip(1) {
+        if !arg.starts_with('-') {
+            project_path = arg;
+            break;
+        }
+    }
+
+    if project_path.is_empty() {
+        eprintln!(
+            "{}",
+            json!({ "error": "Usage: vibeguard-scanner <project_path> [--no-secrets] [--no-sast]" })
+        );
+        std::process::exit(2);
+    }
+
+    let p = Path::new(project_path);
+    if !p.exists() {
+        eprintln!(
+            "{}",
+            json!({ "error": format!("Project path does not exist: {}", project_path) })
+        );
+        std::process::exit(2);
+    }
+
     let start_time = Instant::now();
 
     // Check CLI flags
@@ -37,7 +96,9 @@ fn main() {
     let mut enable_secrets = !cli_no_secrets;
     let mut enable_sast = !cli_no_sast;
 
-    let cfg_file = Path::new(project_path).join(".vibeguard").join("config.json");
+    let cfg_file = Path::new(project_path)
+        .join(".vibeguard")
+        .join("config.json");
     if let Ok(cfg_data) = fs::read_to_string(&cfg_file) {
         if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&cfg_data) {
             if let Some(sec) = parsed.get("secret_scan").and_then(|v| v.as_bool()) {
@@ -82,21 +143,27 @@ fn main() {
             .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("");
-        
+
         let ext = Path::new(file_path)
             .extension()
             .and_then(|e| e.to_str())
             .unwrap_or("");
 
         if filename == "Dockerfile" || filename.ends_with(".dockerfile") {
-            let mut docker_findings = docker::scan_dockerfile(file_path, &content, &mut finding_counter);
+            let mut docker_findings =
+                docker::scan_dockerfile(file_path, &content, &mut finding_counter);
             all_findings.append(&mut docker_findings);
         }
 
-        let source_exts = ["go", "js", "ts", "py", "java", "rs", "rb", "php", "c", "cpp", "cs"];
+        let source_exts = [
+            "go", "js", "ts", "py", "java", "rs", "rb", "php", "c", "cpp", "cs",
+        ];
         let config_exts = ["yaml", "yml", "toml", "ini", "conf", "cfg", "json"];
-        if config_exts.contains(&ext) || (filename.starts_with("config.") && !source_exts.contains(&ext)) {
-            let mut config_findings = config::scan_config(file_path, &content, &mut finding_counter);
+        if config_exts.contains(&ext)
+            || (filename.starts_with("config.") && !source_exts.contains(&ext))
+        {
+            let mut config_findings =
+                config::scan_config(file_path, &content, &mut finding_counter);
             all_findings.append(&mut config_findings);
         }
     }
@@ -124,7 +191,10 @@ fn main() {
     match serde_json::to_string(&result) {
         Ok(json_out) => println!("{}", json_out),
         Err(e) => {
-            eprintln!("{}", json!({ "error": format!("Serialization failed: {}", e) }));
+            eprintln!(
+                "{}",
+                json!({ "error": format!("Serialization failed: {}", e) })
+            );
             std::process::exit(2);
         }
     }

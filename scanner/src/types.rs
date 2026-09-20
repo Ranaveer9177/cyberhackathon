@@ -1,5 +1,6 @@
 use serde::Serialize;
 
+#[allow(dead_code, clippy::upper_case_acronyms)]
 #[derive(Debug, Serialize, Clone)]
 pub enum Severity {
     CRITICAL,
@@ -9,6 +10,7 @@ pub enum Severity {
     INFO,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum Category {

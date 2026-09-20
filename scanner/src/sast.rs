@@ -1,12 +1,21 @@
-use crate::types::{Category, Finding};
 use crate::rules::get_sast_rules;
+use crate::types::{Category, Finding};
 use std::path::Path;
 
-pub fn scan_source_code(file_path: &str, content: &str, finding_counter: &mut usize) -> Vec<Finding> {
+pub fn scan_source_code(
+    file_path: &str,
+    content: &str,
+    finding_counter: &mut usize,
+) -> Vec<Finding> {
     let mut findings = Vec::new();
-    
-    let ext = Path::new(file_path).extension().and_then(|e| e.to_str()).unwrap_or("");
-    let allowed_exts = ["go", "js", "ts", "py", "java", "rs", "rb", "php", "c", "cpp", "cs"];
+
+    let ext = Path::new(file_path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("");
+    let allowed_exts = [
+        "go", "js", "ts", "py", "java", "rs", "rb", "php", "c", "cpp", "cs",
+    ];
     if !allowed_exts.contains(&ext) {
         return findings;
     }
@@ -18,19 +27,30 @@ pub fn scan_source_code(file_path: &str, content: &str, finding_counter: &mut us
         let trimmed = line.trim();
 
         // Skip comment lines
-        if trimmed.starts_with("//") || trimmed.starts_with('#') || trimmed.starts_with("/*") || trimmed.starts_with('*') || trimmed.starts_with("--") {
+        if trimmed.starts_with("//")
+            || trimmed.starts_with('#')
+            || trimmed.starts_with("/*")
+            || trimmed.starts_with('*')
+            || trimmed.starts_with("--")
+        {
             continue;
         }
 
         for rule in &rules {
             if rule.pattern.is_match(line) {
-                if line.contains("Regex::new") || line.contains("regexp.MustCompile") || line.contains("pattern:") || line.contains(r#"contains("http"#) || line.contains(r#"contains(lineLower, "http"#) {
+                if line.contains("Regex::new")
+                    || line.contains("regexp.MustCompile")
+                    || line.contains("pattern:")
+                    || line.contains(r#"contains("http"#)
+                    || line.contains(r#"contains(lineLower, "http"#)
+                {
                     continue;
                 }
-                if rule.id == "SAST-002" {
-                    if line.contains(r#"exec.Command("git""#) || line.contains("exec.CommandContext") {
-                        continue;
-                    }
+                if rule.id == "SAST-002"
+                    && (line.contains(r#"exec.Command("git""#)
+                        || line.contains("exec.CommandContext"))
+                {
+                    continue;
                 }
                 if rule.id == "SAST-006" {
                     let line_lower = line.to_lowercase();
@@ -68,7 +88,6 @@ pub fn scan_source_code(file_path: &str, content: &str, finding_counter: &mut us
             }
         }
     }
-
 
     findings
 }

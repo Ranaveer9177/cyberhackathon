@@ -3,7 +3,7 @@ use regex::Regex;
 
 pub fn scan_config(file_path: &str, content: &str, finding_counter: &mut usize) -> Vec<Finding> {
     let mut findings = Vec::new();
-    
+
     let debug_re = Regex::new(r#"(?i)(debug.*true|DEBUG.*=.*1)"#).unwrap();
     let cors_re = Regex::new(r#"(?i)Access-Control-Allow-Origin.*\*"#).unwrap();
     let bind_re = Regex::new(r#"0\.0\.0\.0"#).unwrap();
@@ -11,7 +11,7 @@ pub fn scan_config(file_path: &str, content: &str, finding_counter: &mut usize) 
 
     for (line_idx, line) in content.lines().enumerate() {
         let line_num = line_idx + 1;
-        
+
         if debug_re.is_match(line) {
             *finding_counter += 1;
             findings.push(Finding {
@@ -27,7 +27,7 @@ pub fn scan_config(file_path: &str, content: &str, finding_counter: &mut usize) 
                 confidence: "HIGH".to_string(),
             });
         }
-        
+
         if cors_re.is_match(line) {
             *finding_counter += 1;
             findings.push(Finding {
@@ -43,7 +43,7 @@ pub fn scan_config(file_path: &str, content: &str, finding_counter: &mut usize) 
                 confidence: "HIGH".to_string(),
             });
         }
-        
+
         if bind_re.is_match(line) {
             *finding_counter += 1;
             findings.push(Finding {
@@ -55,11 +55,13 @@ pub fn scan_config(file_path: &str, content: &str, finding_counter: &mut usize) 
                 file: file_path.to_string(),
                 line: line_num,
                 evidence: Some(line.trim().to_string()),
-                recommendation: Some("Ensure binding to 0.0.0.0 is intentional and properly firewalled.".to_string()),
+                recommendation: Some(
+                    "Ensure binding to 0.0.0.0 is intentional and properly firewalled.".to_string(),
+                ),
                 confidence: "MEDIUM".to_string(),
             });
         }
-        
+
         if http_re.is_match(line) {
             *finding_counter += 1;
             findings.push(Finding {

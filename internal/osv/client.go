@@ -38,6 +38,24 @@ var defaultHTTPClient = &http.Client{
 }
 
 func QueryOSV(name, version, ecosystem string) ([]Vulnerability, error) {
+	// 1. Check local disk cache first
+	if cached, ok := GetCachedVulns(name, version, ecosystem); ok {
+		return cached, nil
+	}
+
+	cacheMu.RLock()
+	isOffline := offlineMode
+	endpoint := customBaseURL
+	cacheMu.RUnlock()
+
+	if isOffline {
+		return nil, fmt.Errorf("OSV offline: package %s@%s not in local cache", name, version)
+	}
+
+	if endpoint == "" {
+		endpoint = "https://api.osv.dev/v1/query"
+	}
+
 	reqData := QueryRequest{
 		Version: version,
 		Package: Package{
@@ -57,7 +75,7 @@ func QueryOSV(name, version, ecosystem string) ([]Vulnerability, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.osv.dev/v1/query", bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		return nil, err
 	}
@@ -77,6 +95,9 @@ func QueryOSV(name, version, ecosystem string) ([]Vulnerability, error) {
 	if err := json.NewDecoder(resp.Body).Decode(&queryResp); err != nil {
 		return nil, err
 	}
+
+	// 2. Save result into cache
+	_ = SaveCachedVulns(name, version, ecosystem, queryResp.Vulns)
 
 	return queryResp.Vulns, nil
 }

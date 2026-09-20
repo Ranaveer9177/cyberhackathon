@@ -23,7 +23,11 @@ build/
 # Generated scan outputs (keep reports/ directory structure)
 reports/*.json
 reports/*.html
+reports/*.sarif
 !reports/README.md
+
+# Cache directories
+.vibeguard/cache/
 
 # Log files and temporary artifacts
 *.log

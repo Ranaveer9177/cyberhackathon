@@ -45,7 +45,7 @@ const htmlTemplateStr = `<!DOCTYPE html>
         <div class="header">
             <div>
                 <h1>VibeGuard Security Report</h1>
-                <p><strong>Project:</strong> {{.ProjectName}} | <strong>Scanned:</strong> {{.ScanTime}} | <strong>Files:</strong> {{.FilesScanned}}</p>
+                <p><strong>Project:</strong> {{.ProjectName}} | <strong>Scanned:</strong> {{.ScanTime}} | <strong>Files:</strong> {{.FilesScanned}}{{if .SuppressedCount}} | <strong>Suppressed:</strong> {{.SuppressedCount}}{{end}}{{if .OSVMode}} | <strong>OSV:</strong> {{.OSVMode}}{{end}}</p>
             </div>
             <div class="score">Score: {{.ScoreResult.Score}}/100</div>
         </div>

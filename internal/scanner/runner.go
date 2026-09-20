@@ -18,11 +18,19 @@ import (
 	"github.com/vibeguard/vibeguard/internal/config"
 )
 
+type ScanWarning struct {
+	File   string `json:"file"`
+	Reason string `json:"reason"`
+}
+
 type ScanResult struct {
-	Project      string    `json:"project"`
-	FilesScanned int       `json:"files_scanned"`
-	Findings     []Finding `json:"findings"`
-	ScanTimeMs   int64     `json:"scan_time_ms"`
+	Project       string        `json:"project"`
+	FilesScanned  int           `json:"files_scanned"`
+	FilesSkipped  int           `json:"files_skipped,omitempty"`
+	ExcludedFiles int           `json:"excluded_files,omitempty"`
+	Findings      []Finding     `json:"findings"`
+	ScanTimeMs    int64         `json:"scan_time_ms"`
+	ScanWarnings  []ScanWarning `json:"scan_warnings,omitempty"`
 }
 
 type Finding struct {
@@ -440,8 +448,18 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 
 	// 1. Collect all non-skipped candidate files
 	var files []candidateFile
+	filesSkipped := 0
+	excludedCount := 0
+	var scanWarnings []ScanWarning
+
 	err := filepath.WalkDir(projectPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
+			relPath, _ := filepath.Rel(projectPath, path)
+			if relPath == "" {
+				relPath = path
+			}
+			scanWarnings = append(scanWarnings, ScanWarning{File: filepath.ToSlash(relPath), Reason: err.Error()})
+			filesSkipped++
 			return nil
 		}
 
@@ -454,28 +472,35 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 		for _, gp := range gitignorePatterns {
 			if relPath == gp || strings.HasPrefix(relPath, gp+"/") || d.Name() == gp {
 				if d.IsDir() {
+					excludedCount++
 					return filepath.SkipDir
 				}
+				excludedCount++
 				return nil
 			}
 			if strings.HasPrefix(gp, "*") && strings.HasSuffix(d.Name(), gp[1:]) {
+				excludedCount++
 				return nil
 			}
 		}
 
 		if d.IsDir() {
 			if skipDirs[d.Name()] || cfg.IsExcluded(relPath) {
+				excludedCount++
 				return filepath.SkipDir
 			}
 			return nil
 		}
 
 		if cfg.IsExcluded(relPath) {
+			excludedCount++
 			return nil
 		}
 
 		ext := strings.ToLower(filepath.Ext(path))
 		if skipExts[ext] {
+			filesSkipped++
+			scanWarnings = append(scanWarnings, ScanWarning{File: relPath, Reason: "binary file"})
 			return nil
 		}
 
@@ -525,6 +550,8 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 
 		contentBytes, err := os.ReadFile(path)
 		if err != nil {
+			filesSkipped++
+			scanWarnings = append(scanWarnings, ScanWarning{File: relPath, Reason: err.Error()})
 			continue
 		}
 		content := string(contentBytes)
@@ -708,9 +735,12 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 	duration := time.Since(start).Milliseconds()
 
 	return &ScanResult{
-		Project:      projectName,
-		FilesScanned: totalFiles,
-		Findings:     findings,
-		ScanTimeMs:   duration,
+		Project:       projectName,
+		FilesScanned:  totalFiles,
+		FilesSkipped:  filesSkipped,
+		ExcludedFiles: excludedCount,
+		Findings:      findings,
+		ScanTimeMs:    duration,
+		ScanWarnings:  scanWarnings,
 	}, nil
 }

@@ -5,9 +5,25 @@ pub fn scan_directory(path: &str) -> Vec<String> {
     let mut files = Vec::new();
 
     let skipped_dirs = [
-        "node_modules", "vendor", ".git", "target", "__pycache__", ".venv", "venv", "env",
-        "dist", "build", "htmlcov", ".coverage", "coverage", ".pytest_cache", ".mypy_cache",
-        ".tox", ".nyc_output", ".idea", ".vscode",
+        "node_modules",
+        "vendor",
+        ".git",
+        "target",
+        "__pycache__",
+        ".venv",
+        "venv",
+        "env",
+        "dist",
+        "build",
+        "htmlcov",
+        ".coverage",
+        "coverage",
+        ".pytest_cache",
+        ".mypy_cache",
+        ".tox",
+        ".nyc_output",
+        ".idea",
+        ".vscode",
     ];
 
     let skipped_exts = [
@@ -39,7 +55,10 @@ pub fn scan_directory(path: &str) -> Vec<String> {
                 if trimmed.is_empty() || trimmed.starts_with('#') {
                     continue;
                 }
-                let pat = trimmed.trim_start_matches('/').trim_end_matches('/').replace('\\', "/");
+                let pat = trimmed
+                    .trim_start_matches('/')
+                    .trim_end_matches('/')
+                    .replace('\\', "/");
                 if !pat.is_empty() {
                     config_excludes.push(pat);
                 }
@@ -53,7 +72,7 @@ pub fn scan_directory(path: &str) -> Vec<String> {
         .filter(|e| e.file_type().is_file())
     {
         let file_path = entry.path();
-        
+
         let mut skip = false;
         for component in file_path.components() {
             if let Some(comp_str) = component.as_os_str().to_str() {
@@ -91,20 +110,19 @@ pub fn scan_directory(path: &str) -> Vec<String> {
                 }
             }
         }
-        
+
         if let Some(ext) = file_path.extension().and_then(|s| s.to_str()) {
             if skipped_exts.contains(&ext) {
                 skip = true;
             }
         }
 
-        
         if !skip {
             if let Some(path_str) = file_path.to_str() {
                 files.push(path_str.to_string());
             }
         }
     }
-    
+
     files
 }
