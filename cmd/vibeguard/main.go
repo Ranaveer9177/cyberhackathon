@@ -99,6 +99,14 @@ func main() {
 		handleDefenderCheck(os.Args[2:])
 		os.Exit(0)
 
+	case "cache-refresh", "refresh-cache":
+		if err := osv.ClearCache(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error clearing OSV cache: %v\n", err)
+			os.Exit(2)
+		}
+		fmt.Println("✓ Local OSV vulnerability intelligence cache purged successfully.")
+		os.Exit(0)
+
 	case "version", "--version", "-v":
 		fmt.Printf("VibeGuard v%s\n", version)
 		os.Exit(0)
@@ -113,6 +121,12 @@ func main() {
 		os.Exit(2)
 	}
 }
+
+var (
+	optIncludeTests bool
+	optIncludeDocs  bool
+	optShowExcluded bool
+)
 
 func parseScanArgs(args []string, defaultFormat string) (projectPath, format, outputPath string, isHook bool, err error) {
 	format = defaultFormat
@@ -136,6 +150,14 @@ func parseScanArgs(args []string, defaultFormat string) (projectPath, format, ou
 			isHook = true
 		} else if arg == "--offline" {
 			osv.SetOfflineMode(true)
+		} else if arg == "--include-tests" {
+			optIncludeTests = true
+		} else if arg == "--include-docs" {
+			optIncludeDocs = true
+		} else if arg == "--show-excluded" {
+			optShowExcluded = true
+		} else if arg == "--refresh-cache" {
+			_ = osv.ClearCache()
 		} else if !strings.HasPrefix(arg, "-") && projectPath == "" {
 			projectPath = arg
 		} else if strings.HasPrefix(arg, "-") {
@@ -165,6 +187,7 @@ func printUsage() {
 	fmt.Println("  vibeguard scan [<project-path>] [options]        Run security scan")
 	fmt.Println("  vibeguard report [<project-path>] [options]      Generate HTML/JSON security report")
 	fmt.Println("  vibeguard defender-check [--test-popup]          Inspect Windows Defender / Antivirus status & test pop-up")
+	fmt.Println("  vibeguard cache-refresh                          Purge local OSV vulnerability intelligence cache")
 	fmt.Println("  vibeguard version                                Show VibeGuard version")
 	fmt.Println("  vibeguard help                                   Show this help message")
 	fmt.Println()
@@ -172,6 +195,10 @@ func printUsage() {
 	fmt.Println("  --format, -f <fmt>     Output format: terminal (default), json, html, sarif")
 	fmt.Println("  --output, -o <path>    Custom report output path (default: reports/scan.json or reports/scan.html)")
 	fmt.Println("  --offline              Query only local cached vulnerability intelligence")
+	fmt.Println("  --refresh-cache        Purge local vulnerability cache before querying")
+	fmt.Println("  --include-tests        Include test fixtures and test files in security scan")
+	fmt.Println("  --include-docs         Include markdown documentation and report files in scan")
+	fmt.Println("  --show-excluded        Display count of files excluded by security configuration")
 	fmt.Println("  --hook                 Apply gate policy thresholds from .vibeguard/config.json")
 	fmt.Println()
 	fmt.Println("Exit Codes:")
@@ -554,6 +581,26 @@ func runScanWithRefs(projectPath string, format string, customOutput string, isH
 		return 3
 	}
 
+	if optIncludeTests {
+		var filtered []string
+		for _, ex := range cfg.Exclude {
+			if !strings.Contains(strings.ToLower(ex), "test") {
+				filtered = append(filtered, ex)
+			}
+		}
+		cfg.Exclude = filtered
+	}
+	if optIncludeDocs {
+		var filtered []string
+		for _, ex := range cfg.Exclude {
+			low := strings.ToLower(ex)
+			if !strings.HasSuffix(low, ".md") && !strings.Contains(low, "doc") && !strings.Contains(low, "report") {
+				filtered = append(filtered, ex)
+			}
+		}
+		cfg.Exclude = filtered
+	}
+
 	if git.IsGitRepo(absPath) && isHook {
 		root, _ := git.FindGitRoot(absPath)
 		pushedRefs := explicitRefs
@@ -699,8 +746,19 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 	// Step 1: Detecting project
 	fmt.Printf("[1/5] Detecting project ........ %s\n", passStr)
 
+	var extraFlags []string
+	if optIncludeTests {
+		extraFlags = append(extraFlags, "--include-tests")
+	}
+	if optIncludeDocs {
+		extraFlags = append(extraFlags, "--include-docs")
+	}
+	if optShowExcluded {
+		extraFlags = append(extraFlags, "--show-excluded")
+	}
+
 	// Step 2 & 3: Run scanner for secrets & source code
-	scanResult, err := scanner.RunScanner(targetScanPath)
+	scanResult, err := scanner.RunScannerWithProgressAndFlags(targetScanPath, nil, extraFlags...)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Scanner error: %v\n", err)
 		if cfg.FailClosed {

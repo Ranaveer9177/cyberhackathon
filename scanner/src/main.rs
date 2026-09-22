@@ -34,6 +34,9 @@ fn main() {
         println!("  --progress");
         println!("  --no-secrets");
         println!("  --no-sast");
+        println!("  --include-tests");
+        println!("  --include-docs");
+        println!("  --show-excluded");
         std::process::exit(0);
     }
 
@@ -51,6 +54,9 @@ fn main() {
         "--progress",
         "--no-secrets",
         "--no-sast",
+        "--include-tests",
+        "--include-docs",
+        "--show-excluded",
     ];
     for arg in args.iter().skip(1) {
         if arg.starts_with('-') && !valid_flags.contains(&arg.as_str()) {
@@ -114,10 +120,16 @@ fn main() {
         }
     }
 
-    let files = scanner::scan_directory(project_path);
+    let include_tests = args.iter().any(|a| a == "--include-tests");
+    let include_docs = args.iter().any(|a| a == "--include-docs");
+
+    let (files, excluded_count, binary_skipped) =
+        scanner::scan_directory_ext(project_path, include_tests, include_docs);
     let total_files = files.len();
     let mut all_findings = Vec::new();
     let mut finding_counter = 0;
+    let mut files_skipped_count = binary_skipped;
+    let mut scan_warnings = Vec::new();
 
     for (idx, file_path) in files.iter().enumerate() {
         if emit_progress {
@@ -126,7 +138,14 @@ fn main() {
 
         let content = match fs::read_to_string(file_path) {
             Ok(c) => c,
-            Err(_) => continue, // Skip files that can't be read as string (e.g. binary)
+            Err(e) => {
+                files_skipped_count += 1;
+                scan_warnings.push(types::ScanWarning {
+                    file: file_path.clone(),
+                    reason: format!("Unable to read file as text: {}", e),
+                });
+                continue;
+            }
         };
 
         if enable_secrets {
@@ -184,8 +203,23 @@ fn main() {
     let result = ScanResult {
         project: project_name,
         files_scanned: files.len(),
+        files_skipped: if files_skipped_count > 0 {
+            Some(files_skipped_count)
+        } else {
+            None
+        },
+        excluded_files: if excluded_count > 0 {
+            Some(excluded_count)
+        } else {
+            None
+        },
         findings: all_findings,
         scan_time_ms: duration,
+        scan_warnings: if scan_warnings.is_empty() {
+            None
+        } else {
+            Some(scan_warnings)
+        },
     };
 
     match serde_json::to_string(&result) {

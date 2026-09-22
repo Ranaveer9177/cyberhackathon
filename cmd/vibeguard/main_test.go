@@ -158,3 +158,36 @@ func TestPromptConsole(t *testing.T) {
 	// Skip interactive hardware CONIN$/tty read during automated test runs
 	t.Skip("skipping interactive console prompt in automated test suite")
 }
+
+func TestParseScanArgs_InclusionAndCacheFlags(t *testing.T) {
+	args := []string{
+		"my-proj",
+		"--include-tests",
+		"--include-docs",
+		"--show-excluded",
+		"--refresh-cache",
+	}
+	path, format, output, isHook, err := parseScanArgs(args, "terminal")
+	if err != nil {
+		t.Fatalf("unexpected error parsing inclusion flags: %v", err)
+	}
+	if path != "my-proj" {
+		t.Errorf("expected path 'my-proj', got %q", path)
+	}
+	if format != "terminal" {
+		t.Errorf("expected format 'terminal', got %q", format)
+	}
+	if !optIncludeTests {
+		t.Errorf("expected optIncludeTests to be true")
+	}
+	if !optIncludeDocs {
+		t.Errorf("expected optIncludeDocs to be true")
+	}
+	if !optShowExcluded {
+		t.Errorf("expected optShowExcluded to be true")
+	}
+	if output != "" || isHook {
+		t.Errorf("unexpected output or isHook state")
+	}
+}
+

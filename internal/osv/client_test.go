@@ -108,3 +108,70 @@ func TestQueryOSVMalformedJSON(t *testing.T) {
 		t.Errorf("expected error on malformed JSON, got nil")
 	}
 }
+
+func TestQueryOSVHTTPErrors(t *testing.T) {
+	statusCodes := []int{
+		http.StatusBadRequest,          // 400
+		http.StatusTooManyRequests,    // 429
+		http.StatusInternalServerError, // 500
+	}
+
+	for _, code := range statusCodes {
+		t.Run(http.StatusText(code), func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(code)
+				w.Write([]byte(`error response`))
+			}))
+			defer server.Close()
+
+			SetBaseURL(server.URL)
+			defer SetBaseURL("")
+			SetCacheEnabled(false)
+
+			_, err := QueryOSV("err-pkg", "1.0.0", "npm")
+			if err == nil {
+				t.Errorf("expected error on HTTP %d, got nil", code)
+			}
+		})
+	}
+}
+
+func TestQueryOSVEmptyResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{}`))
+	}))
+	defer server.Close()
+
+	SetBaseURL(server.URL)
+	defer SetBaseURL("")
+	SetCacheEnabled(false)
+
+	vulns, err := QueryOSV("clean-pkg", "1.0.0", "npm")
+	if err != nil {
+		t.Fatalf("expected clean empty response to succeed, got: %v", err)
+	}
+	if len(vulns) != 0 {
+		t.Errorf("expected 0 vulns, got %d", len(vulns))
+	}
+}
+
+func TestClearCache(t *testing.T) {
+	tmpCache := t.TempDir()
+	SetCacheDir(tmpCache)
+	SetCacheEnabled(true)
+	defer SetCacheEnabled(false)
+
+	if err := SaveCachedVulns("test-pkg", "1.0.0", "npm", []Vulnerability{}); err != nil {
+		t.Fatalf("failed to save cached vuln: %v", err)
+	}
+
+	if err := ClearCache(); err != nil {
+		t.Fatalf("ClearCache failed: %v", err)
+	}
+
+	_, ok := GetCachedVulns("test-pkg", "1.0.0", "npm")
+	if ok {
+		t.Errorf("expected cache to be empty after ClearCache")
+	}
+}

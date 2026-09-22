@@ -54,6 +54,13 @@ func IsOfflineMode() bool {
 	return offlineMode
 }
 
+// ClearCache purges the local OSV cache directory for refreshing data.
+func ClearCache() error {
+	cacheMu.Lock()
+	defer cacheMu.Unlock()
+	return os.RemoveAll(cacheDir)
+}
+
 // SetBaseURL allows overriding the OSV API endpoint for unit testing.
 func SetBaseURL(url string) {
 	cacheMu.Lock()
