@@ -13,7 +13,7 @@ go test -v ./...
 ```
 
 ### Passing Packages:
-- `cmd/vibeguard`: CLI input validation, version (`v4.6.0`), format parsing, and exit codes.
+- `cmd/vibeguard`: CLI input validation, version (`v4.7.0`), format parsing, and exit codes.
 - `internal/baseline`: Baseline loading, suppression matching, expiration, and corrupt file fail-closed logic.
 - `internal/config`: Default configuration loading, JSON validation, and exclusion path matching.
 - `internal/defender`: Windows Defender & AV detection, WMI product queries, Win32 error analysis, and pop-up modal logic.
@@ -91,7 +91,7 @@ scripts\windows\run_test.bat
   - `[PASS] Defender diagnostic`
   - All 7 tests pass with exit code `0`.
 
-### 3.5 Complete Repository Test Runner (`ultimate_test.bat` v4.6.0)
+### 3.5 Complete Repository Test Runner (`ultimate_test.bat` v4.7.0)
 ```cmd
 .\ultimate_test.bat
 # Or with native modal alert simulation:

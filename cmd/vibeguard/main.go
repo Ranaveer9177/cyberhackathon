@@ -22,7 +22,7 @@ import (
 	"github.com/vibeguard/vibeguard/internal/scanner"
 )
 
-const version = "4.6.0"
+const version = "4.7.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -758,7 +758,11 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 	}
 
 	// Step 2 & 3: Run scanner for secrets & source code
-	scanResult, err := scanner.RunScannerWithProgressAndFlags(targetScanPath, nil, extraFlags...)
+	liveProg := report.NewLiveProgress("Scanning", os.Stdout)
+	scanResult, err := scanner.RunScannerWithProgressAndFlags(targetScanPath, func(cur, tot int, f string) {
+		liveProg.Update(cur, tot)
+	}, extraFlags...)
+	liveProg.Clear()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Scanner error: %v\n", err)
 		if cfg.FailClosed {
@@ -908,7 +912,11 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 
 		if len(osvDeps) > 0 {
 			var osvErr error
-			vulnResults, osvErr = osv.CheckAllDependenciesWithStatus(osvDeps)
+			liveDepProg := report.NewLiveProgress("Checking vulnerabilities", os.Stdout)
+			vulnResults, osvErr = osv.CheckAllDependenciesWithProgress(osvDeps, func(cur, tot int) {
+				liveDepProg.Update(cur, tot)
+			})
+			liveDepProg.Clear()
 			if osvErr != nil && len(osvDeps) > 0 && cfg.FailClosed {
 				fmt.Fprintln(os.Stderr, "Security policy failure: OSV unavailable and fail_closed is enabled.")
 				return 4

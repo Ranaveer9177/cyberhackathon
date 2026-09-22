@@ -2,7 +2,22 @@
 
 All notable changes to the VibeGuard project are documented in this file.
 
-## [v4.6.0] — 2026-09-21 (Current Release)
+## [v4.7.0] — 2026-09-22 (Current Release)
+
+### Added & Enhanced
+- **Live Dynamic Percentage & ETA Progress (Without Bar)**:
+  - Terminal scan and dependency checks now dynamically display a live percentage number and estimated time to completion (`Scanning: 45% (33/73) | Est. time remaining: 0.8s`) without using cluttering progress bars.
+  - Dynamically calculates scanning throughput (files per second) and projects the exact time remaining.
+  - Automatically and cleanly wipes the progress indicator line upon completion of each stage.
+- **Dedicated Cache Purge & Refresh**:
+  - Added `vibeguard cache-refresh` CLI command and `--refresh-cache` scan flag for immediate clearing of cached OSV vulnerability records.
+- **Exclusion Transparency & Override Flags**:
+  - Implemented `--include-tests`, `--include-docs`, and `--show-excluded` flags in both the Go CLI and Rust scanner engines.
+- **Enhanced Test Isolation & Coverage**:
+  - Re-routed all test outputs to temporary directories (`t.TempDir()`) to ensure zero stray generated report artifacts in the source tree.
+  - Added unit test coverage across all CLI commands and options.
+
+## [v4.6.0] — 2026-09-21
 
 ### Added & Enhanced
 - **Ultimate Test Suite v4.6 (`ultimate_test.bat` & `scripts/windows/ultimate_test.ps1`)**:
