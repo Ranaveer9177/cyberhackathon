@@ -1,12 +1,18 @@
 # VibeGuard Deep Testing and Improvement Report
 
 **Project:** `C:\Users\ranua\Music\cyberhackathon`  
-**Version Tested:** VibeGuard v3.0.0  
-**Test Date:** 20 September 2026  
+**Version Tested:** VibeGuard v4.6.0
+**Test Date:** 22 September 2026
 **Files Modified During Testing:** None  
 **Git Worktree:** Clean
 
 ---
+
+> **Current-status note (22 September 2026):** Sections 2–8 preserve the
+> original v3.0.0 baseline and findings for historical comparison. Sections
+> 13–15 document subsequent feature verification. The authoritative current
+> retest is Section 16, which was executed against the v4.6.0 source tree and
+> binaries in this repository.
 
 ## 1. Overall Rating
 
@@ -18,13 +24,13 @@
 
 | Area | Rating |
 |---|---:|
-| Core functionality | 8.5/10 |
-| Go implementation | 8/10 |
-| Rust scanner | 7.5/10 |
-| Automated testing | 7/10 |
-| CLI and user experience | 6.5/10 |
-| Production readiness | 7/10 |
-| **Overall Rating** | **7.6/10** |
+| Core functionality | 9/10 |
+| Go implementation | 9/10 |
+| Rust scanner | 9/10 |
+| Automated testing | 9/10 |
+| CLI and user experience | 8.5/10 |
+| Production readiness | 8.5/10 |
+| **Overall Rating** | **8.8/10** |
 
 ### Overall Assessment
 
@@ -930,3 +936,127 @@ Result:         PASS
 ```
 
 ### Production Score: **100/100** | Status: **PASS** (Ready for Release)
+
+---
+
+## 16. v4.6.0 Current Retest — 22 September 2026
+
+### 16.1 Automated Verification
+
+The following commands were executed from the repository root:
+
+| Command | Result | Observed evidence |
+|---|---|---|
+| `.\ultimate_test.bat` | **PASS** | 8/8 stages passed, weighted score **100/100**, minimum **90/100** |
+| `go test ./...` | **PASS** | All 13 listed Go packages passed, including CLI, OSV, Defender, baseline, error, integration, and core packages |
+| `go vet ./...` | **PASS** | No issues reported |
+| `go test -race ./...` | **PASS** | All Go packages passed with race detection enabled |
+| `cargo test --manifest-path scanner\Cargo.toml` | **PASS** | **9 passed**, 0 failed |
+| Rust format check via `ultimate_test.bat` | **PASS** | Formatting clean |
+| Rust Clippy via `ultimate_test.bat` | **PASS** | 0 warnings, 0 errors |
+| Source build via `ultimate_test.bat` | **PASS** | Go and Rust binaries built; version reported as v4.6.0 |
+
+The complete suite took **36.48 seconds** on this Windows test machine. The
+reported duration includes Go compilation and test-cache effects, so it should
+not be treated as a performance benchmark.
+
+### 16.2 CLI Verification
+
+| Scenario | Result | Exit code / evidence |
+|---|---|---|
+| `.\vibeguard.exe version` | **PASS** | Prints `VibeGuard v4.6.0` |
+| Clean scan of `.\scanner\src` with JSON output | **PASS** | Score **100/100**, 9 files scanned, 0 findings, exit code `0` |
+| Unsupported format `xml` | **PASS** | Explicit error listing supported formats (`terminal`, `json`, `html`, `sarif`), exit code `3` |
+| Unknown command | **PASS** | Validation error, exit code `2` |
+| CLI health script | **PASS** | CLI discovery, scanner discovery, version, fixture scan, HTML report generation, security gate, and Defender diagnostic passed |
+
+### 16.3 Current Assessment
+
+The v4.6.0 implementation no longer exhibits the historical issues recorded
+in Sections 3.9, 5.1, 5.2, 5.3, and 5.5:
+
+- Rust formatting and strict Clippy checks pass.
+- Unsupported output formats are rejected instead of silently falling back.
+- Direct OSV and CLI tests are present and passing.
+- The Go package test suite includes the CLI and supporting feature packages.
+
+The Windows Defender stage reports the local service and real-time protection
+as available, but the destructive “real block” path and interactive popup
+simulation were **not run** in this retest. Those remain environment-dependent
+manual checks rather than evidence of an actual malware interception event.
+
+### 16.4 Updated Rating
+
+Based on the current automated and CLI evidence:
+
+| Area | Rating |
+|---|---:|
+| Core functionality | 9/10 |
+| Go implementation | 9/10 |
+| Rust scanner | 9/10 |
+| Automated testing | 9/10 |
+| CLI and user experience | 8.5/10 |
+| Production readiness | 8.5/10 |
+| **Current overall rating** | **8.8/10** |
+
+The rating remains below a full production score because this retest did not
+exercise the real Defender interception path, the interactive popup, or the
+external vulnerable fixture's exact finding counts. The automated release
+gate itself passed at **100/100**.
+
+---
+
+## 17. v4.6.0 Report-Driven Improvements — 22 September 2026
+
+### Overview
+
+This section records the targeted code-quality improvements applied after a
+full review of Sections 1–16 of this report.  All changes were verified
+against the `ultimate_test.bat` weighted test suite (score: **100/100**) and
+committed to `main`.
+
+### Changes Applied
+
+| # | Source Section | Finding | Change Made | File |
+|---|---|---|---|---|
+| 1 | §1 | Overall rating table reflected v3.0.0 baseline (7.6/10), not the v4.6.0 evidence in §16.4 (8.8/10) | Updated rating table to 8.8/10 | `report.md` |
+| 2 | §3.2 | `vibeguard status` banner showed stale `VIBEGUARD V2` label | Changed to dynamic `VIBEGUARD v4.6.0 — STATUS` using `version` constant | `cmd/vibeguard/main.go` |
+| 3 | §5 / formatting | `Files Excluded:` line had missing space before count (`Files Excluded:12` → `Files Excluded: 12`) | Added missing space in format string | `internal/report/terminal.go` |
+| 4 | §2.9 / UX | `OSV Intel:` line was suppressed when mode was `online`, causing users to wonder if OSV was queried | Removed `!= "online"` guard so the OSV mode always appears in the report header | `internal/report/terminal.go` |
+
+### Verification
+
+```text
+.\ultimate_test.bat
+```
+
+All 8 stages passed with weighted score **100/100** (minimum 90/100).
+
+```text
+go build -buildvcs=false -o vibeguard.exe ./cmd/vibeguard
+.\vibeguard.exe status
+```
+
+Output now correctly shows:
+
+```text
+========================================
+      VIBEGUARD v4.6.0 — STATUS
+========================================
+```
+
+```text
+.\vibeguard.exe scan .\scanner\src
+```
+
+OSV Intel line now always visible:
+
+```text
+OSV Intel:     online
+```
+
+### Updated Overall Rating
+
+No functional change — all improvements are cosmetic/UX. Overall rating
+remains **8.8/10** as established in Section 16.
+
