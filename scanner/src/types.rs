@@ -37,10 +37,22 @@ pub struct Finding {
     pub confidence: String,
 }
 
+#[derive(Debug, Serialize, Clone)]
+pub struct ScanWarning {
+    pub file: String,
+    pub reason: String,
+}
+
 #[derive(Debug, Serialize)]
 pub struct ScanResult {
     pub project: String,
     pub files_scanned: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub files_skipped: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub excluded_files: Option<usize>,
     pub findings: Vec<Finding>,
     pub scan_time_ms: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scan_warnings: Option<Vec<ScanWarning>>,
 }

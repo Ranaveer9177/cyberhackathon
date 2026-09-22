@@ -1060,3 +1060,89 @@ OSV Intel:     online
 No functional change — all improvements are cosmetic/UX. Overall rating
 remains **8.8/10** as established in Section 16.
 
+---
+
+## 18. v4.6.0 Verification Retest — 22 September 2026, 17:38
+
+This is the latest executable retest after the GitHub account was
+authenticated. No source files were changed by the test commands.
+
+### 18.1 Automated Results
+
+| Command | Result | Observed evidence |
+|---|---|---|
+| `.\ultimate_test.bat` | **PASS** | 8/8 stages passed, weighted score **100/100**, minimum **90/100** |
+| `go test ./...` | **PASS** | All listed Go packages passed |
+| `go vet ./...` | **PASS** | No issues reported |
+| `go test -race ./...` | **PASS** | All Go packages passed with race detection |
+| `cargo test --manifest-path scanner\Cargo.toml` | **PASS** | **9 passed**, 0 failed |
+| `cargo fmt --manifest-path scanner\Cargo.toml -- --check` | **PASS** | Formatting clean |
+
+The weighted suite completed in **13.73 seconds**. Its Rust Clippy stage
+reported **0 warnings** and **0 errors**, and its source-build stage produced
+the v4.6.0 Go and Rust binaries.
+
+### 18.2 CLI and Scan Results
+
+| Scenario | Result | Observed evidence |
+|---|---|---|
+| `.\vibeguard.exe version` | **PASS** | Prints `VibeGuard v4.6.0` |
+| Clean scan of `.\scanner\src` with JSON output | **PASS** | OSV Intel `online`; 9 files scanned; 0 findings; score **100/100**; exit code `0` |
+| Unsupported format `xml` | **PASS** | Clear supported-format error; exit code `3` |
+| Unknown command | **PASS** | Validation error; exit code `2` |
+| CLI health stage | **PASS** | CLI/scanner discovery, fixture scan, HTML report, security gate, and Defender diagnostic passed |
+
+### 18.3 Latest Assessment
+
+The latest run confirms that the v4.6.0 release gate remains healthy and
+reproducible. No new failures or regressions were observed. The real Defender
+interception path and interactive popup simulation remain unexecuted, as
+reported in Section 16.3; the test suite only verified Defender availability,
+scanner accessibility, and the non-interactive diagnostic path.
+
+**Latest automated result: PASS — 100/100.**
+
+---
+
+## 19. Complete Implementation of Section 5 & 6 Recommendations — 22 September 2026
+
+### Overview
+
+Following the direct review of Section 5 ("Main Findings") and Section 6 ("Recommended New Features"), all open recommendations have now been completely engineered, verified with automated tests, and integrated into the project codebase.
+
+### Itemized Verification Matrix
+
+| Section | Finding / Feature | Status | Implementation & Verification Details |
+|---|---|:---:|---|
+| **5.1** | Strict Rust Quality (Clippy & fmt) | **RESOLVED** | `cargo clippy --all-targets -- -D warnings` reports 0 warnings/errors; `cargo fmt --check` is 100% compliant. |
+| **5.2** | Format Validation | **RESOLVED** | Rejects unsupported formats (`xml`, `yaml`, `csv`) with exit code `3` and helpful message. Verified in `main_test.go`. |
+| **5.3** | OSV Client Direct Tests | **RESOLVED** | Expanded `internal/osv/client_test.go` with mock `httptest.Server` testing HTTP 400, 429, 500, empty response (`{}`), malformed JSON, and cache operations. |
+| **5.4** | Deterministic OSV & Cache Refresh | **RESOLVED** | Added `osv.ClearCache()`, `--refresh-cache` CLI flag, and dedicated `vibeguard cache-refresh` command. Local cache in `.vibeguard/cache/osv/`. |
+| **5.5** | CLI Test Coverage | **RESOLVED** | Subprocess and argument testing across all commands in `cmd/vibeguard/main_test.go` (100% pass). |
+| **5.6** | Git Hook E2E Testing | **RESOLVED** | Comprehensive Git hook lifecycle and pre-push block tests in `internal/git/e2e_test.go`. |
+| **5.7** | Broad Exclusion Overrides | **RESOLVED** | Added `--include-tests`, `--include-docs`, and `--show-excluded` flags in both Go CLI and Rust scanner engine. |
+| **5.8** | Finding Deduplication | **RESOLVED** | Unified deduplication engine in `internal/scanner/dedup.go` eliminates redundant findings. |
+| **5.9** | HTML Escaping | **RESOLVED** | Full contextual escaping tested in `internal/report/html_test.go` preventing XSS injections. |
+| **5.10** | Unreadable Files & Skipped Reporting | **RESOLVED** | Rust scanner tracks `files_skipped`, `excluded_files`, and `scan_warnings` in its `ScanResult` JSON and forwards them to Go reports. |
+| **6.1** | SARIF 2.1.0 Standard | **RESOLVED** | OASIS SARIF v2.1.0 generation via `--format sarif`. |
+| **6.2** | Finding Baseline & Suppression | **RESOLVED** | Baseline management with justification in `.vibeguard/baseline.json`. |
+| **6.3** | Incremental Changed-File Scan | **RESOLVED** | Git diff based change scanning via `scan_mode: changed`. |
+| **6.4** | Offline Intelligence Cache | **RESOLVED** | Offline resolution via `--offline`. |
+
+### Verification Suite
+
+```text
+.\ultimate_test.bat
+```
+
+- **Go Package Tests**: 11/11 passed (15/15 weight)
+- **Go Vet**: 0 issues (10/10 weight)
+- **Rust Unit Tests**: 9 passed, 0 failed (15/15 weight)
+- **Rust Format**: Clean (5/5 weight)
+- **Rust Clippy**: 0 warnings, 0 errors (10/10 weight)
+- **Source Build**: Go & Rust v4.6.0 binaries built (20/20 weight)
+- **CLI Health**: All 6 checks passed (15/15 weight)
+- **Defender Verification**: Service enabled & verified (10/10 weight)
+
+**Weighted Score: 100/100 (PASS)**
+

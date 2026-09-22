@@ -127,12 +127,17 @@ type ScanProgressFunc func(current, total int, currentFile string)
 
 // RunScanner runs the Rust scanner executable if available; otherwise falls back to the built-in Go scanner.
 func RunScanner(projectPath string) (*ScanResult, error) {
-	return RunScannerWithProgress(projectPath, nil)
+	return RunScannerWithProgressAndFlags(projectPath, nil)
 }
 
 // RunScannerWithProgress runs the Rust scanner executable with live progress support.
 // If the Rust scanner is unavailable or execution fails, it falls back to the built-in Go scanner.
 func RunScannerWithProgress(projectPath string, progress ScanProgressFunc) (*ScanResult, error) {
+	return RunScannerWithProgressAndFlags(projectPath, progress)
+}
+
+// RunScannerWithProgressAndFlags runs the Rust scanner with progress and custom flags.
+func RunScannerWithProgressAndFlags(projectPath string, progress ScanProgressFunc, extraFlags ...string) (*ScanResult, error) {
 	// Read config to check enabled modules
 	secretScan := true
 	sourceScan := true
@@ -164,6 +169,7 @@ func RunScannerWithProgress(projectPath string, progress ScanProgressFunc) (*Sca
 		if progress != nil {
 			args = append(args, "--progress")
 		}
+		args = append(args, extraFlags...)
 
 		cmd := exec.CommandContext(ctx, scannerExe, args...)
 		var execErr error
