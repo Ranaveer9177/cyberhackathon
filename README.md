@@ -282,8 +282,22 @@ Continuing Git push...
 | `vibeguard report` | Generates HTML, JSON, or SARIF reports | `vibeguard report . --format html` |
 | `vibeguard push` | Executes security scan and pushes safely without double scanning | `vibeguard push` |
 | `vibeguard defender-check` | Inspects active antivirus and tests modal pop-up alert dialog | `vibeguard defender-check --test-popup` |
+| `vibeguard cache-refresh` | Purges local OSV vulnerability intelligence cache | `vibeguard cache-refresh` |
 | `vibeguard uninstall` | Cleanly removes pre-push hook and restores backup user hook | `vibeguard uninstall` |
 | `ultimate_test.bat` | Runs the full 8-stage weighted evaluation engine | `.\ultimate_test.bat` |
+
+### Scan & Report Options
+
+| Flag | Description | Default |
+| :--- | :--- | :---: |
+| `--format, -f <fmt>` | Output format: `terminal`, `json`, `html`, `sarif` | `terminal` |
+| `--output, -o <path>` | Custom report output file path | `reports/scan.<ext>` |
+| `--offline` | Query local vulnerability disk cache without network access | `false` |
+| `--refresh-cache` | Purge local vulnerability cache before querying | `false` |
+| `--include-tests` | Override default exclusion of test suites and fixtures | `false` |
+| `--include-docs` | Override default exclusion of markdown and doc files | `false` |
+| `--show-excluded` | Display count of excluded files in scan report | `false` |
+| `--hook` | Enforce blocking thresholds defined in `.vibeguard/config.json` | `false` |
 
 ---
 

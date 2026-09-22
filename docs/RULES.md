@@ -84,3 +84,30 @@ All detected credentials have their sensitive values masked in all outputs (term
 | `VG-CFG-001` | Debug Mode Enabled | Debugging flags active in production configuration | `MEDIUM` | Advisory |
 | `VG-CFG-002` | Permissive CORS Policy | Wildcard `Access-Control-Allow-Origin: *` configured | `MEDIUM` | Advisory |
 | `VG-CFG-003` | Insecure Interface Binding | Server bound to all network interfaces (`0.0.0.0`) | `LOW` | Advisory |
+
+---
+
+## 5. Configuration Exclusions & Transparency Policy
+
+### 5.1 Default Exclusions & Rationale
+
+VibeGuard applies explicit default exclusions defined in `.vibeguard/config.json`:
+
+| Excluded Pattern | Category | Justification |
+| :--- | :--- | :--- |
+| `.git` | Version Control Metadata | Internal Git objects and commit index; not deployable code. |
+| `.vibeguard` | Tool Configuration & Cache | Local tool metadata, OSV database cache, and policy configurations. |
+| `reports` | Generated Artifacts | Output destination for JSON/HTML/SARIF scan reports to avoid recursive re-scanning. |
+| `tests` | Test Suites & Fixtures | Contains intentionally vulnerable fixtures and mock attack payloads for scanner verification. |
+| `docs` / `*.md` | Project Documentation | Setup guides and instructions containing syntax examples (e.g. sample API keys or passwords). |
+| `rules` | Static Rule Definitions | Regex pattern definitions for detection engines. |
+
+### 5.2 Exclusion Transparency & CLI Overrides
+
+To prevent real vulnerabilities from being unintentionally hidden by broad exclusions:
+
+1. **Exclusion Metric in Reports**: Every scan report explicitly records `Files Excluded: <N>` so developers know when files are bypassed.
+2. **`--include-tests`**: Temporarily removes test directory exclusions, allowing security audits of test suites.
+3. **`--include-docs`**: Temporarily removes markdown/doc file exclusions to audit documentation for leaked production credentials.
+4. **`--show-excluded`**: Displays detailed counts and alerts regarding excluded paths in the terminal scan report.
+
