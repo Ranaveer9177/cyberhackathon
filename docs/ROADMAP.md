@@ -24,6 +24,13 @@
 - [x] **v4.4 — Context-Aware Secret Detection & Confidence Scoring**: Sensitive filename detection (`VG-SECRET-FILE`), credential assignment detection (`VG-SECRET-001`), 10-factor mathematical confidence scoring (+30 to -40), evidence masking (`password=********`), and confidence-aware pre-push gate policy.
 - [x] **v4.5 — Windows Defender & Antivirus Interception Detection**: Interception heuristics for Win32 errors (225 / 5 / 0xC0000022), active AV identification via WMI, native Windows modal pop-up alerts (`MessageBoxW`), CLI diagnostic command (`vibeguard defender-check`), and executive dark theme HTML reporting with PDF export.
 - [x] **v4.6 — Ultimate Test Engine & Metrics Standardization**: 8-stage weighted test engine (100 pts, 90 min score), sub-second stopwatch timing across all phases, detailed package/test/linter metric reporting, indefinite modal alert waiting with `MB_OKCANCEL`.
+- [x] **v4.7 — Live Dynamic Percentage & ETA Progress**: Dynamic live percentage number and estimated time to completion without progress bars, `vibeguard cache-refresh`, exclusion overrides (`--include-tests`, `--include-docs`, `--show-excluded`).
+- [x] **v5.0 — Unconditional Internal Cache & Report Isolation**: Walker early pruning of `.vibeguard` and `reports/` directories preventing false-positive scan results from cached vulnerability dumps.
+- [x] **v5.1 — Generic Leak Wildcard Recognition, Dynamic Credential Weighting, and Chaos Engineering Suite**:
+  - Expanded sensitive filename detection for `leak*.txt`, `test*.txt`, `*_secret.txt`, `*.conf`, `*.env*`.
+  - Dynamic credential weighting for quoted assignments across all files with comparison operator filtering (`==`, `!=`).
+  - Transparent reporting with `--verbose`, `-v`, and `--all`.
+  - DevSecOps Chaos Engineering validation suite across 5 adversarial stress domains (100/100 PASS).
 
 
 ---

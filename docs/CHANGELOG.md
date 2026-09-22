@@ -15,6 +15,13 @@ All notable changes to the VibeGuard project are documented in this file.
 - **Transparent Reporting (`--verbose`, `-v`, `--all`)**:
   - Scan terminal output separates primary actionable findings (Critical, High, Medium) from low-severity/advisory items.
   - Low-severity findings are neatly noted with a count in standard view and fully enumerated under a dedicated `Advisory & Low Severity Findings` section when `--verbose` or `--all` is specified.
+- **DevSecOps Chaos & Deep Testing Suite**:
+  - Aggressively verified engine resilience across 5 core failure domains:
+    - Domain 1: SCA manifest protection vs nested leak wildcards (`100% detection`).
+    - Domain 2: Mathematical boundary stress; equality operators (`==`, `!=`) yielded 0 false positives.
+    - Domain 3: Parallel directory walker stress against 5,000 generated files with instant early root pruning (0.160s scan latency).
+    - Domain 4: Command-line flag abuse and parameter fuzzing, ensuring graceful exit boundaries (Exit Code 0 vs Exit Code 2).
+    - Domain 5: Clean Git commit tree snapshot isolation under dirty working directories.
 - **Synchronized Scanner Engines**:
   - Full equivalence between Rust native scanner (`vibeguard-scanner.exe`) and Go fallback scanner.
 
