@@ -13,7 +13,7 @@ go test -v ./...
 ```
 
 ### Passing Packages:
-- `cmd/vibeguard`: CLI input validation, version (`v4.7.0`), format parsing, and exit codes.
+- `cmd/vibeguard`: CLI input validation, version (`v5.1.0`), format parsing, and exit codes.
 - `internal/baseline`: Baseline loading, suppression matching, expiration, and corrupt file fail-closed logic.
 - `internal/config`: Default configuration loading, JSON validation, and exclusion path matching.
 - `internal/defender`: Windows Defender & AV detection, WMI product queries, Win32 error analysis, and pop-up modal logic.
@@ -91,7 +91,7 @@ scripts\windows\run_test.bat
   - `[PASS] Defender diagnostic`
   - All 7 tests pass with exit code `0`.
 
-### 3.5 Complete Repository Test Runner (`ultimate_test.bat` v4.7.0)
+### 3.5 Complete Repository Test Runner (`ultimate_test.bat` v5.1.0)
 ```cmd
 .\ultimate_test.bat
 # Or with native modal alert simulation:
@@ -107,17 +107,34 @@ scripts\windows\run_test.bat
 - **Doc & Coverage Test**: Scan projects containing `README.md` code snippets, `htmlcov/`, virtual environments (`venv/`), or PowerShell scripts (`start.ps1`); verify 0 false-positive findings.
 - **Grouped Dependency Output**: Verify that packages with multiple advisories (e.g. Django or cryptography) are rendered in a clean table row rather than hundreds of lines of duplicated findings.
 
-### 3.8 Sensitive Credential Filename & Assignment Verification (v4.4)
-- **Test File**: `..\VibeGuard-test\test-project\password.txt` containing `password=123@admin`
+### 3.8 Sensitive Credential Filename & Assignment Verification (v5.1.0)
+- **Test Files**:
+  - `..\VibeGuard-test\test-project\password.txt` containing `password=123@admin`
+  - `leak_test.txt` containing `password = "super_secret_leak_123"`
 - **Command**:
   ```powershell
-  vibeguard scan ..\VibeGuard-test\test-project
+  vibeguard scan
   ```
 - **Expected Results**:
   - `VG-SECRET-FILE`: `Sensitive Credential File Detected` (`HIGH` severity, `HIGH` confidence).
-  - `VG-SECRET-001`: `Hardcoded Password Detected` (`HIGH` severity, context confidence, masked evidence `password=********`).
+  - `VG-SECRET-001`: `Hardcoded Password Detected` (`HIGH` severity, masked evidence `password=********`).
   - `Security Score`: Penalized accordingly.
   - `Deployment Status`: `BLOCKED` with exit code `1`.
 - **Negative Verification**: Verify that `README.md` containing `"Example: password=123@admin"` receives confidence penalty (-30) and does not block the gate.
+
+### 3.9 E2E Verification Matrix Summary (v5.1.0)
+
+| Test Category | Target / Trigger | Expected Detection | Gate Status | Result |
+| :--- | :--- | :--- | :---: | :---: |
+| **Generic Leak Files** | `leak_test.txt` (`password = "super_secret_leak_123"`) | `[HIGH] VG-SECRET-FILE`<br>`[HIGH] VG-SECRET-001` | **BLOCKED** | **PASS** |
+| **Sensitive Filename Auditing** | `test*.txt`, `*_secret.txt`, `*.conf`, `*.env*` | `[HIGH] VG-SECRET-FILE` | **BLOCKED** | **PASS** |
+| **Manifest Exclusion** | `requirements.txt`, `test-requirements.txt` | Ignored as sensitive file | Evaluated for CVEs | **PASS** |
+| **Dynamic Weighting** | Quoted assignment in generic text | `[HIGH] VG-SECRET-001` (Score >= 80) | **BLOCKED** | **PASS** |
+| **Comparison Exclusion** | Source code `key == "password"` | Excluded from assignment rules | Allowed | **PASS** |
+| **Transparent Reporting** | `vibeguard scan` (default) | Primary findings displayed, Lows summarized | As Configured | **PASS** |
+| **Verbose Reporting** | `vibeguard scan --verbose` / `--all` | Dedicated `Advisory & Low Severity Findings` | As Configured | **PASS** |
+| **Cache & State Isolation** | Workspaces with `.vibeguard/cache/` or `reports/` | Unconditionally skipped by walkers | Clean scan | **PASS** |
+| **Pre-Push Git Gate** | `git push` with uncommitted/committed leaks | Native popup alert + console abort | **BLOCKED (Exit 1)** | **PASS** |
+| **Full Repository Test Suite** | `.\ultimate_test.bat` | 8/8 stages verified (Score: 100/100) | **PASS (Exit 0)** | **PASS** |
 
 

@@ -22,7 +22,7 @@ import (
 	"github.com/vibeguard/vibeguard/internal/scanner"
 )
 
-const version = "4.7.0"
+const version = "5.1.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -126,6 +126,8 @@ var (
 	optIncludeTests bool
 	optIncludeDocs  bool
 	optShowExcluded bool
+	optVerbose      bool
+	optAll          bool
 )
 
 func parseScanArgs(args []string, defaultFormat string) (projectPath, format, outputPath string, isHook bool, err error) {
@@ -156,6 +158,11 @@ func parseScanArgs(args []string, defaultFormat string) (projectPath, format, ou
 			optIncludeDocs = true
 		} else if arg == "--show-excluded" {
 			optShowExcluded = true
+		} else if arg == "--verbose" || arg == "-v" {
+			optVerbose = true
+		} else if arg == "--all" {
+			optAll = true
+			optVerbose = true
 		} else if arg == "--refresh-cache" {
 			_ = osv.ClearCache()
 		} else if !strings.HasPrefix(arg, "-") && projectPath == "" {
@@ -199,6 +206,8 @@ func printUsage() {
 	fmt.Println("  --include-tests        Include test fixtures and test files in security scan")
 	fmt.Println("  --include-docs         Include markdown documentation and report files in scan")
 	fmt.Println("  --show-excluded        Display count of files excluded by security configuration")
+	fmt.Println("  --verbose, -v          Show verbose scan output including low severity/advisory findings")
+	fmt.Println("  --all                  Show all findings including low severity and informational items")
 	fmt.Println("  --hook                 Apply gate policy thresholds from .vibeguard/config.json")
 	fmt.Println()
 	fmt.Println("Exit Codes:")
@@ -1092,6 +1101,7 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 		ScoreResult:     scoreResult,
 		GateResult:      gateResult,
 		CategoryCounts:  catCounts,
+		Verbose:         optVerbose || optAll,
 	}
 
 	reportsDir := "reports"

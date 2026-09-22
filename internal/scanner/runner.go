@@ -397,6 +397,7 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 	skipDirs := map[string]bool{
 		"node_modules":  true,
 		".git":          true,
+		".vibeguard":    true,
 		"vendor":        true,
 		"target":        true,
 		"__pycache__":   true,

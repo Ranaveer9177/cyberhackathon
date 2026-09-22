@@ -616,7 +616,7 @@ const htmlTemplateStr = `<!DOCTYPE html>
                     <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
                 </div>
                 <div class="brand-text">
-                    <h1>VibeGuard Security Report <span class="version-badge">v4.7.0</span></h1>
+                    <h1>VibeGuard Security Report <span class="version-badge">v5.1.0</span></h1>
                     <div style="font-size: 13px; opacity: 0.85;">Enterprise Git Pre-Push Gate & Code Security Scanner</div>
                 </div>
             </div>
@@ -817,7 +817,7 @@ const htmlTemplateStr = `<!DOCTYPE html>
         <!-- Footer -->
         <footer class="report-footer">
             <div>
-                Generated autonomously by <strong>VibeGuard v4.7.0</strong> • Enterprise Pre-Push Security Gate
+                Generated autonomously by <strong>VibeGuard v5.1.0</strong> • Enterprise Pre-Push Security Gate
             </div>
             <div>
                 Report Timestamp: {{if .Timestamp}}{{.Timestamp}}{{else}}{{.ScanTime}}{{end}}

@@ -16,6 +16,10 @@ pub fn is_sensitive_filename(file_path: &str) -> (bool, &'static str) {
         .unwrap_or("")
         .to_lowercase();
 
+    if file_name == "requirements.txt" || file_name == "test-requirements.txt" {
+        return (false, "");
+    }
+
     match file_name.as_str() {
         "password.txt" | "passwords.txt" => (true, "Password credential text file"),
         "credentials.txt" | "credential.txt" => (true, "Credential storage text file"),
@@ -27,7 +31,7 @@ pub fn is_sensitive_filename(file_path: &str) -> (bool, &'static str) {
             let code_exts = [
                 "go", "rs", "js", "ts", "py", "java", "c", "cpp", "cs", "rb", "php",
             ];
-            if file_name.starts_with(".env.") {
+            if file_name.starts_with(".env") || ext == "env" {
                 (true, "Environment configuration file")
             } else if file_name.starts_with("credentials.") && !code_exts.contains(&ext.as_str()) {
                 (true, "Credential storage file")
@@ -35,6 +39,16 @@ pub fn is_sensitive_filename(file_path: &str) -> (bool, &'static str) {
                 (true, "Secret storage file")
             } else if ext == "pem" || ext == "key" {
                 (true, "Cryptographic key file")
+            } else if ext == "conf" {
+                (true, "Configuration credential file")
+            } else if ext == "txt" && file_name.starts_with("leak") {
+                (true, "Potential credential leak file")
+            } else if ext == "txt" && file_name.starts_with("test") {
+                (true, "Test credential text file")
+            } else if ext == "txt"
+                && (file_name.ends_with("_secret.txt") || file_name.contains("secret"))
+            {
+                (true, "Secret storage text file")
             } else {
                 (false, "")
             }
@@ -68,7 +82,7 @@ pub fn compute_secret_confidence(
     // Non-quoted values are code expressions (variables, booleans, types, etc.)
     let is_quoted = (val.starts_with('"') && val.ends_with('"'))
         || (val.starts_with('\'') && val.ends_with('\''));
-    if is_source && !is_quoted {
+    if is_source && (!is_quoted || line.contains("==") || line.contains("!=")) {
         return None;
     }
 
@@ -155,7 +169,10 @@ pub fn compute_secret_confidence(
         || line_lower.contains("os.getenv")
         || line_lower.contains("os.environ")
         || line_lower.contains("process.env")
-        || line_lower.contains("$env:");
+        || line_lower.contains("$env:")
+        || val_clean == "..."
+        || val_clean.starts_with("...")
+        || val_lower == "password";
 
     if is_placeholder {
         score -= 25;
@@ -174,15 +191,7 @@ pub fn compute_secret_confidence(
         }
     }
 
-    // 5. File type / context (+10 source/config, -30 doc)
-    let doc_exts = ["md", "markdown", "rst", "adoc"];
-    if doc_exts.contains(&ext.as_str()) || (ext == "txt" && !is_sensitive_file) {
-        score -= 30;
-    } else {
-        score += 10;
-    }
-
-    // 6. Comments and documentation context (-20)
+    // Comments and documentation context (-20)
     let trimmed = line.trim();
     let is_comment = trimmed.starts_with("//")
         || trimmed.starts_with('#')
@@ -203,10 +212,49 @@ pub fn compute_secret_confidence(
         score -= 20;
     }
 
+    // Dynamic Credential Weighting:
+    // When an exact assignment (password = "...", etc.) is detected in any text/config file,
+    // award high confidence regardless of whether filename is strictly password.txt.
+    let is_exact_credential = !is_placeholder
+        && !is_comment
+        && val_clean.len() >= 4
+        && (is_quoted
+            || is_sensitive_file
+            || ext == "txt"
+            || ext == "conf"
+            || ext == "env"
+            || ext == "ini")
+        && (key_lower == "password"
+            || key_lower == "passwd"
+            || key_lower == "pwd"
+            || key_lower == "api_key"
+            || key_lower == "apikey"
+            || key_lower == "secret"
+            || key_lower == "token");
+
+    if is_exact_credential {
+        score += 30;
+    }
+
+    // 5. File type / context (+10 source/config, -30 doc)
+    let doc_exts = ["md", "markdown", "rst", "adoc"];
+    if doc_exts.contains(&ext.as_str())
+        || (ext == "txt" && !is_sensitive_file && !is_exact_credential)
+    {
+        score -= 30;
+    } else {
+        score += 10;
+    }
+
     // 7. Test fixture directory / test file (-40)
-    let is_target_password_txt = file_path.ends_with("password.txt");
     let path_lower = file_path.to_lowercase();
-    if !is_target_password_txt
+    let is_target_credential_file = file_path.ends_with("password.txt")
+        || is_sensitive_file
+        || (is_exact_credential
+            && !path_lower.contains("fixtures")
+            && !path_lower.contains("mock"));
+
+    if !is_target_credential_file
         && (path_lower.contains("test")
             || path_lower.contains("fixture")
             || path_lower.contains("mock"))
@@ -383,8 +431,12 @@ mod tests {
                 "expected findings for text '{}', got none",
                 text
             );
-            assert_eq!(findings[0].title, expected_title);
-            assert!(findings[0]
+            let assign_finding = findings
+                .iter()
+                .find(|f| f.id != "VG-SECRET-FILE")
+                .expect("expected credential assignment finding");
+            assert_eq!(assign_finding.title, expected_title);
+            assert!(assign_finding
                 .evidence
                 .as_ref()
                 .unwrap()
@@ -434,5 +486,30 @@ mod tests {
         let findings = scan_secrets("clean.txt", content, &mut counter);
         assert!(findings.is_empty());
         assert_eq!(counter, 0);
+    }
+
+    #[test]
+    fn test_leak_test_file_detected() {
+        let mut counter = 0;
+        let content = "password = \"super_secret_leak_123\"\n";
+        let findings = scan_secrets("leak_test.txt", content, &mut counter);
+        assert!(!findings.is_empty());
+        assert!(findings
+            .iter()
+            .any(|f| f.id == "VG-SECRET-FILE" && f.severity == Severity::HIGH));
+        assert!(findings
+            .iter()
+            .any(|f| f.id == "VG-SECRET-001" && f.severity == Severity::HIGH));
+    }
+
+    #[test]
+    fn test_generic_sensitive_filenames() {
+        assert!(is_sensitive_filename("leak_data.txt").0);
+        assert!(is_sensitive_filename("test_keys.txt").0);
+        assert!(is_sensitive_filename("api_secret.txt").0);
+        assert!(is_sensitive_filename("app.conf").0);
+        assert!(is_sensitive_filename(".env.production").0);
+        assert!(!is_sensitive_filename("requirements.txt").0);
+        assert!(!is_sensitive_filename("clean.txt").0);
     }
 }

@@ -110,6 +110,14 @@ func TestInternalScannerExclusions(t *testing.T) {
 		t.Fatalf("failed to write safe file: %v", err)
 	}
 
+	cacheDir := filepath.Join(tempDir, ".vibeguard", "cache", "osv")
+	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+		t.Fatalf("failed to create VibeGuard cache directory: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(cacheDir, "cached.json"), []byte(`{"private_key":"-----BEGIN `+"PRIVATE KEY-----"+`"}`), 0644); err != nil {
+		t.Fatalf("failed to write VibeGuard cache fixture: %v", err)
+	}
+
 	result, err := RunInternalScanner(tempDir)
 	if err != nil {
 		t.Fatalf("RunInternalScanner failed: %v", err)
@@ -119,6 +127,9 @@ func TestInternalScannerExclusions(t *testing.T) {
 	for _, f := range result.Findings {
 		if f.File == "excluded_dir/secret.go" {
 			t.Errorf("excluded file %s was scanned and reported as finding", f.File)
+		}
+		if filepath.ToSlash(f.File) == ".vibeguard/cache/osv/cached.json" {
+			t.Errorf("VibeGuard cache file %s was scanned and reported as finding", f.File)
 		}
 	}
 }

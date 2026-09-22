@@ -19,6 +19,7 @@ pub fn scan_directory_ext(
         "node_modules",
         "vendor",
         ".git",
+        ".vibeguard",
         "target",
         "__pycache__",
         ".venv",
@@ -153,4 +154,40 @@ pub fn scan_directory_ext(
     }
 
     (files, excluded_count, binary_skipped)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::scan_directory_ext;
+    use std::fs;
+
+    #[test]
+    fn excludes_vibeguard_internal_files_without_config_pattern() {
+        let root =
+            std::env::temp_dir().join(format!("vibeguard-scanner-test-{}", std::process::id()));
+        let cache_dir = root.join(".vibeguard").join("cache").join("osv");
+        fs::create_dir_all(&cache_dir).expect("create test directories");
+        fs::write(
+            cache_dir.join("cached.json"),
+            r#"{"url":"http://example.com"}"#,
+        )
+        .expect("write cache fixture");
+        fs::write(root.join("main.rs"), "fn main() {}").expect("write source fixture");
+
+        let (files, _, _) = scan_directory_ext(
+            root.to_str().expect("temporary path is valid UTF-8"),
+            false,
+            false,
+        );
+
+        assert!(
+            files.iter().all(|file| !file
+                .replace('\\', "/")
+                .ends_with(".vibeguard/cache/osv/cached.json")),
+            "internal cache file was included in scan: {files:?}"
+        );
+        assert_eq!(files.len(), 1);
+
+        fs::remove_dir_all(root).expect("remove test directory");
+    }
 }

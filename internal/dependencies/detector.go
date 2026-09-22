@@ -35,7 +35,7 @@ func DetectDependencies(projectPath string) ([]Dependency, error) {
 		relPath = filepath.ToSlash(relPath)
 
 		if d.IsDir() {
-			if d.Name() == "node_modules" || d.Name() == ".git" || d.Name() == "vendor" || cfg.IsExcluded(relPath) {
+			if d.Name() == "node_modules" || d.Name() == ".git" || d.Name() == ".vibeguard" || d.Name() == "vendor" || cfg.IsExcluded(relPath) {
 				return filepath.SkipDir
 			}
 			return nil
