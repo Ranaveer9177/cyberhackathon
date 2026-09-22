@@ -24,6 +24,9 @@ build/
 reports/*.json
 reports/*.html
 reports/*.sarif
+**/reports/*.json
+**/reports/*.html
+**/reports/*.sarif
 !reports/README.md
 
 # Cache directories

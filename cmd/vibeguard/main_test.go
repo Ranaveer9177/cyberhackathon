@@ -1,7 +1,9 @@
 package main
 
 import (
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -188,6 +190,32 @@ func TestParseScanArgs_InclusionAndCacheFlags(t *testing.T) {
 	}
 	if output != "" || isHook {
 		t.Errorf("unexpected output or isHook state")
+	}
+}
+
+func TestHandleInitAndUninstall(t *testing.T) {
+	tmpDir := t.TempDir()
+	_ = exec.Command("git", "init", tmpDir).Run()
+
+	handleInit(tmpDir)
+
+	hookPath := filepath.Join(tmpDir, ".git", "hooks", "pre-push")
+	if _, err := os.Stat(hookPath); os.IsNotExist(err) {
+		t.Errorf("expected pre-push hook to exist after handleInit")
+	}
+
+	handleUninstall(tmpDir)
+	if _, err := os.Stat(hookPath); !os.IsNotExist(err) {
+		t.Errorf("expected pre-push hook to be removed after handleUninstall")
+	}
+}
+
+func TestRunScan_CleanDirectory(t *testing.T) {
+	tmpDir := t.TempDir()
+	outPath := filepath.Join(tmpDir, "scan.json")
+	exitCode := runScan(tmpDir, "json", outPath, false)
+	if exitCode != 0 {
+		t.Errorf("expected exitCode 0 on clean directory, got %d", exitCode)
 	}
 }
 
