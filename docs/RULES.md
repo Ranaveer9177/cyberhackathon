@@ -8,8 +8,8 @@ This document details the built-in security detection rules enforced by the Vibe
 
 | Rule ID | Name | Target Pattern / Evidence | Severity | Confidence | Gate Policy |
 | :--- | :--- | :--- | :---: | :---: | :---: |
-| `VG-SECRET-FILE` | Sensitive Credential File Detected | Filename matching `password.txt`, `passwords.txt`, `credentials.txt`, `credential.txt`, `secret.txt`, `secrets.txt` | `HIGH` | `HIGH` | **BLOCKS** |
-| `VG-SECRET-001` | Hardcoded Password Detected | `password=...`, `passwd=...`, `pwd=...`, `db_password=...`, `admin_password=...`, `api_key=...`, `secret=...` | `HIGH` | Context-evaluated | **BLOCKS** (if High/Medium) |
+| `VG-SECRET-FILE` | Sensitive Credential File Detected | Filename matching `password.txt`, `passwords.txt`, `credentials.txt`, `credential.txt`, `secret.txt`, `secrets.txt`, `leak*.txt`, `test*.txt`, `*_secret.txt`, `*.conf`, `*.env*` (SCA manifests exempted) | `HIGH` | `HIGH` | **BLOCKS** |
+| `VG-SECRET-001` | Hardcoded Password Detected | `password=...`, `passwd=...`, `pwd=...`, `db_password=...`, `admin_password=...`, `api_key=...`, `secret=...` (Dynamic weighting for exact quoted values) | `HIGH` | Context-evaluated | **BLOCKS** (if High/Medium) |
 | `VG-SEC-001` | AWS Access Key | `AKIA[0-9A-Z]{16}` | `CRITICAL` | `HIGH` | **BLOCKS** |
 | `VG-SEC-002` | GitHub Personal Access Token | `ghp_[a-zA-Z0-9]{36}` | `CRITICAL` | `HIGH` | **BLOCKS** |
 | `VG-SEC-003` | Slack Token | `xox[bprs]-[a-zA-Z0-9-]+` | `CRITICAL` | `HIGH` | **BLOCKS** |
@@ -19,23 +19,25 @@ This document details the built-in security detection rules enforced by the Vibe
 | `VG-SEC-007` | Generic Credential Assignment | `(api[_-]?key\|apikey\|credential)\s*[:=]\s*['"][^'"]{8,}` | `CRITICAL` | Context-evaluated | **BLOCKS** |
 | `VG-SEC-008` | Sensitive File in Repository | `.env`, `*.pem`, `*.key`, `id_rsa`, `id_dsa` | `CRITICAL` | `HIGH` | **BLOCKS** |
 
-### 1.1 Context & Confidence Scoring Model (v4.4)
+### 1.1 Context & Confidence Scoring Model (v5.1)
 
 To prevent false alarms in documentation, code comments, and test templates while guaranteeing detection of genuine secrets, VibeGuard evaluates a 10-factor mathematical confidence score (0–100):
 
 #### Positive Factors:
-- **Sensitive filename** (`password.txt`, `.env`, etc.): `+30`
+- **Sensitive filename or leak wildcard** (`password.txt`, `leak*.txt`, `test*.txt`, `.env`, etc.): `+30`
 - **Explicit credential key name** (`password`, `api_key`, `secret`, `token`): `+25`
 - **Direct assignment operator** (`=`, `:=`, `:`): `+20`
+- **Dynamic Credential Weighting** (Exact quoted assignments in any text/config file): `+15`
 - **Non-placeholder value** (not empty, not `"password"`, `"admin"`, etc.): `+15`
 - **High-entropy or mixed character set** (letters, numbers, special symbols like `@`, `!`, `$`): `+10`
 - **Located in source code, configuration, or root directory**: `+10`
 
-#### Penalty Factors:
+#### Penalty & Exclusion Factors:
+- **Comparison operator exclusion** (`==`, `!=`, `===`, `!==`): Completely excluded from assignment rules to prevent false positives during variable equality checks.
 - **Located in documentation or markdown file** (`.md`, `.rst`, `.txt` docs): `-30`
 - **Matches obvious placeholder patterns** (`example`, `demo`, `changeme`, `dummy`, `placeholder`): `-25`
-- **Contained in comment or example syntax** (`# password=...`, `// password=...`): `-20`
-- **File path is in a test fixture or mock directory**: `-40`
+- **Contained in comment or example syntax** (`# password=...`, `// password=...`, `/* ... */`): `-20`
+- **File path is in a test fixture or mock directory**: `-40` (real leak files in root like `leak_test.txt` exempt)
 
 #### Confidence Buckets & Gate Action:
 - **80 – 100 (`HIGH`)**: Definite secret leak. **Triggers pre-push BLOCK.**
