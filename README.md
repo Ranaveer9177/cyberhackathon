@@ -1,6 +1,6 @@
-# VibeGuard v4.6.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
+# VibeGuard v4.7.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
 
-[![Version](https://img.shields.io/badge/version-v4.6.0-blue.svg)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v4.7.0-blue.svg)](docs/CHANGELOG.md)
 [![Security Gate](https://img.shields.io/badge/security_gate-PASSED_100%2F100-brightgreen.svg)](ultimate_test.bat)
 [![Engines](https://img.shields.io/badge/engines-Go_1.21+_|_Rust_1.70+-orange.svg)](docs/LANGUAGE.md)
 [![SARIF](https://img.shields.io/badge/SARIF-2.1.0_Compliant-purple.svg)](internal/report/sarif.go)
@@ -13,66 +13,62 @@
 
 ## Overview
 
-**VibeGuard v4.6.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST), vulnerable third-party dependencies (SCA via Google OSV), Dockerfile misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
+**VibeGuard v4.7.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST), vulnerable third-party dependencies (SCA via Google OSV), Dockerfile misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
 
 ```
                     Developer Shell / Git CLI
-                               │
-               ┌───────────────┴───────────────┐
-               ▼                               ▼
-       git push / vibeguard push        vibeguard scan
-               │                               │
-               ▼                               │
-        Git Pre-Push Hook                      │
-  (stdin: local & remote refs)                 │
-               │                               │
-               ▼                               │
-     Commit Tree Snapshot                      │
-   (git archive -> tar reader)                 │
-               │                               │
-               └───────────────┬───────────────┘
-                               ▼
-                        VibeGuard CLI (Go)
-                               │
-               ┌───────────────┴───────────────┐
-               ▼                               ▼
-      Rust Scanner Engine              OSV Vulnerability Cache / API
-   (Secrets, SAST, Docker, Git)      (.vibeguard/cache/osv/ + Live)
-               │                               │
-               └───────────────┬───────────────┘
-                               ▼
-                    Finding Deduplication
-                               │
-                               ▼
-                    Baseline & Suppression Filter
-                               │
-                               ▼
-                       Risk Scoring Engine
-                               │
-               ┌───────────────┼───────────────┬───────────────┐
-               ▼               ▼               ▼               ▼
-        Terminal Report   JSON Report     HTML Report     SARIF Report
-               │
-               ▼
-       PASS / BLOCK Gate
-  (SAFE -> Push Continues | BLOCKED -> Push Aborted)
+                                │
+                ┌───────────────┴───────────────┐
+                ▼                               ▼
+        git push / vibeguard push        vibeguard scan
+                │                               │
+                ▼                               │
+         Git Pre-Push Hook                      │
+   (stdin: local & remote refs)                 │
+                │                               │
+                ▼                               │
+      Commit Tree Snapshot                      │
+   (committed tree, not dirty)                  │
+                │                               │
+                ▼                               │
+   ┌─────────────────────────────────────────┐  │
+   │      VibeGuard Security Gate (Go)       │  │
+   │  ┌───────────────────────────────────┐  │  │
+   │  │ 1. Project Detection              │  │  │
+   │  ├───────────────────────────────────┤  │  │
+   │  │ 2. Secret Scan (Rust Engine)      │  │  │
+   │  ├───────────────────────────────────┤  │  │
+   │  │ 3. SAST Scan (Rust Engine)        │  │  │
+   │  ├───────────────────────────────────┤  │  │
+   │  │ 4. Dependency Scan (Google OSV)   │  │  │
+   │  ├───────────────────────────────────┤  │  │
+   │  │ 5. Security Policy Evaluation     │  │  │
+   │  └───────────────────────────────────┘  │  │
+   └────────────────────┬────────────────────┘  │
+                        │                       │
+           ┌────────────┴────────────┐          │
+           ▼                         ▼          ▼
+     Score >= 90                Score < 90 / Findings
+     [PASS: Code Pushed]        [BLOCK: Push Aborted]
+                                Native Desktop Pop-up
+                                Terminal & HTML Report
 ```
 
 ---
 
-## What's New in v4.6.0
+## What's New in v4.7.0
 
-1. **8-Stage Weighted Evaluation Engine (`ultimate_test.bat`)**:
-   - High-precision test runner with **100 total points** and a **90-point passing threshold**.
-   - Sub-second duration measurement per stage using high-precision stopwatch.
-   - Real metric extraction: package counts, test tallies, Clippy warnings/errors, and Defender status.
-2. **Windows Defender & Antivirus Interception Defense**:
-   - Detects Win32 error signatures (`ERROR_VIRUS_INFECTED` / `225`, `ERROR_ACCESS_DENIED` / `5`, `0xC0000022`).
-   - Identifies the active security product via WMI (`root\SecurityCenter2`).
-   - Raises native Windows modal pop-ups (`MessageBoxW`) with **OK** and **Cancel** buttons, waiting for user action without arbitrary timeouts.
-3. **Interactive Diagnostic Command (`vibeguard defender-check`)**:
-   - Probes security suite status and scanner accessibility.
-   - `--test-popup` flag verifies the native desktop modal dialog on demand.
+1. **Live Dynamic Percentage & ETA Progress (Without Bar)**:
+   - In-terminal live percentage indicator (`Scanning: 45% (33/73) | Est. time remaining: 0.8s`) during file analysis and dependency checking.
+   - Dynamic real-time calculation of remaining scan time based on active throughput without cluttering progress bars.
+   - Automatically and cleanly wipes the progress line once each gate stage completes.
+2. **Dedicated Cache Refresh (`vibeguard cache-refresh`)**:
+   - Added command and `--refresh-cache` flag to purge and refresh local OSV vulnerability intelligence.
+3. **Exclusion Transparency & Override Flags**:
+   - Added `--include-tests`, `--include-docs`, and `--show-excluded` flags in Go and Rust scanner engines.
+4. **Enhanced Test Coverage & Artifact Isolation**:
+   - 100% automated test coverage across all CLI commands (`version`, `status`, `init`, `uninstall`, `scan`, `report`, `defender-check`, `cache-refresh`).
+   - Clean temporary directory test isolation preventing stray report files in source trees.
 4. **Context-Aware Secret Detection & Confidence Scoring (v4.4)**:
    - Evaluates a 10-factor mathematical confidence score (+30 to -40).
    - Distinguishes genuine secrets (`VG-SECRET-FILE`, `VG-SECRET-001`) from documentation and placeholder values.
@@ -94,7 +90,7 @@ Prebuilt Windows binaries (`vibeguard.exe` and `vibeguard-scanner.exe`) are bund
 
 # 2. Open a NEW terminal and verify global access:
 vibeguard version
-# Output: VibeGuard v4.6.0
+# Output: VibeGuard v4.7.0
 
 # 3. Run the comprehensive 8-stage test engine:
 .\ultimate_test.bat
@@ -110,7 +106,7 @@ Compile both the Rust scanner and Go orchestrator from source:
 
 ---
 
-## The Ultimate Test Suite v4.6 (`ultimate_test.bat`)
+## The Ultimate Test Suite v4.7 (`ultimate_test.bat`)
 
 Run the complete 8-stage weighted evaluation engine directly from your terminal:
 

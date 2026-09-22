@@ -71,3 +71,37 @@ func TestProgressBarFinish(t *testing.T) {
 		t.Errorf("expected message in output, got: %s", output)
 	}
 }
+
+func TestLiveProgressFormat(t *testing.T) {
+	lp := NewLiveProgress("Scanning", nil)
+	line, pct := lp.FormatProgress(50, 100)
+	if pct != 50 {
+		t.Errorf("expected 50%%, got %d%%", pct)
+	}
+	if !strings.Contains(line, "50%") {
+		t.Errorf("expected '50%%' in format, got %s", line)
+	}
+	if !strings.Contains(line, "(50/100)") {
+		t.Errorf("expected '(50/100)' in format, got %s", line)
+	}
+	if !strings.Contains(line, "Est. time remaining:") {
+		t.Errorf("expected 'Est. time remaining:' in format, got %s", line)
+	}
+}
+
+func TestLiveProgressUpdate(t *testing.T) {
+	var buf bytes.Buffer
+	lp := NewLiveProgress("Scanning", &buf)
+	lp.SetTTY(true)
+
+	lp.Update(10, 20)
+	lp.Clear()
+
+	output := buf.String()
+	if !strings.Contains(output, "50%") {
+		t.Errorf("expected '50%%' in output, got %s", output)
+	}
+	if !strings.Contains(output, "\r") {
+		t.Errorf("expected carriage return in TTY mode, got %s", output)
+	}
+}
