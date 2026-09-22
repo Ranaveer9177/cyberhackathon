@@ -1,6 +1,6 @@
 # VibeGuard — Feature Specifications
 
-> **Complete Feature Reference for VibeGuard v4.7.0**
+> **Complete Feature Reference for VibeGuard v5.1.0**
 
 ---
 
@@ -33,11 +33,12 @@
 
 ## 2. Multi-Engine Security Scanners
 
-### 2.1 Secret & Credential Detection (v4.4 Context-Aware Model)
+### 2.1 Secret & Credential Detection (v5.1 Context-Aware Engine)
 - **Sensitive Filename Auditing (`VG-SECRET-FILE`)**:
-  - Flags sensitive credential files (`password.txt`, `passwords.txt`, `credentials.txt`, `credential.txt`, `secret.txt`, `secrets.txt`) with `HIGH` severity and `HIGH` confidence.
-- **Credential Assignment Detection (`VG-SECRET-001`)**:
-  - Detects hardcoded credential assignments: `password=...`, `passwd=...`, `pwd=...`, `db_password=...`, `admin_password=...`, `api_key=...`, `secret=...`, `token=...`.
+  - Automatically detects sensitive credential and leak filenames: `password.txt`, `credentials.txt`, `secret.txt`, `leak*.txt` (e.g. `leak_test.txt`), `test*.txt`, `*_secret.txt`, `*.conf`, and `*.env*` with `HIGH` severity and `HIGH` confidence.
+- **Dynamic Credential Weighting (`VG-SECRET-001`, `VG-SECRET-002`, `VG-SECRET-003`)**:
+  - Automatically awards high confidence to exact quoted credential assignments (`password = "..."`, `api_key = "..."`, `secret = "..."`) across text and config files, regardless of whether the file is named `password.txt`.
+  - Intelligently excludes source code comparison expressions (`==`, `!=`) and comments (`//`, `#`, `/*`).
 - **Entropy & Standard Credential Pattern Recognition**:
   - AWS Access Keys (`AKIA[0-9A-Z]{16}`)
   - GitHub Personal Access Tokens (`ghp_[a-zA-Z0-9]{36}`)

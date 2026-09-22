@@ -10,7 +10,7 @@ $root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 Set-Location $root
 
 if ($Help) {
-    Write-Host "VibeGuard Ultimate Test v4.7.0"
+    Write-Host "VibeGuard Ultimate Test v5.1.0"
     Write-Host "Usage: ultimate_test.bat [--test-popup]"
     exit 0
 }
@@ -24,7 +24,7 @@ $totalWeightEarned = 0
 $totalWeightMax = 100
 
 Write-Host "========================================"
-Write-Host " VIBEGUARD ULTIMATE TEST v4.7.0"
+Write-Host " VIBEGUARD ULTIMATE TEST v5.1.0"
 Write-Host "========================================"
 Write-Host ""
 Write-Host "Test results:"
@@ -231,8 +231,8 @@ if ($la) {
 $tmpVer = [System.IO.Path]::GetTempFileName()
 $verProc = Start-Process -FilePath ".\vibeguard.exe" -ArgumentList "version" -NoNewWindow -PassThru -RedirectStandardOutput $tmpVer
 $verProc.WaitForExit()
-$verOut = if (Test-Path $tmpVer) { (Get-Content $tmpVer).Trim() } else { "VibeGuard v4.7.0" }
-$verStr = if ($verOut -match 'v\d+\.\d+\.\d+') { $matches[0] } else { "v4.7.0" }
+$verOut = if (Test-Path $tmpVer) { (Get-Content $tmpVer).Trim() } else { "VibeGuard v5.1.0" }
+$verStr = if ($verOut -match 'v\d+\.\d+\.\d+') { $matches[0] } else { "v5.1.0" }
 Remove-Item -Force $tmpVer -ErrorAction SilentlyContinue
 
 $sw.Stop()

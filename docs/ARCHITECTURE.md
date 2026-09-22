@@ -1,6 +1,6 @@
 # VibeGuard — Technical Architecture Documentation
 
-> **VibeGuard v4.7.0 — Multi-Engine Autonomous Pre-Push Security Firewall**
+> **VibeGuard v5.1.0 — Multi-Engine Autonomous Pre-Push Security Firewall**
 
 ---
 

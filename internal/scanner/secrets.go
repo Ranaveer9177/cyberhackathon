@@ -12,6 +12,10 @@ var assignRegex = regexp.MustCompile(`(?i)(?:^|[\s,;{(])(?P<key>[a-zA-Z0-9_-]*(?
 // IsSensitiveFilename identifies filenames that typically contain sensitive credentials.
 func IsSensitiveFilename(fileName, ext string) (bool, string) {
 	fn := strings.ToLower(fileName)
+	extLower := strings.ToLower(ext)
+	if fn == "requirements.txt" || fn == "test-requirements.txt" {
+		return false, ""
+	}
 	switch fn {
 	case "password.txt", "passwords.txt":
 		return true, "Password credential text file"
@@ -27,8 +31,7 @@ func IsSensitiveFilename(fileName, ext string) (bool, string) {
 		return true, "HTTP basic auth password file"
 	default:
 		codeExts := map[string]bool{".go": true, ".rs": true, ".js": true, ".ts": true, ".py": true, ".java": true, ".c": true, ".cpp": true, ".cs": true, ".rb": true, ".php": true}
-		extLower := strings.ToLower(ext)
-		if strings.HasPrefix(fn, ".env.") {
+		if strings.HasPrefix(fn, ".env") || extLower == ".env" || extLower == "env" {
 			return true, "Environment configuration file"
 		}
 		if strings.HasPrefix(fn, "credentials.") && !codeExts[extLower] {
@@ -39,6 +42,18 @@ func IsSensitiveFilename(fileName, ext string) (bool, string) {
 		}
 		if extLower == ".pem" || extLower == ".key" {
 			return true, "Cryptographic key file"
+		}
+		if extLower == ".conf" || extLower == "conf" {
+			return true, "Configuration credential file"
+		}
+		if (extLower == ".txt" || extLower == "txt") && strings.HasPrefix(fn, "leak") {
+			return true, "Potential credential leak file"
+		}
+		if (extLower == ".txt" || extLower == "txt") && strings.HasPrefix(fn, "test") {
+			return true, "Test credential text file"
+		}
+		if (extLower == ".txt" || extLower == "txt") && (strings.HasSuffix(fn, "_secret.txt") || strings.Contains(fn, "secret")) {
+			return true, "Secret storage text file"
 		}
 		return false, ""
 	}
@@ -57,7 +72,7 @@ func ComputeSecretConfidence(filePath, line, key, val string, isSensitiveFile bo
 	// In source code files, hardcoded credentials are string literals ("..." or '...')
 	isQuoted := (strings.HasPrefix(val, `"`) && strings.HasSuffix(val, `"`)) ||
 		(strings.HasPrefix(val, `'`) && strings.HasSuffix(val, `'`))
-	if isSource && !isQuoted {
+	if isSource && (!isQuoted || strings.Contains(line, "==") || strings.Contains(line, "!=")) {
 		return 0, "", "", false
 	}
 
@@ -116,7 +131,10 @@ func ComputeSecretConfidence(filePath, line, key, val string, isSensitiveFile bo
 		strings.Contains(lineLower, "os.getenv") ||
 		strings.Contains(lineLower, "os.environ") ||
 		strings.Contains(lineLower, "process.env") ||
-		strings.Contains(lineLower, "$env:")
+		strings.Contains(lineLower, "$env:") ||
+		valClean == "..." ||
+		strings.HasPrefix(valClean, "...") ||
+		valLower == "password"
 
 	if isPlaceholder {
 		score -= 25
@@ -129,18 +147,11 @@ func ComputeSecretConfidence(filePath, line, key, val string, isSensitiveFile bo
 		}
 	}
 
-	// 5. File type / context (+10 source/config, -30 doc)
-	docExts := map[string]bool{".md": true, ".markdown": true, ".rst": true, ".adoc": true}
-	if docExts[ext] || (ext == ".txt" && !isSensitiveFile) {
-		score -= 30
-	} else {
-		score += 10
-	}
-
-	// 6. Comments and documentation context (-20)
+	// Comments and documentation context (-20)
 	trimmed := strings.TrimSpace(line)
-	if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, "/*") ||
-		strings.HasPrefix(trimmed, "*") || strings.HasPrefix(trimmed, "--") || strings.HasPrefix(trimmed, ";") {
+	isComment := strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, "/*") ||
+		strings.HasPrefix(trimmed, "*") || strings.HasPrefix(trimmed, "--") || strings.HasPrefix(trimmed, ";")
+	if isComment {
 		score -= 20
 	}
 
@@ -150,10 +161,33 @@ func ComputeSecretConfidence(filePath, line, key, val string, isSensitiveFile bo
 		score -= 20
 	}
 
+	// Dynamic Credential Weighting:
+	// When an exact assignment is detected in any text/config file,
+	// award high confidence regardless of whether filename is strictly password.txt.
+	isExactCredential := !isPlaceholder && !isComment && len(valClean) >= 4 &&
+		(isQuoted || isSensitiveFile || ext == ".txt" || ext == ".conf" || ext == ".env" || ext == ".ini") &&
+		(keyLower == "password" || keyLower == "passwd" || keyLower == "pwd" ||
+			keyLower == "api_key" || keyLower == "apikey" || keyLower == "secret" || keyLower == "token")
+
+	if isExactCredential {
+		score += 30
+	}
+
+	// 5. File type / context (+10 source/config, -30 doc)
+	docExts := map[string]bool{".md": true, ".markdown": true, ".rst": true, ".adoc": true}
+	if docExts[ext] || (ext == ".txt" && !isSensitiveFile && !isExactCredential) {
+		score -= 30
+	} else {
+		score += 10
+	}
+
 	// 7. Test fixture directory / test file (-40)
-	isTargetPasswordTxt := strings.HasSuffix(filePath, "password.txt")
 	pathLower := strings.ToLower(filePath)
-	if !isTargetPasswordTxt && (strings.Contains(pathLower, "test") || strings.Contains(pathLower, "fixture") || strings.Contains(pathLower, "mock")) {
+	isTargetCredentialFile := strings.HasSuffix(filePath, "password.txt") ||
+		isSensitiveFile ||
+		(isExactCredential && !strings.Contains(pathLower, "fixtures") && !strings.Contains(pathLower, "mock"))
+
+	if !isTargetCredentialFile && (strings.Contains(pathLower, "test") || strings.Contains(pathLower, "fixture") || strings.Contains(pathLower, "mock")) {
 		score -= 40
 	}
 

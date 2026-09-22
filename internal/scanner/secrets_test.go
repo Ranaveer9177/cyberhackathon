@@ -17,11 +17,17 @@ func TestSensitiveFilenameDetection(t *testing.T) {
 		{"secret.txt", ".txt", true},
 		{"secrets.txt", ".txt", true},
 		{".env", "", true},
+		{".env.production", "", true},
 		{"id_rsa", "", true},
 		{"id_ed25519", "", true},
 		{".htpasswd", "", true},
 		{"server.key", ".key", true},
 		{"cert.pem", ".pem", true},
+		{"app.conf", ".conf", true},
+		{"leak_test.txt", ".txt", true},
+		{"test_keys.txt", ".txt", true},
+		{"api_secret.txt", ".txt", true},
+		{"requirements.txt", ".txt", false},
 		{"safe.go", ".go", false},
 		{"README.md", ".md", false},
 		{"clean.txt", ".txt", false},
@@ -32,6 +38,24 @@ func TestSensitiveFilenameDetection(t *testing.T) {
 		if isSens != tc.expected {
 			t.Errorf("expected IsSensitiveFilename(%q, %q) = %v, got %v", tc.filename, tc.ext, tc.expected, isSens)
 		}
+	}
+}
+
+func TestLeakTestFile(t *testing.T) {
+	counter := 0
+	findings := ScanCredentialAssignments("leak_test.txt", "password"+" = \"super_secret_leak_123\"", 1, true, &counter)
+	if len(findings) == 0 {
+		t.Fatalf("expected finding for leak_test.txt assignment, got 0")
+	}
+	f := findings[0]
+	if f.ID != "VG-SECRET-001" {
+		t.Errorf("expected ID VG-SECRET-001, got %s", f.ID)
+	}
+	if f.Severity != "HIGH" {
+		t.Errorf("expected HIGH severity, got %s", f.Severity)
+	}
+	if f.Confidence != "HIGH" {
+		t.Errorf("expected HIGH confidence, got %s", f.Confidence)
 	}
 }
 

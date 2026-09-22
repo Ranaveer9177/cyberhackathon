@@ -48,6 +48,7 @@ type Report struct {
 	ScoreResult     risk.ScoreResult      `json:"score_result"`
 	GateResult      gate.GateResult       `json:"gate_result"`
 	CategoryCounts  CategoryCounts        `json:"category_counts"`
+	Verbose         bool                  `json:"verbose,omitempty"`
 }
 
 func severityRank(sev string) int {
@@ -204,19 +205,25 @@ func PrintTerminalReport(r *Report) {
 		r.CategoryCounts.Configuration, r.CategoryCounts.Docker, r.CategoryCounts.Git)
 
 	// 1. Code & Secret / Configuration Findings (non-dependency)
-	var codeFindings []scanner.Finding
+	var primaryFindings []scanner.Finding
+	var lowFindings []scanner.Finding
 	for _, f := range r.Findings {
 		if strings.ToLower(f.Category) != "dependency" {
-			codeFindings = append(codeFindings, f)
+			sev := strings.ToUpper(strings.TrimSpace(f.Severity))
+			if sev == "LOW" || sev == "INFO" {
+				lowFindings = append(lowFindings, f)
+			} else {
+				primaryFindings = append(primaryFindings, f)
+			}
 		}
 	}
 
 	fmt.Println("---------------------------------------------")
-	fmt.Printf("Code & Configuration Findings (%d):\n", len(codeFindings))
-	if len(codeFindings) == 0 {
-		fmt.Printf("  %s✓ No code, secret, or configuration issues detected.%s\n", ColorGreen, ColorReset)
+	fmt.Printf("Code & Configuration Findings (%d):\n", len(primaryFindings))
+	if len(primaryFindings) == 0 {
+		fmt.Printf("  %s✓ No critical, high, or medium code, secret, or configuration issues detected.%s\n", ColorGreen, ColorReset)
 	} else {
-		for _, f := range codeFindings {
+		for _, f := range primaryFindings {
 			c := severityColor(f.Severity)
 			cat := strings.Title(strings.ToLower(f.Category))
 			fmt.Printf("  %s[%s]%s %s (%s) - %s:%d\n", c, strings.ToUpper(f.Severity), ColorReset, f.ID, cat, f.File, f.Line)
@@ -230,6 +237,30 @@ func PrintTerminalReport(r *Report) {
 				fmt.Printf("    Recommendation: %s\n", f.Recommendation)
 			}
 			fmt.Println()
+		}
+	}
+
+	if len(lowFindings) > 0 {
+		if r.Verbose {
+			fmt.Println("---------------------------------------------")
+			fmt.Printf("Advisory & Low Severity Findings (%d):\n", len(lowFindings))
+			for _, f := range lowFindings {
+				c := severityColor(f.Severity)
+				cat := strings.Title(strings.ToLower(f.Category))
+				fmt.Printf("  %s[%s]%s %s (%s) - %s:%d\n", c, strings.ToUpper(f.Severity), ColorReset, f.ID, cat, f.File, f.Line)
+				if f.Title != "" {
+					fmt.Printf("    Title:          %s\n", f.Title)
+				}
+				if f.Description != "" && f.Description != f.Title {
+					fmt.Printf("    Description:    %s\n", f.Description)
+				}
+				if f.Recommendation != "" {
+					fmt.Printf("    Recommendation: %s\n", f.Recommendation)
+				}
+				fmt.Println()
+			}
+		} else {
+			fmt.Printf("  %sℹ Note: %d low severity/advisory finding(s) omitted from primary view. Run with --verbose or --all to view.%s\n\n", ColorGray, len(lowFindings), ColorReset)
 		}
 	}
 

@@ -1,6 +1,6 @@
-# VibeGuard v4.7.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
+# VibeGuard v5.1.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
 
-[![Version](https://img.shields.io/badge/version-v4.7.0-blue.svg)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v5.1.0-blue.svg)](docs/CHANGELOG.md)
 [![Security Gate](https://img.shields.io/badge/security_gate-PASSED_100%2F100-brightgreen.svg)](ultimate_test.bat)
 [![Engines](https://img.shields.io/badge/engines-Go_1.21+_|_Rust_1.70+-orange.svg)](docs/LANGUAGE.md)
 [![SARIF](https://img.shields.io/badge/SARIF-2.1.0_Compliant-purple.svg)](internal/report/sarif.go)
@@ -13,7 +13,7 @@
 
 ## Overview
 
-**VibeGuard v4.7.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST), vulnerable third-party dependencies (SCA via Google OSV), Dockerfile misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
+**VibeGuard v5.1.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST), vulnerable third-party dependencies (SCA via Google OSV), Dockerfile misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
 
 ```
                     Developer Shell / Git CLI
@@ -56,26 +56,19 @@
 
 ---
 
-## What's New in v4.7.0
+## What's New in v5.1.0
 
-1. **Live Dynamic Percentage & ETA Progress (Without Bar)**:
-   - In-terminal live percentage indicator (`Scanning: 45% (33/73) | Est. time remaining: 0.8s`) during file analysis and dependency checking.
-   - Dynamic real-time calculation of remaining scan time based on active throughput without cluttering progress bars.
-   - Automatically and cleanly wipes the progress line once each gate stage completes.
-2. **Dedicated Cache Refresh (`vibeguard cache-refresh`)**:
-   - Added command and `--refresh-cache` flag to purge and refresh local OSV vulnerability intelligence.
-3. **Exclusion Transparency & Override Flags**:
-   - Added `--include-tests`, `--include-docs`, and `--show-excluded` flags in Go and Rust scanner engines.
-4. **Enhanced Test Coverage & Artifact Isolation**:
-   - 100% automated test coverage across all CLI commands (`version`, `status`, `init`, `uninstall`, `scan`, `report`, `defender-check`, `cache-refresh`).
-   - Clean temporary directory test isolation preventing stray report files in source trees.
-4. **Context-Aware Secret Detection & Confidence Scoring (v4.4)**:
-   - Evaluates a 10-factor mathematical confidence score (+30 to -40).
-   - Distinguishes genuine secrets (`VG-SECRET-FILE`, `VG-SECRET-001`) from documentation and placeholder values.
-   - Masks secret values in all outputs (`password=********`).
-5. **Executive Dark-Theme HTML Reports with PDF Export**:
-   - Cybersecurity-grade dark canvas with glowing metric cards.
-   - Native one-click print-to-PDF export preserving the dark layout.
+1. **Generic Leak File & Sensitive Pattern Recognition**:
+   - Expanded sensitive filename detection in both Rust and Go engines to recognize generic leak patterns: `leak*.txt` (e.g. `leak_test.txt`), `test*.txt`, `*_secret.txt`, `*.conf`, and `*.env*`.
+   - Manifest files like `requirements.txt` remain protected and cleanly excluded.
+2. **Dynamic Credential Weighting**:
+   - High-confidence credential assignment scoring applies across any text or configuration file when exact quoted assignments (e.g., `password = "..."`) are discovered, regardless of whether the file is strictly named `password.txt`.
+   - Excludes non-assignment comparison expressions (`==`, `!=`) in source files, preventing false positive alerts on variable checks.
+3. **Transparent Reporting (`--verbose`, `-v`, `--all`)**:
+   - Default scans focus on actionable security findings (Critical, High, Medium), while low-severity and advisory items are neatly summarized without terminal clutter.
+   - Running `vibeguard scan --verbose` or `vibeguard scan --all` expands an informative `Advisory & Low Severity Findings` section with complete details.
+4. **Unconditional Cache & State Isolation**:
+   - Both the Rust scanner and Go fallback engine skip `.vibeguard/` and `reports/` unconditionally, ensuring zero false positives from cache or previous scan runs.
 
 ---
 
@@ -90,7 +83,7 @@ Prebuilt Windows binaries (`vibeguard.exe` and `vibeguard-scanner.exe`) are bund
 
 # 2. Open a NEW terminal and verify global access:
 vibeguard version
-# Output: VibeGuard v4.7.0
+# Output: VibeGuard v5.1.0
 
 # 3. Run the comprehensive 8-stage test engine:
 .\ultimate_test.bat
@@ -106,7 +99,7 @@ Compile both the Rust scanner and Go orchestrator from source:
 
 ---
 
-## The Ultimate Test Suite v4.7 (`ultimate_test.bat`)
+## The Ultimate Test Suite v5.0 (`ultimate_test.bat`)
 
 Run the complete 8-stage weighted evaluation engine directly from your terminal:
 

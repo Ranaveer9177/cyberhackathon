@@ -37,11 +37,13 @@ fn main() {
         println!("  --include-tests");
         println!("  --include-docs");
         println!("  --show-excluded");
+        println!("  --verbose");
+        println!("  --all");
         std::process::exit(0);
     }
 
     if args.iter().any(|a| a == "--version" || a == "-v") {
-        println!("vibeguard-scanner v4.7.0");
+        println!("vibeguard-scanner v5.1.0");
         std::process::exit(0);
     }
 
@@ -57,6 +59,8 @@ fn main() {
         "--include-tests",
         "--include-docs",
         "--show-excluded",
+        "--verbose",
+        "--all",
     ];
     for arg in args.iter().skip(1) {
         if arg.starts_with('-') && !valid_flags.contains(&arg.as_str()) {

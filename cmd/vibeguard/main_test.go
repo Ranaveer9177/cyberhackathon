@@ -146,8 +146,30 @@ func TestPrintUsage(t *testing.T) {
 }
 
 func TestVersionString(t *testing.T) {
-	if version != "4.7.0" {
-		t.Errorf("expected version 4.7.0, got %s", version)
+	if version != "5.1.0" {
+		t.Errorf("expected version 5.1.0, got %s", version)
+	}
+}
+
+func TestParseScanArgs_VerboseAndAll(t *testing.T) {
+	optVerbose = false
+	optAll = false
+	_, _, _, _, err := parseScanArgs([]string{"my-project", "--verbose"}, "terminal")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !optVerbose {
+		t.Errorf("expected optVerbose to be true")
+	}
+
+	optVerbose = false
+	optAll = false
+	_, _, _, _, err = parseScanArgs([]string{"my-project", "--all"}, "terminal")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !optAll || !optVerbose {
+		t.Errorf("expected optAll and optVerbose to be true")
 	}
 }
 

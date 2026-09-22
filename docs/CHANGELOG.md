@@ -2,7 +2,32 @@
 
 All notable changes to the VibeGuard project are documented in this file.
 
-## [v4.7.0] — 2026-09-22 (Current Release)
+## [v5.1.0] — 2026-09-22 (Current Release)
+
+### Added & Enhanced
+- **Generic Leak File & Sensitive Pattern Recognition**:
+  - Expanded sensitive filename detection in both Rust and Go engines to recognize generic leak patterns: `leak*.txt` (e.g., `leak_test.txt`), `test*.txt`, `*_secret.txt`, `*.conf`, and `*.env*`.
+  - Dependency manifests such as `requirements.txt` are explicitly exempted from sensitive filename flagging.
+- **Dynamic Credential Weighting**:
+  - Exact assignments (`password = "..."`, `api_key = "..."`, `secret = "..."`) in text and configuration files receive high-confidence scoring regardless of whether the file is strictly named `password.txt`.
+  - Excludes source code comparison expressions (`==`, `!=`) from credential assignment detection, preventing false positives on variable checks.
+  - Test fixtures exemption ensures real leak files (e.g., `leak_test.txt`) are not penalized as harmless test fixtures.
+- **Transparent Reporting (`--verbose`, `-v`, `--all`)**:
+  - Scan terminal output separates primary actionable findings (Critical, High, Medium) from low-severity/advisory items.
+  - Low-severity findings are neatly noted with a count in standard view and fully enumerated under a dedicated `Advisory & Low Severity Findings` section when `--verbose` or `--all` is specified.
+- **Synchronized Scanner Engines**:
+  - Full equivalence between Rust native scanner (`vibeguard-scanner.exe`) and Go fallback scanner.
+
+## [v5.0.0] — 2026-09-22
+
+### Added & Enhanced
+- **Unconditional Internal Directory & Cache Isolation**:
+  - The Rust scanner engine and Go fallback directory walkers now unconditionally skip `.vibeguard` (and its nested `.vibeguard/cache/osv/` vulnerability intelligence databases) and `reports/` output directories.
+  - Fixes false-positive findings where advisory JSON dumps in `.vibeguard/cache/osv/` or test reports in `reports/` were accidentally scanned when running scans in workspaces containing VibeGuard data.
+- **Strict Exclusion Verification**:
+  - Added unit test in Rust scanner suite verifying that internal `.vibeguard/cache/` files are unconditionally excluded from file scanning even in the absence of project exclusion configs.
+
+## [v4.7.0] — 2026-09-22
 
 ### Added & Enhanced
 - **Live Dynamic Percentage & ETA Progress (Without Bar)**:
