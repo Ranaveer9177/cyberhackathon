@@ -156,12 +156,12 @@ func PrintTerminalReport(r *Report) {
 		fmt.Printf("Files Skipped: %d\n", r.FilesSkipped)
 	}
 	if r.ExcludedFiles > 0 {
-		fmt.Printf("Files Excluded:%d\n", r.ExcludedFiles)
+		fmt.Printf("Files Excluded: %d\n", r.ExcludedFiles)
 	}
 	if r.SuppressedCount > 0 {
 		fmt.Printf("Suppressed:    %d (via baseline)\n", r.SuppressedCount)
 	}
-	if r.OSVMode != "" && r.OSVMode != "online" {
+	if r.OSVMode != "" {
 		fmt.Printf("OSV Intel:     %s\n", r.OSVMode)
 	}
 

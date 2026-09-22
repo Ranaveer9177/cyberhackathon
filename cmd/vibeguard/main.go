@@ -317,7 +317,7 @@ func handleStatus(dir string) {
 	}
 
 	fmt.Println("========================================")
-	fmt.Println("      VIBEGUARD V2 — STATUS")
+	fmt.Printf("      VIBEGUARD v%s — STATUS\n", version)
 	fmt.Println("========================================")
 
 	if !git.IsGitRepo(absDir) {
