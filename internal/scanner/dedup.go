@@ -1,21 +1,15 @@
 package scanner
 
 import (
-	"fmt"
 	"strings"
 )
 
 // NormalizeFindingKey generates a deterministic deduplication key for a finding.
 func NormalizeFindingKey(f *Finding) string {
-	cat := strings.ToLower(strings.TrimSpace(f.Category))
-	title := strings.ToLower(strings.TrimSpace(f.Title))
-	file := strings.ReplaceAll(filepathClean(f.File), "\\", "/")
-	line := f.Line
-	evidence := strings.TrimSpace(f.Evidence)
-	if len(evidence) > 60 {
-		evidence = evidence[:60]
+	if f.Fingerprint != "" {
+		return f.Fingerprint
 	}
-	return fmt.Sprintf("%s|%s|%s|%d|%s", cat, title, file, line, evidence)
+	return f.ComputeFingerprint()
 }
 
 func filepathClean(p string) string {
@@ -32,7 +26,17 @@ func DeduplicateFindings(findings []Finding) []Finding {
 	deduped := make([]Finding, 0, len(findings))
 
 	for _, f := range findings {
-		key := NormalizeFindingKey(&f)
+		if f.Column <= 0 {
+			f.Column = 1
+		}
+		if f.RuleID == "" {
+			f.RuleID = f.ID
+		}
+		if f.Fingerprint == "" {
+			f.Fingerprint = f.ComputeFingerprint()
+		}
+
+		key := f.Fingerprint
 		if !seen[key] {
 			seen[key] = true
 			deduped = append(deduped, f)

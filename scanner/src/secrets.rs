@@ -283,12 +283,14 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
         *finding_counter += 1;
         findings.push(Finding {
             id: "VG-SECRET-FILE".to_string(),
+            rule_id: Some("VG-SECRET-FILE".to_string()),
             category: Category::Secret,
             severity: Severity::HIGH,
             title: "Sensitive Credential File Detected".to_string(),
             description: format!("Credential-related filename detected: {}", desc),
             file: file_path.to_string(),
             line: 1,
+            column: Some(1),
             evidence: None,
             recommendation: Some(
                 "Ensure this file is not committed to version control and does not contain sensitive data."
@@ -299,6 +301,7 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
             sink: None,
             data_flow: None,
             cwe: rule_cwe("VG-SECRET-FILE").map(|s| s.to_string()),
+            ..Default::default()
         });
     }
 
@@ -322,12 +325,14 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
             *finding_counter += 1;
             findings.push(Finding {
                 id: "VG-AUTH-003".to_string(),
+                rule_id: Some("VG-AUTH-003".to_string()),
                 category: Category::Secret,
                 severity: Severity::HIGH,
                 title: "Hardcoded Authentication Token".to_string(),
                 description: "Hardcoded bearer token or JWT secret detected in code.".to_string(),
                 file: file_path.to_string(),
                 line: line_num,
+                column: Some(1),
                 evidence: Some(masked),
                 recommendation: Some("Move bearer tokens and JWT secrets to environment variables or secret storage.".to_string()),
                 confidence: "HIGH".to_string(),
@@ -335,6 +340,7 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
                 sink: None,
                 data_flow: None,
                 cwe: rule_cwe("VG-AUTH-003").map(|s| s.to_string()),
+                ..Default::default()
             });
         }
 
@@ -355,12 +361,14 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
                     };
                     findings.push(Finding {
                         id: rule.id.clone(),
+                        rule_id: Some(rule.id.clone()),
                         category: Category::Secret,
                         severity: rule.severity.clone(),
                         title: rule.name.clone(),
                         description: rule.description.clone(),
                         file: file_path.to_string(),
                         line: line_num,
+                        column: Some(1),
                         evidence: Some(evidence),
                         recommendation: Some(rule.recommendation.clone()),
                         confidence: "HIGH".to_string(),
@@ -368,6 +376,7 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
                         sink: None,
                         data_flow: None,
                         cwe: rule_cwe(&rule.id).map(|s| s.to_string()),
+                        ..Default::default()
                     });
                 }
             }
@@ -403,6 +412,7 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
 
                 findings.push(Finding {
                     id: rule_id.to_string(),
+                    rule_id: Some(rule_id.to_string()),
                     category: Category::Secret,
                     severity,
                     title: title.to_string(),
@@ -412,6 +422,7 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
                     ),
                     file: file_path.to_string(),
                     line: line_num,
+                    column: Some(1),
                     evidence: Some(masked_evidence),
                     recommendation: Some(
                         "Store credentials in environment variables or a secure secrets vault."
@@ -422,6 +433,7 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
                     sink: None,
                     data_flow: None,
                     cwe: rule_cwe(rule_id).map(|s| s.to_string()),
+                    ..Default::default()
                 });
             }
         }

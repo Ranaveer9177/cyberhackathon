@@ -286,20 +286,17 @@ fn deduplicate_findings(findings: Vec<types::Finding>) -> Vec<types::Finding> {
     let mut seen = std::collections::HashSet::new();
     let mut deduped = Vec::with_capacity(findings.len());
 
-    for f in findings {
-        let cat = format!("{:?}", f.category).to_lowercase();
-        let title = f.title.trim().to_lowercase();
-        let file = f.file.replace('\\', "/");
-        let line = f.line;
-        let evidence = f.evidence.as_deref().unwrap_or("").trim();
-        let evidence_prefix = if evidence.len() > 60 {
-            &evidence[..60]
-        } else {
-            evidence
-        };
-        let key = format!("{}|{}|{}|{}|{}", cat, title, file, line, evidence_prefix);
+    for mut f in findings {
+        if f.column.is_none() {
+            f.column = Some(1);
+        }
+        if f.rule_id.is_none() {
+            f.rule_id = Some(f.id.clone());
+        }
+        let fp = f.compute_fingerprint();
+        f.fingerprint = Some(fp.clone());
 
-        if seen.insert(key) {
+        if seen.insert(fp) {
             deduped.push(f);
         }
     }
