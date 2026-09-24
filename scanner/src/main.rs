@@ -31,6 +31,8 @@ fn main() {
         println!("Options:");
         println!("  --help");
         println!("  --version");
+        println!("  --path <dir>     Path to scan (or pass as positional argument)");
+        println!("  --json           Output results as JSON");
         println!("  --progress");
         println!("  --no-secrets");
         println!("  --no-sast");
@@ -43,11 +45,11 @@ fn main() {
     }
 
     if args.iter().any(|a| a == "--version" || a == "-v") {
-        println!("vibeguard-scanner v6.0.0");
+        println!("vibeguard-scanner v6.1.0");
         std::process::exit(0);
     }
 
-    // Validate all flags
+    // Validate all flags and extract project_path
     let valid_flags = [
         "--help",
         "-h",
@@ -61,32 +63,49 @@ fn main() {
         "--show-excluded",
         "--verbose",
         "--all",
+        "--json",
+        "--path",
+        "-p",
     ];
-    for arg in args.iter().skip(1) {
-        if arg.starts_with('-') && !valid_flags.contains(&arg.as_str()) {
-            eprintln!("Error: unknown option '{}'", arg);
-            eprintln!("{}", json!({ "error": format!("Unknown option: {}", arg) }));
-            std::process::exit(2);
-        }
-    }
 
-    let mut project_path = "";
-    for arg in args.iter().skip(1) {
-        if !arg.starts_with('-') {
-            project_path = arg;
-            break;
+    let mut project_path = String::new();
+    let mut i = 1;
+    while i < args.len() {
+        let arg = &args[i];
+        if arg == "--path" || arg == "-p" {
+            if i + 1 < args.len() {
+                project_path = args[i + 1].clone();
+                i += 2;
+                continue;
+            } else {
+                eprintln!("Error: --path requires a directory argument");
+                std::process::exit(2);
+            }
+        } else if let Some(stripped) = arg.strip_prefix("--path=") {
+            project_path = stripped.to_string();
+            i += 1;
+            continue;
+        } else if arg.starts_with('-') {
+            if !valid_flags.contains(&arg.as_str()) {
+                eprintln!("Error: unknown option '{}'", arg);
+                eprintln!("{}", json!({ "error": format!("Unknown option: {}", arg) }));
+                std::process::exit(2);
+            }
+        } else if project_path.is_empty() {
+            project_path = arg.clone();
         }
+        i += 1;
     }
 
     if project_path.is_empty() {
         eprintln!(
             "{}",
-            json!({ "error": "Usage: vibeguard-scanner <project_path> [--no-secrets] [--no-sast]" })
+            json!({ "error": "Usage: vibeguard-scanner <project_path> [--path <path>] [--no-secrets] [--no-sast]" })
         );
         std::process::exit(2);
     }
 
-    let p = Path::new(project_path);
+    let p = Path::new(&project_path);
     if !p.exists() {
         eprintln!(
             "{}",
@@ -95,6 +114,7 @@ fn main() {
         std::process::exit(2);
     }
 
+    let project_path = project_path.as_str();
     let start_time = Instant::now();
 
     // Check CLI flags
