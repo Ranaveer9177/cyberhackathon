@@ -1,3 +1,4 @@
+use crate::rules::rule_cwe;
 use crate::types::{Category, Finding, Severity};
 use regex::Regex;
 use std::fs;
@@ -47,6 +48,10 @@ pub fn scan_dockerfile(
                     "Avoid setting sensitive data in ENV instructions. Use Docker secrets or runtime environment injection.".to_string(),
                 ),
                 confidence: "HIGH".to_string(),
+                source: None,
+                sink: None,
+                data_flow: None,
+                cwe: rule_cwe("VG-DCK-002").map(|s| s.to_string()),
             });
         }
 
@@ -65,6 +70,10 @@ pub fn scan_dockerfile(
                     "Use a .dockerignore file and specify explicit directory/file paths.".to_string(),
                 ),
                 confidence: "MEDIUM".to_string(),
+                source: None,
+                sink: None,
+                data_flow: None,
+                cwe: rule_cwe("VG-DCK-003").map(|s| s.to_string()),
             });
         }
 
@@ -84,6 +93,10 @@ pub fn scan_dockerfile(
                     evidence: Some(line.trim().to_string()),
                     recommendation: Some("Remove EXPOSE 5432 and connect containers via internal Docker bridge networks.".to_string()),
                     confidence: "HIGH".to_string(),
+                    source: None,
+                    sink: None,
+                    data_flow: None,
+                    cwe: rule_cwe("VG-DCK-006").map(|s| s.to_string()),
                 });
             } else if line_lower.contains("6379") {
                 *finding_counter += 1;
@@ -98,6 +111,10 @@ pub fn scan_dockerfile(
                     evidence: Some(line.trim().to_string()),
                     recommendation: Some("Remove EXPOSE 6379 and keep cache servers inside private container networks.".to_string()),
                     confidence: "HIGH".to_string(),
+                    source: None,
+                    sink: None,
+                    data_flow: None,
+                    cwe: rule_cwe("VG-DCK-007").map(|s| s.to_string()),
                 });
             } else {
                 let ports = line.split_whitespace().count() - 1;
@@ -115,6 +132,10 @@ pub fn scan_dockerfile(
                         evidence: Some(line.trim().to_string()),
                         recommendation: Some("Only EXPOSE necessary ports.".to_string()),
                         confidence: "LOW".to_string(),
+                        source: None,
+                        sink: None,
+                        data_flow: None,
+                        cwe: rule_cwe("VG-DCK-005").map(|s| s.to_string()),
                     });
                 }
             }
@@ -133,6 +154,10 @@ pub fn scan_dockerfile(
                 evidence: Some(line.trim().to_string()),
                 recommendation: Some("Pin base images to specific immutable version tags or SHA-256 digests.".to_string()),
                 confidence: "HIGH".to_string(),
+                source: None,
+                sink: None,
+                data_flow: None,
+                cwe: rule_cwe("VG-DCK-005").map(|s| s.to_string()),
             });
         }
     }
@@ -150,6 +175,10 @@ pub fn scan_dockerfile(
             evidence: None,
             recommendation: Some("Add a non-root USER instruction (e.g., 'USER appuser' or 'USER 10001').".to_string()),
             confidence: "HIGH".to_string(),
+            source: None,
+            sink: None,
+            data_flow: None,
+            cwe: rule_cwe("VG-DCK-001").map(|s| s.to_string()),
         });
     }
 
@@ -168,6 +197,10 @@ pub fn scan_dockerfile(
                 "Add a HEALTHCHECK to ensure container liveness can be monitored.".to_string(),
             ),
             confidence: "MEDIUM".to_string(),
+            source: None,
+            sink: None,
+            data_flow: None,
+            cwe: rule_cwe("VG-DCK-004").map(|s| s.to_string()),
         });
     }
 
@@ -194,6 +227,9 @@ pub fn scan_docker_compose(
         r#"(?i)(POSTGRES_PASSWORD|MYSQL_ROOT_PASSWORD|REDIS_PASSWORD|PASSWORD)\s*[:=]\s*["']?([^"'\s]+)["']?"#,
     ).unwrap();
 
+    let host_network_re = Regex::new(r#"(?i)^\s*network_mode:\s*["']?host["']?\s*$"#).unwrap();
+    let host_pid_ipc_re = Regex::new(r#"(?i)^\s*(pid|ipc):\s*["']?host["']?\s*$"#).unwrap();
+
     for (line_idx, line) in content.lines().enumerate() {
         let line_num = line_idx + 1;
         let trimmed = line.trim();
@@ -212,6 +248,10 @@ pub fn scan_docker_compose(
                 evidence: Some(trimmed.to_string()),
                 recommendation: Some("Remove host port bindings for databases. Let application services communicate via internal compose networks.".to_string()),
                 confidence: "HIGH".to_string(),
+                source: None,
+                sink: None,
+                data_flow: None,
+                cwe: rule_cwe("VG-DCK-006").map(|s| s.to_string()),
             });
         }
 
@@ -229,6 +269,10 @@ pub fn scan_docker_compose(
                 evidence: Some(trimmed.to_string()),
                 recommendation: Some("Remove the Redis host port binding or bind strictly to localhost (127.0.0.1:6379:6379).".to_string()),
                 confidence: "HIGH".to_string(),
+                source: None,
+                sink: None,
+                data_flow: None,
+                cwe: rule_cwe("VG-DCK-007").map(|s| s.to_string()),
             });
         }
 
@@ -246,6 +290,10 @@ pub fn scan_docker_compose(
                 evidence: Some(trimmed.to_string()),
                 recommendation: Some("Configure services to run as a non-privileged user (e.g. user: '1000:1000').".to_string()),
                 confidence: "HIGH".to_string(),
+                source: None,
+                sink: None,
+                data_flow: None,
+                cwe: rule_cwe("VG-DCK-008").map(|s| s.to_string()),
             });
         }
 
@@ -263,6 +311,10 @@ pub fn scan_docker_compose(
                 evidence: Some(trimmed.to_string()),
                 recommendation: Some("Remove Docker socket or root path mounts from containers.".to_string()),
                 confidence: "HIGH".to_string(),
+                source: None,
+                sink: None,
+                data_flow: None,
+                cwe: rule_cwe("VG-DCK-013").map(|s| s.to_string()),
             });
         } else if host_mount_re.is_match(line) {
             // 5. General Host Filesystem Mount (VG-DCK-009)
@@ -278,6 +330,10 @@ pub fn scan_docker_compose(
                 evidence: Some(trimmed.to_string()),
                 recommendation: Some("Use named volumes or copy files into production images instead of binding host working directories.".to_string()),
                 confidence: "MEDIUM".to_string(),
+                source: None,
+                sink: None,
+                data_flow: None,
+                cwe: rule_cwe("VG-DCK-009").map(|s| s.to_string()),
             });
         }
 
@@ -295,6 +351,10 @@ pub fn scan_docker_compose(
                 evidence: Some(trimmed.to_string()),
                 recommendation: Some("Remove privileged: true and grant only explicit, minimal capabilities needed.".to_string()),
                 confidence: "HIGH".to_string(),
+                source: None,
+                sink: None,
+                data_flow: None,
+                cwe: rule_cwe("VG-DCK-011").map(|s| s.to_string()),
             });
         }
 
@@ -316,6 +376,10 @@ pub fn scan_docker_compose(
                         .to_string(),
                 ),
                 confidence: "HIGH".to_string(),
+                source: None,
+                sink: None,
+                data_flow: None,
+                cwe: rule_cwe("VG-DCK-012").map(|s| s.to_string()),
             });
         }
 
@@ -339,8 +403,54 @@ pub fn scan_docker_compose(
                     evidence: Some(format!("{}=********", caps.get(1).map_or("", |m| m.as_str()))),
                     recommendation: Some("Use strong generated passwords or secret files instead of hardcoding in compose environment.".to_string()),
                     confidence: "HIGH".to_string(),
+                    source: None,
+                    sink: None,
+                    data_flow: None,
+                    cwe: rule_cwe("VG-DCK-010").map(|s| s.to_string()),
                 });
             }
+        }
+
+        // 9. Host Network Mode (VG-DCK-015)
+        if host_network_re.is_match(line) {
+            *finding_counter += 1;
+            findings.push(Finding {
+                id: "VG-DCK-015".to_string(),
+                category: Category::Docker,
+                severity: Severity::HIGH,
+                title: "Container Using Host Network Mode".to_string(),
+                description: "Service specifies 'network_mode: host', bypassing container network namespace isolation.".to_string(),
+                file: file_path.to_string(),
+                line: line_num,
+                evidence: Some(trimmed.to_string()),
+                recommendation: Some("Use bridge or custom user-defined overlay networks instead of host networking.".to_string()),
+                confidence: "HIGH".to_string(),
+                source: None,
+                sink: None,
+                data_flow: None,
+                cwe: rule_cwe("VG-DCK-015").map(|s| s.to_string()),
+            });
+        }
+
+        // 10. Shared Host PID / IPC Namespace (VG-DCK-016)
+        if host_pid_ipc_re.is_match(line) {
+            *finding_counter += 1;
+            findings.push(Finding {
+                id: "VG-DCK-016".to_string(),
+                category: Category::Docker,
+                severity: Severity::HIGH,
+                title: "Container Sharing Host Process Namespace".to_string(),
+                description: "Service specifies host PID or IPC namespace, allowing container processes to view or signal host processes.".to_string(),
+                file: file_path.to_string(),
+                line: line_num,
+                evidence: Some(trimmed.to_string()),
+                recommendation: Some("Remove 'pid: host' and 'ipc: host' to isolate container processes from the host.".to_string()),
+                confidence: "HIGH".to_string(),
+                source: None,
+                sink: None,
+                data_flow: None,
+                cwe: rule_cwe("VG-DCK-016").map(|s| s.to_string()),
+            });
         }
     }
 
@@ -359,20 +469,31 @@ pub fn scan_cross_file_docker(
             .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("");
-        name == ".env" || name.starts_with(".env.")
+        name == ".env"
+            || name.starts_with(".env.")
+            || name.ends_with(".key")
+            || name.ends_with(".pem")
+            || name.starts_with("credentials.")
+            || name.starts_with("secrets.")
     });
 
     if !has_env_file {
         return findings;
     }
 
-    // Check if .dockerignore excludes .env
+    // Check if .dockerignore excludes sensitive files
     let dockerignore_path = Path::new(project_path).join(".dockerignore");
     let mut ignores_env = false;
     if let Ok(content) = fs::read_to_string(&dockerignore_path) {
         for line in content.lines() {
             let t = line.trim();
-            if t == ".env" || t == ".env*" || t == "*.env" {
+            if t == ".env"
+                || t == ".env*"
+                || t == "*.env"
+                || t == "*.key"
+                || t == "*.pem"
+                || t == "secrets*"
+            {
                 ignores_env = true;
                 break;
             }
@@ -392,19 +513,27 @@ pub fn scan_cross_file_docker(
         if name == "Dockerfile" || name.ends_with(".dockerfile") {
             if let Ok(content) = fs::read_to_string(file) {
                 for (line_idx, line) in content.lines().enumerate() {
-                    if line.contains("COPY . .") || line.contains("COPY . /") {
+                    if line.contains("COPY . .")
+                        || line.contains("COPY . /")
+                        || line.contains("COPY .env")
+                        || line.contains("COPY secrets")
+                    {
                         *finding_counter += 1;
                         findings.push(Finding {
                             id: "VG-DCK-014".to_string(),
                             category: Category::Docker,
                             severity: Severity::HIGH,
                             title: "Potential Secret Included In Docker Image".to_string(),
-                            description: "A sensitive .env file exists in the repository build context and 'COPY . .' is used without .dockerignore excluding .env. Secrets may be baked into image layers.".to_string(),
+                            description: "A sensitive configuration or credential file (.env/keys) exists in the build context and 'COPY . .' is used without .dockerignore protection. Secrets may be baked into image layers.".to_string(),
                             file: file.clone(),
                             line: line_idx + 1,
                             evidence: Some(line.trim().to_string()),
-                            recommendation: Some("Add '.env' and '.env*' to .dockerignore to prevent sensitive files from being copied into container images.".to_string()),
+                            recommendation: Some("Add sensitive files to .dockerignore to prevent secrets from being copied into container images.".to_string()),
                             confidence: "HIGH".to_string(),
+                            source: None,
+                            sink: None,
+                            data_flow: None,
+                            cwe: rule_cwe("VG-DCK-014").map(|s| s.to_string()),
                         });
                         break;
                     }

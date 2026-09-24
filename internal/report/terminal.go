@@ -233,6 +233,21 @@ func PrintTerminalReport(r *Report) {
 			if f.Description != "" && f.Description != f.Title {
 				fmt.Printf("    Description:    %s\n", f.Description)
 			}
+			if f.CWE != "" {
+				fmt.Printf("    CWE:            %s\n", f.CWE)
+			}
+			if f.Source != "" {
+				fmt.Printf("    Source:         %s\n", f.Source)
+			}
+			if f.Sink != "" {
+				fmt.Printf("    Sink:           %s\n", f.Sink)
+			}
+			if len(f.DataFlow) > 0 {
+				fmt.Printf("    Data Flow:\n")
+				for _, step := range f.DataFlow {
+					fmt.Printf("      -> %s\n", step)
+				}
+			}
 			if f.Recommendation != "" {
 				fmt.Printf("    Recommendation: %s\n", f.Recommendation)
 			}
@@ -253,6 +268,21 @@ func PrintTerminalReport(r *Report) {
 				}
 				if f.Description != "" && f.Description != f.Title {
 					fmt.Printf("    Description:    %s\n", f.Description)
+				}
+				if f.CWE != "" {
+					fmt.Printf("    CWE:            %s\n", f.CWE)
+				}
+				if f.Source != "" {
+					fmt.Printf("    Source:         %s\n", f.Source)
+				}
+				if f.Sink != "" {
+					fmt.Printf("    Sink:           %s\n", f.Sink)
+				}
+				if len(f.DataFlow) > 0 {
+					fmt.Printf("    Data Flow:\n")
+					for _, step := range f.DataFlow {
+						fmt.Printf("      -> %s\n", step)
+					}
 				}
 				if f.Recommendation != "" {
 					fmt.Printf("    Recommendation: %s\n", f.Recommendation)

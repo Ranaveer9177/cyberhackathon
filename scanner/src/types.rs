@@ -35,6 +35,14 @@ pub struct Finding {
     pub evidence: Option<String>,
     pub recommendation: Option<String>,
     pub confidence: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sink: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data_flow: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cwe: Option<String>,
 }
 
 #[derive(Debug, Serialize, Clone)]

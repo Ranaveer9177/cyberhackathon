@@ -1,4 +1,4 @@
-use crate::rules::get_secret_rules;
+use crate::rules::{get_secret_rules, rule_cwe};
 use crate::types::{Category, Finding, Severity};
 use regex::Regex;
 use std::path::Path;
@@ -295,6 +295,10 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
                     .to_string(),
             ),
             confidence: "HIGH".to_string(),
+            source: None,
+            sink: None,
+            data_flow: None,
+            cwe: rule_cwe("VG-SECRET-FILE").map(|s| s.to_string()),
         });
     }
 
@@ -327,6 +331,10 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
                 evidence: Some(masked),
                 recommendation: Some("Move bearer tokens and JWT secrets to environment variables or secret storage.".to_string()),
                 confidence: "HIGH".to_string(),
+                source: None,
+                sink: None,
+                data_flow: None,
+                cwe: rule_cwe("VG-AUTH-003").map(|s| s.to_string()),
             });
         }
 
@@ -356,6 +364,10 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
                         evidence: Some(evidence),
                         recommendation: Some(rule.recommendation.clone()),
                         confidence: "HIGH".to_string(),
+                        source: None,
+                        sink: None,
+                        data_flow: None,
+                        cwe: rule_cwe(&rule.id).map(|s| s.to_string()),
                     });
                 }
             }
@@ -406,6 +418,10 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
                             .to_string(),
                     ),
                     confidence: conf_str.to_string(),
+                    source: None,
+                    sink: None,
+                    data_flow: None,
+                    cwe: rule_cwe(rule_id).map(|s| s.to_string()),
                 });
             }
         }
