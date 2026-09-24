@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary
 
-VibeGuard v5.1.0 installs as a native, self-locating global CLI utility on Windows. Running `scripts\windows\setup.bat` configures the tool into `%LOCALAPPDATA%\VibeGuard` and idempotently registers the directory into the Current User's `PATH`.
+VibeGuard v6.0.0 installs as a native, self-locating global CLI utility on Windows. Running `scripts\windows\setup.bat` configures the tool into `%LOCALAPPDATA%\VibeGuard` and idempotently registers the directory into the Current User's `PATH`.
 
 Once installed:
 - `vibeguard` runs from **ANY** CMD or PowerShell directory without typing `.\` or running from the repository root.

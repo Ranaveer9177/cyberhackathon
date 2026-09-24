@@ -1,4 +1,4 @@
-# Reports Directory — VibeGuard v5.1.0
+# Reports Directory — VibeGuard v6.0.0
 
 This directory holds generated security scan reports:
 - `scan.json`: Machine-readable scan output (`--format json`)

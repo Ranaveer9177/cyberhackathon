@@ -300,13 +300,42 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
 
     // 2. High-entropy Provider Keys (AWS, GitHub, Slack, Private Key)
     let rules = get_secret_rules();
+    let auth_token_re = Regex::new(
+        r#"(?i)(Authorization:\s*Bearer\s+[A-Za-z0-9._~+/-]{10,}|(?:ADMIN_TOKEN|BEARER_TOKEN|SESSION_TOKEN)\s*=\s*['"](?:Bearer\s+)?[A-Za-z0-9._~+/-]{10,}['"]|JWT_SECRET\s*[:=]\s*['"][^'"]{8,}['"])"#,
+    ).unwrap();
+
     for (line_idx, line) in content.lines().enumerate() {
         let line_num = line_idx + 1;
+
+        // Check explicit authentication token pattern (VG-AUTH-003)
+        if let Some(caps) = auth_token_re.captures(line) {
+            let matched = caps.get(0).map_or("", |m| m.as_str());
+            let masked = if matched.len() > 16 {
+                format!("{}****", &matched[..16])
+            } else {
+                "Bearer ****".to_string()
+            };
+            *finding_counter += 1;
+            findings.push(Finding {
+                id: "VG-AUTH-003".to_string(),
+                category: Category::Secret,
+                severity: Severity::HIGH,
+                title: "Hardcoded Authentication Token".to_string(),
+                description: "Hardcoded bearer token or JWT secret detected in code.".to_string(),
+                file: file_path.to_string(),
+                line: line_num,
+                evidence: Some(masked),
+                recommendation: Some("Move bearer tokens and JWT secrets to environment variables or secret storage.".to_string()),
+                confidence: "HIGH".to_string(),
+            });
+        }
+
         for rule in &rules {
-            if rule.id == "SEC-001"
-                || rule.id == "SEC-003"
-                || rule.id == "SEC-004"
-                || rule.id == "SEC-005"
+            if rule.id == "VG-SEC-001"
+                || rule.id == "VG-SEC-002"
+                || rule.id == "VG-SEC-003"
+                || rule.id == "VG-SEC-004"
+                || rule.id == "VG-SEC-005"
             {
                 if let Some(caps) = rule.pattern.captures(line) {
                     *finding_counter += 1;
@@ -317,7 +346,7 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
                         "****".to_string()
                     };
                     findings.push(Finding {
-                        id: format!("VG-{:03}", finding_counter),
+                        id: rule.id.clone(),
                         category: Category::Secret,
                         severity: rule.severity.clone(),
                         title: rule.name.clone(),

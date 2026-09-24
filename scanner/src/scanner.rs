@@ -137,6 +137,36 @@ pub fn scan_directory_ext(
             }
         }
 
+        if !skip && !include_tests {
+            if let Some(file_name) = file_path.file_name().and_then(|f| f.to_str()) {
+                let lower_name = file_name.to_lowercase();
+                if lower_name.ends_with("_test.go")
+                    || lower_name.ends_with("_test.rs")
+                    || lower_name.ends_with("_test.py")
+                    || lower_name.starts_with("test_")
+                    || lower_name.ends_with(".test.js")
+                    || lower_name.ends_with(".test.ts")
+                    || lower_name.ends_with(".spec.js")
+                    || lower_name.ends_with(".spec.ts")
+                {
+                    skip = true;
+                    excluded_count += 1;
+                }
+            }
+            if !skip {
+                let lower_rel = rel_clean.to_lowercase();
+                if lower_rel.starts_with("tests/")
+                    || lower_rel.starts_with("test/")
+                    || lower_rel.contains("/tests/")
+                    || lower_rel.contains("/test/")
+                    || lower_rel.contains("/testdata/")
+                {
+                    skip = true;
+                    excluded_count += 1;
+                }
+            }
+        }
+
         if !skip {
             if let Some(ext) = file_path.extension().and_then(|s| s.to_str()) {
                 if skipped_exts.contains(&ext) {

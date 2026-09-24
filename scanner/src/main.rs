@@ -43,7 +43,7 @@ fn main() {
     }
 
     if args.iter().any(|a| a == "--version" || a == "-v") {
-        println!("vibeguard-scanner v5.1.0");
+        println!("vibeguard-scanner v6.0.0");
         std::process::exit(0);
     }
 
@@ -178,6 +178,19 @@ fn main() {
             all_findings.append(&mut docker_findings);
         }
 
+        let lower_filename = filename.to_lowercase();
+        if lower_filename == "docker-compose.yml"
+            || lower_filename == "docker-compose.yaml"
+            || lower_filename == "compose.yml"
+            || lower_filename == "compose.yaml"
+            || lower_filename.ends_with(".compose.yml")
+            || lower_filename.ends_with(".compose.yaml")
+        {
+            let mut compose_findings =
+                docker::scan_docker_compose(file_path, &content, &mut finding_counter);
+            all_findings.append(&mut compose_findings);
+        }
+
         let source_exts = [
             "go", "js", "ts", "py", "java", "rs", "rb", "php", "c", "cpp", "cs",
         ];
@@ -190,6 +203,11 @@ fn main() {
             all_findings.append(&mut config_findings);
         }
     }
+
+    // Cross-file Docker analysis (e.g. .env + COPY . .)
+    let mut cross_docker_findings =
+        docker::scan_cross_file_docker(&files, project_path, &mut finding_counter);
+    all_findings.append(&mut cross_docker_findings);
 
     if enable_secrets {
         let mut git_findings = git::scan_git_security(&files, &mut finding_counter);
