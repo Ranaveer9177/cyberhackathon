@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: "adminpassword123"
+      POSTGRES_DB: "fastnote"
+    volumes:
+      - ./data:/var/lib/postgresql/data
+    user: "root"
+
+  cache:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  api:
+    build: .
+    privileged: true
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DATABASE_URL=postgres://postgres:adminpassword123@db:5432/fastnote

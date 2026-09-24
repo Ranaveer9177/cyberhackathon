@@ -143,7 +143,7 @@ func GenerateSarif(r *Report) *SarifLog {
 				Tool: SarifTool{
 					Driver: SarifDriver{
 						Name:           "VibeGuard",
-						Version:        "5.1.0",
+						Version:        "6.0.0",
 						InformationURI: "https://github.com/Ranaveer9177/cyberhackathon",
 						Rules:          rules,
 					},

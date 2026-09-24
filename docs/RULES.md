@@ -53,33 +53,63 @@ All detected credentials have their sensitive values masked in all outputs (term
 
 ---
 
-## 2. Static Application Security Testing (SAST) Rules
+## 2. Static Application Security Testing (SAST) & Data-Flow Rules
 
 | Rule ID | Name | Description | Severity | Gate Policy |
 | :--- | :--- | :--- | :---: | :---: |
-| `VG-SAST-001` | Potential SQL Injection | Dynamic query concatenation without parameterized placeholders | `HIGH` | **BLOCKS** |
-| `VG-SAST-002` | Potential OS Command Injection | Untrusted shell execution via system/exec functions | `HIGH` | **BLOCKS** |
+| `VG-SAST-001` | Potential SQL Injection | Dynamic query construction via Python f-strings, `%` formatting, `.format()`, concatenation, Go `fmt.Sprintf`, or template literals with untrusted data-flow tracking | `HIGH` | **BLOCKS** |
+| `VG-SAST-002` | Potential OS Command Injection | Untrusted shell execution via system/exec functions (`subprocess`, `os.system`, `exec.Command`, `child_process`) | `HIGH` | **BLOCKS** |
 | `VG-SAST-003` | Dangerous Eval Function | Dynamic code evaluation (`eval()`, `Function()`, `exec()`) | `HIGH` | **BLOCKS** |
-| `VG-SAST-004` | Potential TLS Misconfiguration | Disabled certificate verification (`InsecureSkipVerify: true`) | `HIGH` | **BLOCKS** |
-| `VG-SAST-005` | Weak Cryptography | Deprecated hashing or cipher algorithms (`MD5`, `SHA1`, `DES`, `RC4`) | `MEDIUM` | Advisory |
-| `VG-SAST-006` | Potential Insecure HTTP Connection | Unencrypted plaintext HTTP URL in production code (loopback excluded) | `MEDIUM` | Advisory |
+| `VG-SAST-004` | Potential TLS Misconfiguration | Disabled certificate verification (`InsecureSkipVerify: true`, `verify=False`, `rejectUnauthorized: false`) | `HIGH` | **BLOCKS** |
+| `VG-SAST-005` | Weak Cryptography | Deprecated hashing or cipher algorithms (`MD5`, `SHA1`, `DES`, `RC4`, `Math.random()`) | `MEDIUM` | Advisory |
+| `VG-SAST-006` | Potential Insecure HTTP Connection | Unencrypted plaintext HTTP URL in production code (loopback and schemas excluded) | `MEDIUM` | Advisory |
 | `VG-SAST-007` | Hardcoded Credentials | Embedded passwords in source code declarations | `HIGH` | **BLOCKS** |
+| `VG-SAST-008` | Shell Execution with Untrusted Input | Subprocess invocation with `shell=True` or `shell=1` enabling arbitrary shell escalation | `HIGH` | **BLOCKS** |
 
 ---
 
-## 3. Container & Dockerfile Security Rules
+## 3. Authentication & API Security Rules
 
 | Rule ID | Name | Description | Severity | Gate Policy |
 | :--- | :--- | :--- | :---: | :---: |
-| `VG-DCK-001` | Container Running as Root | Missing non-root `USER` instruction | `HIGH` | **BLOCKS** |
+| `VG-AUTH-001` | Weak Password Hashing Algorithm | Fast collision-vulnerable hashes (MD5, SHA-1) applied to user password fields instead of Argon2id/bcrypt | `HIGH` | **BLOCKS** |
+| `VG-AUTH-002` | Predictable Security Token | Reversible encoding (base64, md5(email), timestamp) used as password reset or session tokens | `HIGH` | **BLOCKS** |
+| `VG-AUTH-003` | Hardcoded Authentication Token | Hardcoded Bearer tokens, JWT secrets, or authorization tokens declared in source | `HIGH` | **BLOCKS** |
+| `VG-WEBHOOK-001` | Missing Webhook Signature Verification | Webhook handler processes incoming payload without HMAC or signature verification header | `HIGH` | **BLOCKS** |
+
+---
+
+## 4. Container & Docker Security Rules
+
+### 4.1 Dockerfile Rules
+| Rule ID | Name | Description | Severity | Gate Policy |
+| :--- | :--- | :--- | :---: | :---: |
+| `VG-DCK-001` | Container Running as Root | Missing non-root `USER` instruction in Dockerfile | `HIGH` | **BLOCKS** |
 | `VG-DCK-002` | Secret in Container Environment | Sensitive data stored in `ENV` instructions | `CRITICAL` | **BLOCKS** |
 | `VG-DCK-003` | Unbounded Directory Copy | `COPY . .` used without `.dockerignore` exclusion | `MEDIUM` | Advisory |
 | `VG-DCK-004` | Missing Healthcheck | Container lacks `HEALTHCHECK` definition | `LOW` | Advisory |
 | `VG-DCK-005` | Floating Container Tag | Use of `:latest` tag instead of pinned digest or version | `MEDIUM` | Advisory |
 
+### 4.2 Docker Compose Rules
+| Rule ID | Name | Description | Severity | Gate Policy |
+| :--- | :--- | :--- | :---: | :---: |
+| `VG-DCK-006` | Exposed Database Port | Database port (5432, 3306, 27017) bound directly to host interface | `HIGH` | **BLOCKS** |
+| `VG-DCK-007` | Exposed Redis Port | Redis cache port (6379) bound directly to host interface | `HIGH` | **BLOCKS** |
+| `VG-DCK-008` | Root User in Compose | Service explicitly configured with `user: root` | `HIGH` | **BLOCKS** |
+| `VG-DCK-009` | Host Filesystem Mount | Service mounts local host directory into container (`.:/app`) | `MEDIUM` | Advisory |
+| `VG-DCK-010` | Weak Container Password | Default or weak passwords configured in environment variables | `HIGH` | **BLOCKS** |
+| `VG-DCK-011` | Privileged Container Execution | Container configured with `privileged: true` | `HIGH` | **BLOCKS** |
+| `VG-DCK-012` | Dangerous Docker Capability | Container granted dangerous Linux capabilities (`SYS_ADMIN`, `ALL`) | `HIGH` | **BLOCKS** |
+| `VG-DCK-013` | Sensitive Host Path Mounted | Sensitive host paths (e.g. `/var/run/docker.sock`, `/root`) mounted | `CRITICAL` | **BLOCKS** |
+
+### 4.3 Cross-File Build Correlation Rules
+| Rule ID | Name | Description | Severity | Gate Policy |
+| :--- | :--- | :--- | :---: | :---: |
+| `VG-DCK-014` | Secret File Included in Docker Build | Workspace contains `.env` or credential files alongside `COPY . .` in Dockerfile without `.dockerignore` exclusion | `HIGH` | **BLOCKS** |
+
 ---
 
-## 4. Configuration Security Rules
+## 5. Configuration Security Rules
 
 | Rule ID | Name | Description | Severity | Gate Policy |
 | :--- | :--- | :--- | :---: | :---: |
@@ -89,7 +119,7 @@ All detected credentials have their sensitive values masked in all outputs (term
 
 ---
 
-## 5. Configuration Exclusions & Transparency Policy
+## 6. Configuration Exclusions & Transparency Policy
 
 ### 5.1 Default Exclusions & Rationale
 

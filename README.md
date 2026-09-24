@@ -1,6 +1,6 @@
-# VibeGuard v5.1.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
+# VibeGuard v6.0.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
 
-[![Version](https://img.shields.io/badge/version-v5.1.0-blue.svg)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v6.0.0-blue.svg)](docs/CHANGELOG.md)
 [![Security Gate](https://img.shields.io/badge/security_gate-PASSED_100%2F100-brightgreen.svg)](ultimate_test.bat)
 [![Engines](https://img.shields.io/badge/engines-Go_1.21+_|_Rust_1.70+-orange.svg)](docs/LANGUAGE.md)
 [![SARIF](https://img.shields.io/badge/SARIF-2.1.0_Compliant-purple.svg)](internal/report/sarif.go)
@@ -13,7 +13,7 @@
 
 ## Overview
 
-**VibeGuard v5.1.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST), vulnerable third-party dependencies (SCA via Google OSV), Dockerfile misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
+**VibeGuard v6.0.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST), vulnerable third-party dependencies (SCA via Google OSV), Docker & Docker Compose misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
 
 ```
                     Developer Shell / Git CLI
@@ -56,19 +56,26 @@
 
 ---
 
-## What's New in v5.1.0
+## What's New in v6.0.0
 
-1. **Generic Leak File & Sensitive Pattern Recognition**:
-   - Expanded sensitive filename detection in both Rust and Go engines to recognize generic leak patterns: `leak*.txt` (e.g. `leak_test.txt`), `test*.txt`, `*_secret.txt`, `*.conf`, and `*.env*`.
-   - Manifest files like `requirements.txt` remain protected and cleanly excluded.
-2. **Dynamic Credential Weighting**:
-   - High-confidence credential assignment scoring applies across any text or configuration file when exact quoted assignments (e.g., `password = "..."`) are discovered, regardless of whether the file is strictly named `password.txt`.
-   - Excludes non-assignment comparison expressions (`==`, `!=`) in source files, preventing false positive alerts on variable checks.
-3. **Transparent Reporting (`--verbose`, `-v`, `--all`)**:
-   - Default scans focus on actionable security findings (Critical, High, Medium), while low-severity and advisory items are neatly summarized without terminal clutter.
-   - Running `vibeguard scan --verbose` or `vibeguard scan --all` expands an informative `Advisory & Low Severity Findings` section with complete details.
-4. **Unconditional Cache & State Isolation**:
-   - Both the Rust scanner and Go fallback engine skip `.vibeguard/` and `reports/` unconditionally, ensuring zero false positives from cache or previous scan runs.
+1. **Scope-Aware Data-Flow SAST Engine**:
+   - Upgraded from simple single-line pattern matching to **Source $\rightarrow$ Flow $\rightarrow$ Sink Taint Tracking**.
+   - Traces untrusted user inputs (Flask `request.args`, `request.json`, `request.form`, Express `req.query`, Go `r.URL.Query`) as they propagate into database queries and operating system command invocations.
+   - Detects modern Python f-strings SQL injection (`f"SELECT ... {param}"`), dynamic `%` formatting, `.format()` injections, and string concatenation.
+2. **Dedicated Docker Compose Security Engine**:
+   - Comprehensive parser and analyzer for `docker-compose.yml`, `docker-compose.yaml`, `compose.yml`, and `compose.yaml`.
+   - New dedicated rules: exposed database ports (`5432`, `6379`, `3306`, `27017` via `VG-DCK-006` and `VG-DCK-007`), root container users (`VG-DCK-008`), host filesystem mounts (`.:/app` via `VG-DCK-009`), weak container passwords (`VG-DCK-010`), privileged execution (`VG-DCK-011`), dangerous capabilities (`VG-DCK-012`), and dangerous socket mounts (`/var/run/docker.sock` via `VG-DCK-013`).
+3. **Cross-File Build Leak Correlation (`VG-DCK-014`)**:
+   - Correlates `.env` and sensitive credential files with `COPY . .` instructions in `Dockerfile` when `.dockerignore` is missing or fails to exclude secrets.
+4. **Authentication & API Security Rules**:
+   - **`VG-AUTH-001`**: Detects weak password hashing algorithms (MD5, SHA-1) applied to user credentials while differentiating non-credential checksums.
+   - **`VG-AUTH-002`**: Flags predictable, reversible encoding (such as `base64` over email or timestamp) used for password reset and session tokens.
+   - **`VG-AUTH-003`**: Identifies hardcoded Bearer authentication tokens and JWT secrets.
+   - **`VG-WEBHOOK-001`**: Verifies that incoming webhook handlers enforce cryptographic signature verification (HMAC-SHA256, `X-Hub-Signature`, `Stripe-Signature`).
+5. **100% Go & Rust Parity & Canonical Rule IDs**:
+   - All rules standardized across both the Rust high-performance engine and Go fallback engine using canonical stable identifiers (`VG-SAST-*`, `VG-DCK-*`, `VG-AUTH-*`, `VG-WEBHOOK-*`, `VG-SEC-*`).
+6. **FastNote Benchmark Test Suite**:
+   - Added automated regression fixtures under `tests/fixtures/fastnote/` and verified with Go and Rust automated test suites.
 
 ---
 
@@ -83,7 +90,7 @@ Prebuilt Windows binaries (`vibeguard.exe` and `vibeguard-scanner.exe`) are bund
 
 # 2. Open a NEW terminal and verify global access:
 vibeguard version
-# Output: VibeGuard v5.1.0
+# Output: VibeGuard v6.0.0
 
 # 3. Run the comprehensive 8-stage test engine:
 .\ultimate_test.bat
@@ -99,7 +106,7 @@ Compile both the Rust scanner and Go orchestrator from source:
 
 ---
 
-## The Ultimate Test Suite v5.0 (`ultimate_test.bat`)
+## The Ultimate Test Suite v6.0 (`ultimate_test.bat`)
 
 Run the complete 8-stage weighted evaluation engine directly from your terminal:
 
@@ -111,7 +118,7 @@ Run the complete 8-stage weighted evaluation engine directly from your terminal:
 
 ```text
 ========================================
- VIBEGUARD ULTIMATE TEST v4.6.0
+ VIBEGUARD ULTIMATE TEST v6.0.0
 ========================================
 
 Test results:

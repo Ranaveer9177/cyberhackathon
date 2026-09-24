@@ -13,7 +13,7 @@ go test -v ./...
 ```
 
 ### Passing Packages:
-- `cmd/vibeguard`: CLI input validation, version (`v5.1.0`), format parsing, and exit codes.
+- `cmd/vibeguard`: CLI input validation, version (`v6.0.0`), format parsing, and exit codes.
 - `internal/baseline`: Baseline loading, suppression matching, expiration, and corrupt file fail-closed logic.
 - `internal/config`: Default configuration loading, JSON validation, and exclusion path matching.
 - `internal/defender`: Windows Defender & AV detection, WMI product queries, Win32 error analysis, and pop-up modal logic.
@@ -24,7 +24,7 @@ go test -v ./...
 - `internal/osv`: Google OSV API client, persistent SHA-256 disk cache (`.vibeguard/cache/osv/`), and offline mode.
 - `internal/report`: JSON, HTML (with contextual escaping), SARIF 2.1.0 report generation, and terminal formatting.
 - `internal/risk`: Deterministic mathematical risk scoring calculations.
-- `internal/scanner`: Dual-engine scanner execution, finding deduplication, exclusion skipping, and context-aware secret & filename detection tests (`secrets_test.go`).
+- `internal/scanner`: Dual-engine scanner execution, finding deduplication, exclusion skipping, FastNote benchmark suite (`fastnote_test.go`), and context-aware secret & filename detection tests (`secrets_test.go`).
 - `tests/integration`: End-to-end integration workflows.
 
 ### Rust Scanner Tests (`scanner/`):
@@ -32,7 +32,7 @@ go test -v ./...
 cargo test --manifest-path scanner/Cargo.toml
 cargo clippy --manifest-path scanner/Cargo.toml -- -D warnings
 ```
-- 9 unit tests verifying recursive scanning, sensitive filenames (`password.txt`), credential assignments (`password=123@admin`), evidence masking, and non-blocking documentation/placeholder negative cases. 100% clean Clippy.
+- 16 unit tests verifying recursive scanning, sensitive filenames, credential assignments, evidence masking, data-flow SQL injection f-strings, command injection escalation, weak password hashing, predictable tokens, webhook signature verification, and Docker Compose database ports. 100% clean Clippy.
 
 ---
 

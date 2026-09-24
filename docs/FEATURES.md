@@ -1,6 +1,6 @@
 # VibeGuard — Feature Specifications
 
-> **Complete Feature Reference for VibeGuard v5.1.0**
+> **Complete Feature Reference for VibeGuard v6.0.0**
 
 ---
 
@@ -33,13 +33,13 @@
 
 ## 2. Multi-Engine Security Scanners
 
-### 2.1 Secret & Credential Detection (v5.1 Context-Aware Engine)
+### 2.1 Secret & Credential Detection
 - **Sensitive Filename Auditing (`VG-SECRET-FILE`)**:
   - Automatically detects sensitive credential and leak filenames: `password.txt`, `credentials.txt`, `secret.txt`, `leak*.txt` (e.g. `leak_test.txt`), `test*.txt`, `*_secret.txt`, `*.conf`, and `*.env*` with `HIGH` severity and `HIGH` confidence.
-- **Dynamic Credential Weighting (`VG-SECRET-001`, `VG-SECRET-002`, `VG-SECRET-003`)**:
+- **Dynamic Credential Weighting (`VG-SEC-001` .. `VG-SEC-007`)**:
   - Automatically awards high confidence to exact quoted credential assignments (`password = "..."`, `api_key = "..."`, `secret = "..."`) across text and config files, regardless of whether the file is named `password.txt`.
   - Intelligently excludes source code comparison expressions (`==`, `!=`) and comments (`//`, `#`, `/*`).
-- **Entropy & Standard Credential Pattern Recognition**:
+- **Standard Credential Pattern Recognition**:
   - AWS Access Keys (`AKIA[0-9A-Z]{16}`)
   - GitHub Personal Access Tokens (`ghp_[a-zA-Z0-9]{36}`)
   - Slack Tokens (`xox[bprs]-[a-zA-Z0-9-]+`)
@@ -50,18 +50,50 @@
   - Only `HIGH` (80–100) and `MEDIUM` (50–79) confidence findings block the gate; `LOW` (20–49) confidence findings are advisory.
 - **Evidence Masking**: Truncates secrets in all outputs (`password=********`, `sk-demo-****`) to ensure zero sensitive exposure in reports and terminal displays.
 
-### 2.2 Static Application Security Testing (SAST)
-- High-precision rules with zero internal tooling false positives:
-  - `Potential OS Command Injection`
-  - `Potential SQL Injection`
-  - `Potential TLS Misconfiguration` (`InsecureSkipVerify: true`)
-  - `Potential Insecure HTTP Connection` (loopback excluded)
-  - `Dangerous Eval` (`eval()`, `Function()`)
-  - `Weak Crypto` (`MD5`, `SHA1`, `DES`, `RC4`)
-  - `Hardcoded Credentials` in source code
+### 2.2 Scope-Aware Data-Flow SAST Engine (v6.0)
+- **Source $\rightarrow$ Flow $\rightarrow$ Sink Taint Tracking**:
+  - Maps untrusted inputs from Flask `request.args`, `request.json`, Express `req.query`, and Go `r.URL.Query`.
+  - Follows tainted variables through intermediate variable assignments into dangerous database and OS sinks.
+- **Rules (`VG-SAST-001` to `VG-SAST-008`)**:
+  - `VG-SAST-001`: Potential SQL Injection (Python f-strings `f"SELECT ... {param}"`, dynamic formatting, concatenation).
+  - `VG-SAST-002`: Potential OS Command Injection (`subprocess`, `os.system`, `exec.Command`).
+  - `VG-SAST-003`: Dangerous Dynamic Code Evaluation (`eval()`, `Function()`, `exec()`).
+  - `VG-SAST-004`: Potential TLS Misconfiguration (`InsecureSkipVerify: true`, `verify=False`).
+  - `VG-SAST-005`: Weak Cryptography (`MD5`, `SHA1`, `DES`, `RC4`, `Math.random()`).
+  - `VG-SAST-006`: Potential Insecure HTTP Connection (loopback and schema definitions excluded).
+  - `VG-SAST-007`: Hardcoded Credentials in source code.
+  - `VG-SAST-008`: Shell Execution with Untrusted Input (`subprocess.*(..., shell=True)`).
 - Supports: `.go`, `.js`, `.ts`, `.py`, `.java`, `.rs`, `.rb`, `.php`, `.c`, `.cpp`, `.cs`.
 
-### 2.3 Dependency Vulnerability Intelligence (SCA)
+### 2.3 Authentication & API Security (v6.0)
+- **`VG-AUTH-001`**: Weak Password Hashing Algorithm (MD5 or SHA-1 for user passwords).
+- **`VG-AUTH-002`**: Predictable Security Token (reversible base64 or timestamp encoding for reset tokens).
+- **`VG-AUTH-003`**: Hardcoded Authentication Token (Bearer tokens and JWT secrets in source code).
+- **`VG-WEBHOOK-001`**: Missing Webhook Signature Verification (unverified payload ingestion).
+
+### 2.4 Container & Dockerfile Auditing
+- Scans `Dockerfile` and `*.dockerfile`:
+  - `VG-DCK-001`: Container Running as Root (missing non-root `USER` instruction).
+  - `VG-DCK-002`: Secret in Container Environment (`ENV` credentials).
+  - `VG-DCK-003`: Unbounded Directory Copy (`COPY . .` without `.dockerignore`).
+  - `VG-DCK-004`: Missing Healthcheck instruction.
+  - `VG-DCK-005`: Floating `:latest` image tag.
+
+### 2.5 Dedicated Docker Compose Security Engine (v6.0)
+- Scans `docker-compose.yml`, `docker-compose.yaml`, `compose.yml`, `compose.yaml`:
+  - `VG-DCK-006`: Exposed Database Port (5432, 3306, 27017 exposed to host).
+  - `VG-DCK-007`: Exposed Redis Port (6379 exposed to host).
+  - `VG-DCK-008`: Container Running as Root (`user: root`).
+  - `VG-DCK-009`: Host Filesystem Mount (`.:/app`).
+  - `VG-DCK-010`: Weak Hardcoded Container Password in environment variables.
+  - `VG-DCK-011`: Privileged Container Execution (`privileged: true`).
+  - `VG-DCK-012`: Dangerous Docker Capabilities (`cap_add: [SYS_ADMIN, ALL]`).
+  - `VG-DCK-013`: Sensitive Host Path Mounted (`/var/run/docker.sock`, `/root`).
+
+### 2.6 Cross-File Secrets & Build Leak Correlation (`VG-DCK-014`)
+- Detects workspaces where `.env` or credential files coexist with `COPY . .` in Dockerfile without `.dockerignore` protections.
+
+### 2.7 Dependency Vulnerability Intelligence (SCA)
 - Native parsing of package manifests:
   - Go: `go.mod`
   - Node.js: `package.json` & `package-lock.json`
@@ -72,17 +104,11 @@
 - Extraction of advisory summaries, CVE aliases, affected versions, and fixed upgrade versions.
 - Strict `fail_closed` policy enforcement on network/lookup failures.
 
-### 2.4 Container & Dockerfile Auditing
-- Scans `Dockerfile` and `*.dockerfile`:
-  - Missing non-root `USER` instruction (`HIGH`).
-  - Secrets defined in `ENV` instructions (`CRITICAL`).
-  - Unbounded `COPY . .` instructions (`MEDIUM`).
-
-### 2.5 Configuration & Git Security
+### 2.8 Configuration & Git Security
 - Audits `.yaml`, `.json`, `.toml`, `.ini`:
-  - Debug mode enabled in production configs (`MEDIUM`).
-  - Wildcard CORS (`Access-Control-Allow-Origin: *`) (`MEDIUM`).
-  - Binding to insecure wildcard address `0.0.0.0` (`LOW`).
+  - `VG-CFG-001`: Debug mode enabled in production configs (`MEDIUM`).
+  - `VG-CFG-002`: Wildcard CORS (`Access-Control-Allow-Origin: *`) (`MEDIUM`).
+  - `VG-CFG-003`: Binding to insecure wildcard address `0.0.0.0` (`LOW`).
 
 ### 2.6 Windows Defender & Antivirus Interception Detection (v4.5)
 - **Automatic Interception Detection**:

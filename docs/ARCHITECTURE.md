@@ -1,6 +1,6 @@
 # VibeGuard — Technical Architecture Documentation
 
-> **VibeGuard v5.1.0 — Multi-Engine Autonomous Pre-Push Security Firewall**
+> **VibeGuard v6.0.0 — Multi-Engine Autonomous Pre-Push Security Firewall**
 
 ---
 
@@ -10,7 +10,7 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
 
 ```text
                     Developer Shell / Git CLI
-                               │
+                                │
                 ┌───────────────┴───────────────┐
                 ▼                               ▼
         git push / vibeguard push        vibeguard scan
@@ -69,17 +69,26 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
   - **Early Directory Pruning (Chaos-Resistant)**: Immediately skips ignored directories at the root (`node_modules`, `vendor`, `.git`, `target`, `__pycache__`, `.venv`, `dist`, `build`, `.vibeguard`, `reports`) without descending into subtrees, delivering >30,000 files/sec pruning rates.
   - Automatically parses and respects `.gitignore` rules in the scanned repository.
   - Accepts `--progress` flag and streams live file scan progress (`PROGRESS:<cur>:<tot>:<file>`) on `stderr` while delivering pure JSON results on `stdout`.
-  - Executes regex pattern rules for secrets and static code vulnerabilities.
-  - **Context-Aware Secret Engine (v5.1)**:
-    - Sensitive filename auditing (`VG-SECRET-FILE`) with generic leak wildcards: `leak*.txt` (e.g. `leak_test.txt`), `test*.txt`, `*_secret.txt`, `*.conf`, and `*.env*`.
+  - **Scope-Aware Data-Flow SAST Engine (v6.0)**:
+    - Tracks user-controlled input sources (Flask `request.args`, Express `req.query`, Go `r.URL.Query`) to downstream sinks.
+    - Escalates SQL injection confidence when user-tainted variables flow into dynamic query statements (`f"SELECT ... {param}"`, `%`, `.format()`, concatenation).
+    - Detects OS command execution with `shell=True` escalation (`VG-SAST-008`).
+  - **Authentication & API Security Engine (v6.0)**:
+    - Differentiates weak password hashing (`VG-AUTH-001`) from data checksums.
+    - Identifies predictable tokens (`VG-AUTH-002`) and hardcoded Bearer/JWT tokens (`VG-AUTH-003`).
+    - Enforces cryptographic webhook signature verification (`VG-WEBHOOK-001`).
+  - **Dedicated Docker Compose Security Engine (v6.0)**:
+    - Dedicated scanner for `docker-compose.yml`, `compose.yml`, etc., flagging exposed database ports (`VG-DCK-006`, `VG-DCK-007`), root user (`VG-DCK-008`), host mounts (`VG-DCK-009`), weak passwords (`VG-DCK-010`), privileged execution (`VG-DCK-011`), dangerous capabilities (`VG-DCK-012`), and `/var/run/docker.sock` mounts (`VG-DCK-013`).
+  - **Cross-File Build Secret Correlation (`VG-DCK-014`)**:
+    - Flags `.env` or credential presence when `COPY . .` is used in Dockerfiles without `.dockerignore`.
+  - **Context-Aware Secret Engine**:
+    - Sensitive filename auditing (`VG-SECRET-FILE`) with generic leak wildcards (`leak*.txt`, `test*.txt`, `*_secret.txt`, `*.conf`, `*.env*`).
     - Dynamic credential weighting: exact quoted assignments (`password = "..."`, `api_key = "..."`, `secret = "..."`) receive high confidence regardless of file name.
-    - Mathematical confidence scoring (0–100) combining entropy, key names, assignment operators, and penalty weights for docs, comments, and placeholders.
-    - Excludes non-assignment comparison expressions (`==`, `!=`) in source files, preventing false positive alerts on variable checks.
-  - False-positive filters for documentation examples, PowerShell parameters, placeholder passwords, and loopback/schema URLs.
+    - Mathematical confidence scoring (0–100) combining entropy, key names, assignment operators, and penalty weights.
   - Masks detected credentials (`sk-demo-****`, `password=********`) to protect secrets in logs.
 - **Fallback Go Scanner Engine (`internal/scanner/runner.go` & `internal/scanner/secrets.go`)**:
   - Automatically invoked if the compiled Rust binary is not present in the environment.
-  - Implements identical rule definitions, `.gitignore` parsing, early directory pruning, sensitive filename wildcard detection, confidence scoring algorithm, and false-positive filtering for 100% feature parity.
+  - Implements 100% equivalent canonical rule definitions (`VG-SAST-*`, `VG-DCK-*`, `VG-AUTH-*`, `VG-WEBHOOK-*`, `VG-SEC-*`), data-flow taint tracking, Docker Compose scanning, cross-file correlation, and confidence scoring.
   - Emits real-time progress callbacks (`ScanProgressFunc`) reporting file index, total count, and current file path.
 
 ### 2.3 Dependency Vulnerability Engine (`internal/dependencies/` & `internal/osv/`)

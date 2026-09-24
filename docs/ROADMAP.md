@@ -31,7 +31,14 @@
   - Dynamic credential weighting for quoted assignments across all files with comparison operator filtering (`==`, `!=`).
   - Transparent reporting with `--verbose`, `-v`, and `--all`.
   - DevSecOps Chaos Engineering validation suite across 5 adversarial stress domains (100/100 PASS).
-
+- [x] **v6.0 — Scope-Aware Data-Flow SAST Engine & FastNote Benchmark Security Suite**:
+  - Source $\rightarrow$ Flow $\rightarrow$ Sink Taint Tracking connecting untrusted user input to database and command sinks.
+  - Python f-strings SQL injection (`f"SELECT ... {param}"`), dynamic formatting, concatenation detection.
+  - Dedicated Docker Compose Security Engine (`VG-DCK-006` through `VG-DCK-013`): exposed database ports (5432, 6379, 3306, 27017), root user, host volume mounts (`.:/app`), weak passwords, privileged containers, dangerous capabilities, and `/var/run/docker.sock` mounts.
+  - Cross-File Build Secret Correlation (`VG-DCK-014`): `.env` + `COPY . .` in Dockerfile without `.dockerignore`.
+  - Authentication and API Security Rules (`VG-AUTH-001` to `003`, `VG-WEBHOOK-001`).
+  - Standardized canonical rule IDs with 100% Rust and Go engine parity.
+  - FastNote benchmark test suite in `tests/fixtures/fastnote/` with 100/100 ultimate test score.
 
 ---
 

@@ -2,7 +2,37 @@
 
 All notable changes to the VibeGuard project are documented in this file.
 
-## [v5.1.0] — 2026-09-22 (Current Release)
+## [v6.0.0] — 2026-09-24 (Current Release)
+
+### Added & Enhanced
+- **Scope-Aware Data-Flow SAST Engine**:
+  - Upgraded code analysis from line-by-line regex matching to **Source $\rightarrow$ Flow $\rightarrow$ Sink Taint Tracking**.
+  - Traces untrusted user inputs (Flask `request.args`, `request.json`, `request.form`, Express `req.query`, Go `r.URL.Query`) as they propagate into database queries and operating system command invocations.
+  - Detects modern Python f-strings SQL injection (`f"SELECT ... {param}"`), dynamic `%` formatting, `.format()` injections, and string concatenation (`VG-SAST-001`).
+  - Detects subprocess execution with `shell=True` / `shell=1` with data-flow escalation (`VG-SAST-008`, `VG-SAST-002`).
+- **Authentication & API Security Rules**:
+  - **`VG-AUTH-001`**: Detects weak password hashing algorithms (MD5, SHA-1) applied to user credentials while differentiating non-credential data checksums.
+  - **`VG-AUTH-002`**: Flags predictable, reversible encoding (such as `base64` over email or timestamp) used for password reset and session tokens.
+  - **`VG-AUTH-003`**: Identifies hardcoded Bearer authentication tokens and JWT secrets.
+  - **`VG-WEBHOOK-001`**: Verifies that incoming webhook handlers enforce cryptographic signature verification (HMAC-SHA256, `X-Hub-Signature`, `Stripe-Signature`).
+- **Dedicated Docker Compose Security Engine**:
+  - Comprehensive parser and analyzer for `docker-compose.yml`, `docker-compose.yaml`, `compose.yml`, and `compose.yaml`.
+  - **`VG-DCK-006`**: Flags exposed database ports (`5432`, `3306`, `27017`) bound to host network interfaces.
+  - **`VG-DCK-007`**: Flags exposed Redis cache port (`6379`) bound to host interfaces.
+  - **`VG-DCK-008`**: Identifies containers explicitly running as `user: root`.
+  - **`VG-DCK-009`**: Detects risky host filesystem mounts (`.:/app`).
+  - **`VG-DCK-010`**: Detects weak or default container passwords in environment variables.
+  - **`VG-DCK-011`**: Detects privileged container execution (`privileged: true`).
+  - **`VG-DCK-012`**: Detects dangerous Linux capabilities (`SYS_ADMIN`, `ALL`).
+  - **`VG-DCK-013`**: Flags dangerous sensitive host path mounts (`/var/run/docker.sock`, `/root`).
+- **Cross-File Build Leak Correlation (`VG-DCK-014`)**:
+  - Correlates `.env` and sensitive credential files with `COPY . .` instructions in `Dockerfile` when `.dockerignore` is missing or fails to exclude secrets.
+- **100% Go & Rust Parity & Canonical Rule IDs**:
+  - Standardized all rules across both the Rust high-performance engine and Go fallback engine using canonical stable identifiers (`VG-SAST-*`, `VG-DCK-*`, `VG-AUTH-*`, `VG-WEBHOOK-*`, `VG-SEC-*`).
+- **FastNote Benchmark Test Suite**:
+  - Added automated regression fixtures under `tests/fixtures/fastnote/` and verified with Go and Rust automated test suites.
+
+## [v5.1.0] — 2026-09-22
 
 ### Added & Enhanced
 - **Generic Leak File & Sensitive Pattern Recognition**:
