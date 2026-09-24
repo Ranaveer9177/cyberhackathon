@@ -210,7 +210,7 @@ fn main() {
     all_findings.append(&mut cross_docker_findings);
 
     if enable_secrets {
-        let mut git_findings = git::scan_git_security(&files, &mut finding_counter);
+        let mut git_findings = git::scan_git_security(&files, project_path, &mut finding_counter);
         all_findings.append(&mut git_findings);
     }
 

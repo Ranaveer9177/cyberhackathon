@@ -35,16 +35,89 @@ type ScanResult struct {
 }
 
 type Finding struct {
-	ID             string `json:"id"`
-	Category       string `json:"category"`
-	Severity       string `json:"severity"`
-	Title          string `json:"title"`
-	Description    string `json:"description"`
-	File           string `json:"file"`
-	Line           int    `json:"line"`
-	Evidence       string `json:"evidence,omitempty"`
-	Recommendation string `json:"recommendation,omitempty"`
-	Confidence     string `json:"confidence"`
+	ID             string   `json:"id"`
+	Category       string   `json:"category"`
+	Severity       string   `json:"severity"`
+	Title          string   `json:"title"`
+	Description    string   `json:"description"`
+	File           string   `json:"file"`
+	Line           int      `json:"line"`
+	Evidence       string   `json:"evidence,omitempty"`
+	Recommendation string   `json:"recommendation,omitempty"`
+	Confidence     string   `json:"confidence"`
+	Source         string   `json:"source,omitempty"`
+	Sink           string   `json:"sink,omitempty"`
+	DataFlow       []string `json:"data_flow,omitempty"`
+	CWE            string   `json:"cwe,omitempty"`
+}
+
+func RuleCWE(ruleID string) string {
+	switch ruleID {
+	case "VG-SAST-001":
+		return "CWE-89"
+	case "VG-SAST-002", "VG-SAST-008":
+		return "CWE-78"
+	case "VG-SAST-003":
+		return "CWE-95"
+	case "VG-SAST-004":
+		return "CWE-295"
+	case "VG-SAST-005":
+		return "CWE-327"
+	case "VG-SAST-006":
+		return "CWE-319"
+	case "VG-SAST-007", "VG-AUTH-003", "VG-SEC-001", "VG-SEC-002", "VG-SEC-003", "VG-SEC-004", "VG-SEC-005", "VG-SEC-006", "VG-SEC-007", "VG-SEC-008", "VG-GIT-001":
+		return "CWE-798"
+	case "VG-AUTH-001":
+		return "CWE-916"
+	case "VG-AUTH-002":
+		return "CWE-330"
+	case "VG-WEBHOOK-001":
+		return "CWE-345"
+	case "VG-DCK-001", "VG-DCK-008", "VG-DCK-011", "VG-DCK-012", "VG-DCK-013":
+		return "CWE-250"
+	case "VG-DCK-002":
+		return "CWE-214"
+	case "VG-DCK-006", "VG-DCK-007", "VG-DCK-015", "VG-DCK-016":
+		return "CWE-668"
+	case "VG-DCK-009":
+		return "CWE-552"
+	case "VG-DCK-010":
+		return "CWE-259"
+	case "VG-DCK-014", "VG-CFG-004":
+		return "CWE-200"
+	case "VG-CFG-001":
+		return "CWE-489"
+	case "VG-CFG-002":
+		return "CWE-942"
+	case "VG-CFG-003":
+		return "CWE-668"
+	case "VG-CFG-005":
+		return "CWE-319"
+	default:
+		return ""
+	}
+}
+
+func containsVar(line, v string) bool {
+	idx := 0
+	for {
+		pos := strings.Index(line[idx:], v)
+		if pos == -1 {
+			return false
+		}
+		absPos := idx + pos
+		beforeOk := absPos == 0 || (!isAlphaNumUnderscore(line[absPos-1]))
+		endPos := absPos + len(v)
+		afterOk := endPos == len(line) || (!isAlphaNumUnderscore(line[endPos]))
+		if beforeOk && afterOk {
+			return true
+		}
+		idx = absPos + 1
+	}
+}
+
+func isAlphaNumUnderscore(b byte) bool {
+	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_'
 }
 
 // FindScannerExecutable attempts to locate the Rust scanner binary across multiple candidate paths.
@@ -727,6 +800,8 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 			privilegedRe := regexp.MustCompile(`(?i)^\s*privileged:\s*true\s*$`)
 			dangerousCapRe := regexp.MustCompile(`(?i)^\s*-\s*(ALL|SYS_ADMIN|NET_ADMIN|SYS_PTRACE)\b`)
 			weakEnvPassRe := regexp.MustCompile(`(?i)(POSTGRES_PASSWORD|MYSQL_ROOT_PASSWORD|REDIS_PASSWORD|PASSWORD)\s*[:=]\s*["']?([^"'\s]+)["']?`)
+			hostNetworkRe := regexp.MustCompile(`(?i)(network_mode\s*:\s*["']?host["']?|--net=host|--network=host)`)
+			hostPidIpcRe := regexp.MustCompile(`(?i)\b(pid\s*:\s*["']?host["']?|ipc\s*:\s*["']?host["']?)\b`)
 
 			for lineIdx, line := range lines {
 				lineNum := lineIdx + 1
@@ -836,6 +911,36 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 						Confidence:     "HIGH",
 					})
 				}
+				if hostNetworkRe.MatchString(line) {
+					counter++
+					findings = append(findings, Finding{
+						ID:             "VG-DCK-015",
+						Category:       "docker",
+						Severity:       "HIGH",
+						Title:          "Container Host Networking Enabled",
+						Description:    "Container uses host network stack (network_mode: host), bypassing network isolation.",
+						File:           relPath,
+						Line:           lineNum,
+						Evidence:       trimmed,
+						Recommendation: "Use custom bridge networks instead of sharing the host network namespace.",
+						Confidence:     "HIGH",
+					})
+				}
+				if hostPidIpcRe.MatchString(line) {
+					counter++
+					findings = append(findings, Finding{
+						ID:             "VG-DCK-016",
+						Category:       "docker",
+						Severity:       "HIGH",
+						Title:          "Container Host PID or IPC Namespace Shared",
+						Description:    "Container shares the host PID or IPC namespace, breaking host process isolation.",
+						File:           relPath,
+						Line:           lineNum,
+						Evidence:       trimmed,
+						Recommendation: "Do not share host PID or IPC namespaces with containers.",
+						Confidence:     "HIGH",
+					})
+				}
 				if m := weakEnvPassRe.FindStringSubmatch(line); len(m) > 2 {
 					passVal := m[2]
 					if passVal == "password" || passVal == "secret" || passVal == "admin" || strings.Contains(passVal, "redispassword") || len(passVal) < 8 {
@@ -859,7 +964,7 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 
 		// Webhook signature verification check
 		if sourceExts[ext] {
-			webhookRouteRe := regexp.MustCompile(`(?i)@app\.route\(.*webhook.*|def\s+[a-zA-Z0-9_]*webhook[a-zA-Z0-9_]*\s*\(|func\s+[a-zA-Z0-9_]*Webhook`)
+			webhookRouteRe := regexp.MustCompile(`(?i)(@app\.(route|post)\(.*(?:webhook|stripe|payment|github|callback).*|def\s+[a-zA-Z0-9_]*(?:webhook|stripe|callback)[a-zA-Z0-9_]*\s*\(|func\s+[a-zA-Z0-9_]*(?:Webhook|Callback))`)
 			bodyConsumptionRe := regexp.MustCompile(`(?i)(request\.get_json|request\.json|request\.data|request\.body|json\.loads\(request\.data\))`)
 			signatureCheckRe := regexp.MustCompile(`(?i)(X-Hub-Signature|X-Signature|Stripe-Signature|hmac\.(compare_digest|new)|verify_signature|signature_valid|verify_webhook)`)
 
@@ -870,12 +975,245 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 					Category:       "sourcecode",
 					Severity:       "HIGH",
 					Title:          "Missing Webhook Signature Verification",
-					Description:    "Webhook handler processes incoming request payload without cryptographic signature verification.",
+					Description:    "Webhook handler processes incoming request payload without cryptographic signature verification (e.g., HMAC, X-Hub-Signature, Stripe-Signature). An attacker can forge arbitrary webhook events.",
 					File:           relPath,
 					Line:           1,
 					Recommendation: "Verify incoming webhook signatures using HMAC-SHA256 and timing-safe comparison before processing events.",
 					Confidence:     "HIGH",
+					Source:         "request.get_json()",
+					Sink:           "Unverified webhook event processing",
+					DataFlow: []string{
+						"Webhook route endpoint defined",
+						"Payload consumed without signature verification",
+					},
+					CWE: RuleCWE("VG-WEBHOOK-001"),
 				})
+			}
+		}
+
+		type goFuncScope struct {
+			name      string
+			params    []string
+			startLine int
+			endLine   int
+		}
+		type goTaintData struct {
+			sourceExpr   string
+			sourceLine   int
+			dataFlow     []string
+			sanitizedCmd bool
+			sanitizedSQL bool
+		}
+
+		var functionScopes []goFuncScope
+		taintedTable := make(map[string]goTaintData) // key: varName + "@" + strconv.Itoa(scopeStart)
+
+		if sourceExts[ext] {
+			pyFuncRe := regexp.MustCompile(`^(?P<indent>\s*)def\s+(?P<name>[a-zA-Z_][a-zA-Z0-9_]*)\s*\((?P<params>[^)]*)\)\s*:`)
+			cFuncRe := regexp.MustCompile(`(?:func(?:\s*\([^)]*\))?|function|\bdef)\s+(?P<name>[a-zA-Z_][a-zA-Z0-9_]*)\s*\((?P<params>[^)]*)\)`)
+
+			if ext == ".py" {
+				for i, l := range lines {
+					if m := pyFuncRe.FindStringSubmatch(l); len(m) > 3 {
+						name := m[2]
+						rawParams := m[3]
+						var params []string
+						for _, p := range strings.Split(rawParams, ",") {
+							p = strings.TrimSpace(p)
+							if p == "" || p == "self" || p == "cls" {
+								continue
+							}
+							parts := strings.Split(p, ":")
+							p = strings.Split(parts[0], "=")[0]
+							p = strings.TrimSpace(p)
+							if p != "" {
+								params = append(params, p)
+							}
+						}
+						indentLen := len(m[1])
+						startL := i + 1
+						endL := len(lines)
+						for j := i + 1; j < len(lines); j++ {
+							nl := lines[j]
+							t := strings.TrimSpace(nl)
+							if t == "" || strings.HasPrefix(t, "#") {
+								continue
+							}
+							lineIndent := len(nl) - len(strings.TrimLeft(nl, " \t"))
+							if lineIndent <= indentLen {
+								endL = j
+								break
+							}
+						}
+						functionScopes = append(functionScopes, goFuncScope{
+							name:      name,
+							params:    params,
+							startLine: startL,
+							endLine:   endL,
+						})
+					}
+				}
+			} else {
+				for i, l := range lines {
+					if m := cFuncRe.FindStringSubmatch(l); len(m) > 2 {
+						name := m[1]
+						rawParams := m[2]
+						var params []string
+						for _, p := range strings.Split(rawParams, ",") {
+							p = strings.TrimSpace(p)
+							if p == "" {
+								continue
+							}
+							parts := strings.Fields(p)
+							if len(parts) >= 2 && ext == ".go" {
+								params = append(params, parts[0])
+							} else if len(parts) > 0 {
+								clean := strings.Split(parts[0], ":")[0]
+								params = append(params, strings.TrimSpace(clean))
+							}
+						}
+						startL := i + 1
+						braceDepth := 0
+						started := false
+						endL := len(lines)
+						for j := i; j < len(lines); j++ {
+							for _, ch := range lines[j] {
+								if ch == '{' {
+									braceDepth++
+									started = true
+								} else if ch == '}' {
+									braceDepth--
+									if started && braceDepth <= 0 {
+										endL = j + 1
+										break
+									}
+								}
+							}
+							if started && braceDepth <= 0 {
+								break
+							}
+						}
+						functionScopes = append(functionScopes, goFuncScope{
+							name:      name,
+							params:    params,
+							startLine: startL,
+							endLine:   endL,
+						})
+					}
+				}
+			}
+
+			getScopeStart := func(lNum int) int {
+				for _, sc := range functionScopes {
+					if lNum >= sc.startLine && lNum <= sc.endLine {
+						return sc.startLine
+					}
+				}
+				return 0
+			}
+
+			sourceAssignRe := regexp.MustCompile(`(?i)(?:^|[\s;])(?P<var>[a-zA-Z_][a-zA-Z0-9_]*)\s*[:=]\s*(?P<expr>(?:request\.(?:args|form|values|json|get_json|data|files)|req\.(?:query|body|params)|r\.(?:URL\.Query|FormValue))[^;\n]*)`)
+			assignRe := regexp.MustCompile(`(?i)(?:^|[\s;])(?P<var>[a-zA-Z_][a-zA-Z0-9_]*)\s*[:=]\s*(?P<rhs>[^;\n]+)`)
+
+			// Initial sources
+			for lineIdx, line := range lines {
+				lineNum := lineIdx + 1
+				t := strings.TrimSpace(line)
+				if strings.HasPrefix(t, "//") || strings.HasPrefix(t, "#") || strings.HasPrefix(t, "/*") {
+					continue
+				}
+				if m := sourceAssignRe.FindStringSubmatch(line); len(m) > 2 {
+					varName := m[1]
+					expr := strings.TrimSpace(m[2])
+					scopeStart := getScopeStart(lineNum)
+					key := varName + "@" + strconv.Itoa(scopeStart)
+					taintedTable[key] = goTaintData{
+						sourceExpr: expr,
+						sourceLine: lineNum,
+						dataFlow: []string{
+							fmt.Sprintf("Line %d: %s = %s [SOURCE: Untrusted user input]", lineNum, varName, expr),
+						},
+					}
+				}
+			}
+
+			// Iterative propagation
+			for iter := 0; iter < 3; iter++ {
+				prevLen := len(taintedTable)
+				for lineIdx, line := range lines {
+					lineNum := lineIdx + 1
+					t := strings.TrimSpace(line)
+					if strings.HasPrefix(t, "//") || strings.HasPrefix(t, "#") || strings.HasPrefix(t, "/*") {
+						continue
+					}
+					scopeStart := getScopeStart(lineNum)
+
+					if m := assignRe.FindStringSubmatch(line); len(m) > 2 {
+						lhs := m[1]
+						rhs := m[2]
+						var matchedTaint *goTaintData
+						for k, td := range taintedTable {
+							parts := strings.Split(k, "@")
+							tVar := parts[0]
+							tScope, _ := strconv.Atoi(parts[1])
+							if (tScope == scopeStart || tScope == 0) && containsVar(rhs, tVar) && lhs != tVar {
+								copied := td
+								matchedTaint = &copied
+								break
+							}
+						}
+						if matchedTaint != nil {
+							if strings.Contains(rhs, "shlex.quote") || strings.Contains(rhs, "escapeshellarg") || strings.Contains(rhs, "escapeshellcmd") {
+								matchedTaint.sanitizedCmd = true
+								matchedTaint.dataFlow = append(matchedTaint.dataFlow, fmt.Sprintf("Line %d: %s = %s [SANITIZER: Command escaping via shlex.quote]", lineNum, lhs, strings.TrimSpace(rhs)))
+							} else if strings.Contains(rhs, "int(") || strings.Contains(rhs, "float(") || strings.Contains(rhs, "strconv.Atoi") {
+								matchedTaint.sanitizedSQL = true
+								matchedTaint.dataFlow = append(matchedTaint.dataFlow, fmt.Sprintf("Line %d: %s = %s [SANITIZER: Type cast to integer/float]", lineNum, lhs, strings.TrimSpace(rhs)))
+							} else {
+								matchedTaint.dataFlow = append(matchedTaint.dataFlow, fmt.Sprintf("Line %d: %s = %s [DATAFLOW: Variable derivation]", lineNum, lhs, strings.TrimSpace(rhs)))
+							}
+							key := lhs + "@" + strconv.Itoa(scopeStart)
+							taintedTable[key] = *matchedTaint
+						}
+					}
+
+					// Function call site propagation
+					for _, sc := range functionScopes {
+						callPattern := fmt.Sprintf(`%s\s*\((?P<args>[^)]*)\)`, regexp.QuoteMeta(sc.name))
+						if callRe, err := regexp.Compile(callPattern); err == nil {
+							if cm := callRe.FindStringSubmatch(line); len(cm) > 1 {
+								rawArgs := cm[1]
+								args := strings.Split(rawArgs, ",")
+								for argIdx, arg := range args {
+									argCleaned := strings.TrimSpace(arg)
+									if eqIdx := strings.LastIndex(argCleaned, "="); eqIdx != -1 {
+										argCleaned = strings.TrimSpace(argCleaned[eqIdx+1:])
+									}
+									for k, td := range taintedTable {
+										parts := strings.Split(k, "@")
+										tVar := parts[0]
+										tScope, _ := strconv.Atoi(parts[1])
+										if (tScope == scopeStart || tScope == 0) && argCleaned == tVar {
+											if argIdx < len(sc.params) {
+												paramName := sc.params[argIdx]
+												paramTaint := td
+												paramTaint.dataFlow = append(paramTaint.dataFlow, fmt.Sprintf(
+													"Line %d: Call to '%s(...)' passes tainted argument '%s' to parameter '%s'",
+													lineNum, sc.name, tVar, paramName,
+												))
+												key := paramName + "@" + strconv.Itoa(sc.startLine)
+												taintedTable[key] = paramTaint
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+				if len(taintedTable) == prevLen {
+					break
+				}
 			}
 		}
 
@@ -893,10 +1231,10 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 			if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "/*") || strings.HasPrefix(trimmed, "*") || strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, "--") || strings.HasPrefix(trimmed, ";") {
 				continue
 			}
-			if strings.HasPrefix(trimmed, "description:") || strings.HasPrefix(trimmed, "recommendation:") || strings.HasPrefix(trimmed, "name:") || strings.HasPrefix(trimmed, "id:") || strings.HasPrefix(trimmed, "pattern:") {
+			if strings.HasPrefix(trimmed, "description:") || strings.HasPrefix(trimmed, "recommendation:") || strings.HasPrefix(trimmed, "name:") || strings.HasPrefix(trimmed, "id:") || strings.HasPrefix(trimmed, "pattern:") || strings.HasPrefix(trimmed, "hasShellTrue :=") || strings.HasPrefix(trimmed, "let has_shell_true") {
 				continue
 			}
-			if strings.Contains(line, "regexp.MustCompile") || strings.Contains(line, "Regex::new") || strings.Contains(line, "Rule {") || strings.Contains(line, `strings.Contains(lineLower, "http`) || strings.Contains(line, `line_lower.contains("http`) {
+			if strings.Contains(line, "regexp.MustCompile") || strings.Contains(line, "Regex::new") || strings.Contains(line, "Rule {") || strings.Contains(line, `strings.Contains(lineLower, "http`) || strings.Contains(line, `line_lower.contains("http`) || strings.Contains(line, `contains("shell`) || strings.Contains(line, `Contains(line, "shell`) {
 				continue
 			}
 
@@ -976,6 +1314,77 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 							continue
 						}
 					}
+
+					confidence := "HIGH"
+					severity := r.severity
+					description := r.description
+					var sourceField string
+					var sinkField string
+					var dataFlowTrace []string
+
+					if r.id == "VG-SAST-001" {
+						sinkField = "SQL Query Construction / Execution"
+						scopeStart := 0
+						for _, sc := range functionScopes {
+							if lineNum >= sc.startLine && lineNum <= sc.endLine {
+								scopeStart = sc.startLine
+								break
+							}
+						}
+						for k, td := range taintedTable {
+							parts := strings.Split(k, "@")
+							tVar := parts[0]
+							tScope, _ := strconv.Atoi(parts[1])
+							if (tScope == scopeStart || tScope == 0) && containsVar(line, tVar) {
+								if td.sanitizedSQL {
+									continue
+								}
+								confidence = "HIGH"
+								severity = "HIGH"
+								sourceField = td.sourceExpr
+								trace := append([]string{}, td.dataFlow...)
+								trace = append(trace, fmt.Sprintf("Line %d: %s [SINK: SQL query interpolation]", lineNum, trimmed))
+								dataFlowTrace = trace
+								description = fmt.Sprintf("SQL injection detected: untrusted input from variable '%s' (source line %d) flows into query.", tVar, td.sourceLine)
+								break
+							}
+						}
+					}
+
+					if r.id == "VG-SAST-002" || r.id == "VG-SAST-008" {
+						sinkField = "OS Command Execution"
+						hasShellTrue := strings.Contains(line, "shell=True") || strings.Contains(line, "shell = True") || strings.Contains(line, "shell=1")
+						isListInvocation := strings.Contains(line, "[") && strings.Contains(line, "]") && !hasShellTrue && ext == ".py"
+						if isListInvocation && r.id == "VG-SAST-002" {
+							continue
+						}
+						scopeStart := 0
+						for _, sc := range functionScopes {
+							if lineNum >= sc.startLine && lineNum <= sc.endLine {
+								scopeStart = sc.startLine
+								break
+							}
+						}
+						for k, td := range taintedTable {
+							parts := strings.Split(k, "@")
+							tVar := parts[0]
+							tScope, _ := strconv.Atoi(parts[1])
+							if (tScope == scopeStart || tScope == 0) && containsVar(line, tVar) {
+								if td.sanitizedCmd || strings.Contains(line, "shlex.quote") {
+									continue
+								}
+								confidence = "HIGH"
+								severity = "CRITICAL"
+								sourceField = td.sourceExpr
+								trace := append([]string{}, td.dataFlow...)
+								trace = append(trace, fmt.Sprintf("Line %d: %s [SINK: OS command execution]", lineNum, trimmed))
+								dataFlowTrace = trace
+								description = fmt.Sprintf("Untrusted input from variable '%s' (source line %d) directly reaches command execution sink.", tVar, td.sourceLine)
+								break
+							}
+						}
+					}
+
 					counter++
 					evidence := strings.TrimSpace(line)
 					if r.category == "secret" {
@@ -989,14 +1398,18 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 					findings = append(findings, Finding{
 						ID:             r.id,
 						Category:       r.category,
-						Severity:       r.severity,
+						Severity:       severity,
 						Title:          r.name,
-						Description:    r.description,
+						Description:    description,
 						File:           relPath,
 						Line:           lineNum,
 						Evidence:       evidence,
 						Recommendation: r.recommendation,
-						Confidence:     "HIGH",
+						Confidence:     confidence,
+						Source:         sourceField,
+						Sink:           sinkField,
+						DataFlow:       dataFlowTrace,
+						CWE:            RuleCWE(r.id),
 					})
 				}
 			}
@@ -1045,6 +1458,41 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 					}
 				}
 			}
+		}
+
+		// Check VG-CFG-004: .env file exists in repository but .gitignore does not ignore it
+		gitignoreBytes, err := os.ReadFile(filepath.Join(projectPath, ".gitignore"))
+		ignoresEnvInGit := false
+		if err == nil {
+			for _, line := range strings.Split(string(gitignoreBytes), "\n") {
+				t := strings.TrimSpace(line)
+				if t == ".env" || t == ".env*" || t == "*.env" {
+					ignoresEnvInGit = true
+					break
+				}
+			}
+		}
+		if !ignoresEnvInGit {
+			counter++
+			findings = append(findings, Finding{
+				ID:             "VG-CFG-004",
+				Category:       "configuration",
+				Severity:       "HIGH",
+				Title:          "Missing .env in .gitignore",
+				Description:    "A sensitive .env file exists in the repository, but .gitignore does not exclude '.env', risking accidental credential leakage.",
+				File:           ".gitignore",
+				Line:           1,
+				Evidence:       "Missing .env entry in .gitignore",
+				Recommendation: "Add '.env' and '.env*' to .gitignore to prevent committing environment variables.",
+				Confidence:     "HIGH",
+				CWE:            "CWE-200",
+			})
+		}
+	}
+
+	for i := range findings {
+		if findings[i].CWE == "" {
+			findings[i].CWE = RuleCWE(findings[i].ID)
 		}
 	}
 

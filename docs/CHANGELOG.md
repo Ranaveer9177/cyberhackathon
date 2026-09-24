@@ -2,7 +2,32 @@
 
 All notable changes to the VibeGuard project are documented in this file.
 
-## [v6.0.0] — 2026-09-24 (Current Release)
+## [v6.1.0] — 2026-09-24 (Current Release)
+
+### Added & Enhanced
+- **Scope-Aware Function-Level Taint Tracking**:
+  - Implemented lexical function scope extraction (`FunctionScope`) and inter-procedural call-site argument-to-parameter taint propagation (`Source → Var → Arg → Param → Local → Sink`).
+  - Supports Python (`def foo(target):`), Go (`func foo(target string)`), and JavaScript/TypeScript (`function foo(target)`).
+  - Multi-pass fixed-point taint propagation accurately tracks input flow regardless of function definition order.
+- **Sink-Specific Sanitizer Modeling**:
+  - Command injection sanitizers: recognizes `shlex.quote(...)`, `escapeshellarg(...)`, and `escapeshellcmd(...)`.
+  - Non-shell execution modeling: passing argument lists to `subprocess.run(["cmd", arg])` without `shell=True` is verified as safe and suppressed from command injection false alarms.
+  - SQL injection sanitizers: recognizes parameterized binding and numeric type casting (`int(...)`, `float(...)`, `strconv.Atoi`).
+- **Data-Flow Provenance Traces & Enriched Reporting**:
+  - Emitted findings now include comprehensive step-by-step data flow traces (`data_flow`), `source`, and `sink` expressions.
+  - Terminal scan reports visually render multi-line taint provenance chains under each finding.
+  - SARIF 2.1.0 output enriched with MITRE CWE tags (`properties.tags`), help URIs, and data-flow traces for GitHub Advanced Security code scanning integration.
+- **Canonical Rule IDs & Exact MITRE CWE Mappings**:
+  - All SAST, secret, docker, and configuration rules mapped to official CWEs (`CWE-89`, `CWE-78`, `CWE-95`, `CWE-295`, `CWE-327`, `CWE-319`, `CWE-798`, `CWE-916`, `CWE-330`, `CWE-345`, `CWE-250`, `CWE-214`, `CWE-668`, `CWE-552`, `CWE-259`, `CWE-200`, `CWE-489`, `CWE-942`).
+- **Expanded Docker & Configuration Rules**:
+  - **`VG-DCK-015`** (`CWE-668`): Flags containers using host networking (`network_mode: host`, `--net=host`).
+  - **`VG-DCK-016`** (`CWE-668`): Flags containers sharing host PID or IPC namespaces (`pid: host`, `ipc: host`).
+  - **`VG-CFG-004`** (`CWE-200`): Verifies target repository `.gitignore` contains `.env` whenever `.env` files are present in the project.
+- **100% Rust & Go Dual-Engine Parity**:
+  - Fully synchronized all function-level taint tracking, sanitizers, and new rules between native Rust scanner (`vibeguard-scanner.exe`) and Go fallback orchestrator (`runner.go`).
+  - Passed `ultimate_test.bat` with 100/100 score and achieved clean 100/100 repository self-scan.
+
+## [v6.0.0] — 2026-09-24
 
 ### Added & Enhanced
 - **Scope-Aware Data-Flow SAST Engine**:

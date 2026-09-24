@@ -1,6 +1,6 @@
-# VibeGuard v6.0.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
+# VibeGuard v6.1.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
 
-[![Version](https://img.shields.io/badge/version-v6.0.0-blue.svg)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v6.1.0-blue.svg)](docs/CHANGELOG.md)
 [![Security Gate](https://img.shields.io/badge/security_gate-PASSED_100%2F100-brightgreen.svg)](ultimate_test.bat)
 [![Engines](https://img.shields.io/badge/engines-Go_1.21+_|_Rust_1.70+-orange.svg)](docs/LANGUAGE.md)
 [![SARIF](https://img.shields.io/badge/SARIF-2.1.0_Compliant-purple.svg)](internal/report/sarif.go)
@@ -13,7 +13,7 @@
 
 ## Overview
 
-**VibeGuard v6.0.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST), vulnerable third-party dependencies (SCA via Google OSV), Docker & Docker Compose misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
+**VibeGuard v6.1.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST with scope-aware function taint tracking), vulnerable third-party dependencies (SCA via Google OSV), Docker & Docker Compose misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
 
 ```
                     Developer Shell / Git CLI
@@ -56,26 +56,24 @@
 
 ---
 
-## What's New in v6.0.0
+## What's New in v6.1.0
 
-1. **Scope-Aware Data-Flow SAST Engine**:
-   - Upgraded from simple single-line pattern matching to **Source $\rightarrow$ Flow $\rightarrow$ Sink Taint Tracking**.
-   - Traces untrusted user inputs (Flask `request.args`, `request.json`, `request.form`, Express `req.query`, Go `r.URL.Query`) as they propagate into database queries and operating system command invocations.
-   - Detects modern Python f-strings SQL injection (`f"SELECT ... {param}"`), dynamic `%` formatting, `.format()` injections, and string concatenation.
-2. **Dedicated Docker Compose Security Engine**:
-   - Comprehensive parser and analyzer for `docker-compose.yml`, `docker-compose.yaml`, `compose.yml`, and `compose.yaml`.
-   - New dedicated rules: exposed database ports (`5432`, `6379`, `3306`, `27017` via `VG-DCK-006` and `VG-DCK-007`), root container users (`VG-DCK-008`), host filesystem mounts (`.:/app` via `VG-DCK-009`), weak container passwords (`VG-DCK-010`), privileged execution (`VG-DCK-011`), dangerous capabilities (`VG-DCK-012`), and dangerous socket mounts (`/var/run/docker.sock` via `VG-DCK-013`).
-3. **Cross-File Build Leak Correlation (`VG-DCK-014`)**:
-   - Correlates `.env` and sensitive credential files with `COPY . .` instructions in `Dockerfile` when `.dockerignore` is missing or fails to exclude secrets.
-4. **Authentication & API Security Rules**:
-   - **`VG-AUTH-001`**: Detects weak password hashing algorithms (MD5, SHA-1) applied to user credentials while differentiating non-credential checksums.
-   - **`VG-AUTH-002`**: Flags predictable, reversible encoding (such as `base64` over email or timestamp) used for password reset and session tokens.
-   - **`VG-AUTH-003`**: Identifies hardcoded Bearer authentication tokens and JWT secrets.
-   - **`VG-WEBHOOK-001`**: Verifies that incoming webhook handlers enforce cryptographic signature verification (HMAC-SHA256, `X-Hub-Signature`, `Stripe-Signature`).
-5. **100% Go & Rust Parity & Canonical Rule IDs**:
-   - All rules standardized across both the Rust high-performance engine and Go fallback engine using canonical stable identifiers (`VG-SAST-*`, `VG-DCK-*`, `VG-AUTH-*`, `VG-WEBHOOK-*`, `VG-SEC-*`).
-6. **FastNote Benchmark Test Suite**:
-   - Added automated regression fixtures under `tests/fixtures/fastnote/` and verified with Go and Rust automated test suites.
+1. **Scope-Aware Function-Level Taint Tracking**:
+   - Upgraded to **inter-procedural taint propagation** (`Source → Var → Arg → Param → Local → Sink`).
+   - Tracks untrusted user inputs (Flask `request.args`, Express `req.query`, Go `r.URL.Query`) across function call boundaries into database queries and operating system command invocations.
+   - Generates complete multi-line data-flow provenance traces attached to findings in terminal, JSON, and SARIF 2.1.0 outputs.
+2. **Sink-Specific Sanitizer Modeling**:
+   - Command injection: recognizes `shlex.quote(...)`, `escapeshellarg(...)`, and `escapeshellcmd(...)`. Non-shell invocations (`subprocess.run(["cmd", arg])`) are verified as safe.
+   - SQL injection: recognizes parameterized query bindings and numeric type casting (`int(...)`, `float(...)`, `strconv.Atoi`).
+3. **Canonical Rule IDs & Exact MITRE CWE Mappings**:
+   - All rules mapped to canonical CWE definitions (`CWE-89`, `CWE-78`, `CWE-95`, `CWE-295`, `CWE-327`, `CWE-319`, `CWE-798`, `CWE-916`, `CWE-330`, `CWE-345`, `CWE-250`, `CWE-214`, `CWE-668`, `CWE-552`, `CWE-259`, `CWE-200`, `CWE-489`, `CWE-942`).
+4. **Expanded Docker & Repository Configuration Rules**:
+   - **`VG-DCK-015`** (`CWE-668`): Flags containers using host networking (`network_mode: host`).
+   - **`VG-DCK-016`** (`CWE-668`): Flags containers sharing host PID or IPC namespaces (`pid: host`, `ipc: host`).
+   - **`VG-CFG-004`** (`CWE-200`): Verifies target repository `.gitignore` contains `.env` whenever `.env` files are present in the project.
+5. **100% Rust & Go Dual-Engine Parity**:
+   - Full functional equivalence between the primary Rust scanner (`vibeguard-scanner.exe`) and the Go fallback engine (`runner.go`).
+   - Passed `ultimate_test.bat` with a perfect **100/100** score and clean repository self-scan.
 
 ---
 
@@ -106,7 +104,7 @@ Compile both the Rust scanner and Go orchestrator from source:
 
 ---
 
-## The Ultimate Test Suite v6.0 (`ultimate_test.bat`)
+## The Ultimate Test Suite (`ultimate_test.bat`)
 
 Run the complete 8-stage weighted evaluation engine directly from your terminal:
 
@@ -126,48 +124,48 @@ Test results:
 [1/8] Go package tests
       Status:    PASS
       Weight:    15/15
-      Duration:  2.24 seconds
+      Duration:  3.67 seconds
       Packages:  11 passed
       Failed:    0
 
 [2/8] Go vet
       Status:    PASS
       Weight:    10/10
-      Duration:  0.31 seconds
+      Duration:  0.35 seconds
       Issues:    0
 
 [3/8] Rust tests
       Status:    PASS
       Weight:    15/15
-      Duration:  0.22 seconds
-      Tests:     9 passed
+      Duration:  1.94 seconds
+      Tests:     18 passed
       Failed:    0
 
 [4/8] Rust format check
       Status:    PASS
       Weight:     5/5
-      Duration:  0.14 seconds
+      Duration:  0.20 seconds
       Formatting: Clean
 
 [5/8] Rust Clippy
       Status:    PASS
       Weight:    10/10
-      Duration:  0.21 seconds
+      Duration:  0.59 seconds
       Warnings:  0
       Errors:    0
 
 [6/8] Source build
       Status:    PASS
       Weight:    20/20
-      Duration:  1.32 seconds
+      Duration:  3.96 seconds
       Go binary:   Built successfully
       Rust binary: Built successfully
-      Version:     v4.6.0
+      Version:     v6.1.0
 
 [7/8] CLI health test
       Status:    PASS
       Weight:    15/15
-      Duration:  0.70 seconds
+      Duration:  0.88 seconds
       CLI found:          YES
       Scanner found:      YES
       Version check:      PASS
@@ -178,7 +176,7 @@ Test results:
 [8/8] Windows Defender verification
       Status:    PASS
       Weight:    10/10
-      Duration:  1.72 seconds
+      Duration:  3.55 seconds
       Service enabled:          YES
       Real-time protection:     YES
       Scanner accessible:       YES
@@ -197,7 +195,7 @@ Not verified: 0
 
 Weighted score: 100/100
 Minimum score:  90/100
-Duration:       6.97 seconds
+Duration:       15.33 seconds
 Result:         PASS
 ```
 

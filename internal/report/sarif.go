@@ -34,6 +34,12 @@ type SarifRule struct {
 	Name             string           `json:"name"`
 	ShortDescription SarifDescription `json:"shortDescription"`
 	DefaultConfig    SarifConfig      `json:"defaultConfiguration"`
+	HelpURI          string           `json:"helpUri,omitempty"`
+	Properties       *SarifProperties `json:"properties,omitempty"`
+}
+
+type SarifProperties struct {
+	Tags []string `json:"tags,omitempty"`
 }
 
 type SarifDescription struct {
@@ -87,6 +93,15 @@ func GenerateSarif(r *Report) *SarifLog {
 	for _, f := range r.Findings {
 		level := severityToSarifLevel(f.Severity)
 		if _, exists := rulesMap[f.ID]; !exists {
+			var tags []string
+			tags = append(tags, "security", strings.ToLower(f.Category))
+			var helpURI string
+			if f.CWE != "" {
+				tags = append(tags, f.CWE)
+				cweNum := strings.TrimPrefix(f.CWE, "CWE-")
+				helpURI = "https://cwe.mitre.org/data/definitions/" + cweNum + ".html"
+			}
+
 			rulesMap[f.ID] = SarifRule{
 				ID:   f.ID,
 				Name: f.Title,
@@ -95,6 +110,10 @@ func GenerateSarif(r *Report) *SarifLog {
 				},
 				DefaultConfig: SarifConfig{
 					Level: level,
+				},
+				HelpURI: helpURI,
+				Properties: &SarifProperties{
+					Tags: tags,
 				},
 			}
 		}
@@ -107,6 +126,15 @@ func GenerateSarif(r *Report) *SarifLog {
 		msg := f.Title
 		if f.Description != "" && f.Description != f.Title {
 			msg = f.Title + ": " + f.Description
+		}
+		if f.CWE != "" {
+			msg += " [" + f.CWE + "]"
+		}
+		if len(f.DataFlow) > 0 {
+			msg += "\nData Flow Provenance:\n"
+			for _, step := range f.DataFlow {
+				msg += "  -> " + step + "\n"
+			}
 		}
 
 		results = append(results, SarifResult{
