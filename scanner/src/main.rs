@@ -238,6 +238,8 @@ fn main() {
         all_findings.append(&mut git_findings);
     }
 
+    let all_findings = deduplicate_findings(all_findings);
+
     let project_name = Path::new(project_path)
         .file_name()
         .and_then(|n| n.to_str())
@@ -278,4 +280,29 @@ fn main() {
             std::process::exit(2);
         }
     }
+}
+
+fn deduplicate_findings(findings: Vec<types::Finding>) -> Vec<types::Finding> {
+    let mut seen = std::collections::HashSet::new();
+    let mut deduped = Vec::with_capacity(findings.len());
+
+    for f in findings {
+        let cat = format!("{:?}", f.category).to_lowercase();
+        let title = f.title.trim().to_lowercase();
+        let file = f.file.replace('\\', "/");
+        let line = f.line;
+        let evidence = f.evidence.as_deref().unwrap_or("").trim();
+        let evidence_prefix = if evidence.len() > 60 {
+            &evidence[..60]
+        } else {
+            evidence
+        };
+        let key = format!("{}|{}|{}|{}|{}", cat, title, file, line, evidence_prefix);
+
+        if seen.insert(key) {
+            deduped.push(f);
+        }
+    }
+
+    deduped
 }

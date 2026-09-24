@@ -65,25 +65,25 @@ func RuleCWE(ruleID string) string {
 		return "CWE-327"
 	case "VG-SAST-006":
 		return "CWE-319"
-	case "VG-SAST-007", "VG-AUTH-003", "VG-SEC-001", "VG-SEC-002", "VG-SEC-003", "VG-SEC-004", "VG-SEC-005", "VG-SEC-006", "VG-SEC-007", "VG-SEC-008", "VG-GIT-001":
+	case "VG-SAST-007", "VG-AUTH-003", "VG-SEC-001", "VG-SEC-002", "VG-SEC-003", "VG-SEC-004", "VG-SEC-005", "VG-SEC-006", "VG-SEC-007", "VG-SEC-008", "VG-SECRET-001", "VG-SECRET-002", "VG-SECRET-003", "VG-GIT-001":
 		return "CWE-798"
 	case "VG-AUTH-001":
 		return "CWE-916"
 	case "VG-AUTH-002":
 		return "CWE-330"
-	case "VG-WEBHOOK-001":
+	case "VG-WEBHOOK-001", "VG-DCK-005":
 		return "CWE-345"
-	case "VG-DCK-001", "VG-DCK-008", "VG-DCK-011", "VG-DCK-012", "VG-DCK-013":
+	case "VG-DCK-001", "VG-DCK-004", "VG-DCK-008", "VG-DCK-011", "VG-DCK-012", "VG-DCK-013", "VG-DCK-015":
 		return "CWE-250"
 	case "VG-DCK-002":
 		return "CWE-214"
-	case "VG-DCK-006", "VG-DCK-007", "VG-DCK-015", "VG-DCK-016":
+	case "VG-DCK-006", "VG-DCK-007", "VG-DCK-016":
 		return "CWE-668"
 	case "VG-DCK-009":
 		return "CWE-552"
 	case "VG-DCK-010":
 		return "CWE-259"
-	case "VG-DCK-014", "VG-CFG-004":
+	case "VG-DCK-003", "VG-DCK-014", "VG-CFG-004", "VG-SECRET-FILE":
 		return "CWE-200"
 	case "VG-CFG-001":
 		return "CWE-489"

@@ -565,4 +565,60 @@ services:
         assert!(findings.iter().any(|f| f.id == "VG-DCK-006"));
         assert!(findings.iter().any(|f| f.id == "VG-DCK-008"));
     }
+
+    #[test]
+    fn test_dockerfile_user_root_and_nonroot() {
+        let mut counter = 0;
+        let root_df = "FROM alpine:3.18\nRUN echo hi\n";
+        let root_findings = scan_dockerfile("Dockerfile", root_df, &mut counter);
+        assert!(root_findings.iter().any(|f| f.id == "VG-DCK-001"));
+
+        let nonroot_df = "FROM alpine:3.18\nUSER appuser\n";
+        let nonroot_findings = scan_dockerfile("Dockerfile", nonroot_df, &mut counter);
+        assert!(!nonroot_findings.iter().any(|f| f.id == "VG-DCK-001"));
+    }
+
+    #[test]
+    fn test_docker_compose_redis_and_host_mount() {
+        let mut counter = 0;
+        let compose_content = r#"version: '3.8'
+services:
+  cache:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+  web:
+    image: myapp:1.0
+    volumes:
+      - .:/app
+"#;
+        let findings = scan_docker_compose("docker-compose.yml", compose_content, &mut counter);
+        assert!(findings.iter().any(|f| f.id == "VG-DCK-007"));
+        assert!(findings.iter().any(|f| f.id == "VG-DCK-009"));
+    }
+
+    #[test]
+    fn test_docker_compose_host_namespaces() {
+        let mut counter = 0;
+        let pos_content = r#"version: '3.8'
+services:
+  agent:
+    image: monitor:latest
+    network_mode: host
+    pid: host
+"#;
+        let findings = scan_docker_compose("docker-compose.yml", pos_content, &mut counter);
+        assert!(findings.iter().any(|f| f.id == "VG-DCK-015"));
+        assert!(findings.iter().any(|f| f.id == "VG-DCK-016"));
+
+        let neg_content = r#"version: '3.8'
+services:
+  agent:
+    image: monitor:latest
+    network_mode: bridge
+"#;
+        let neg_findings = scan_docker_compose("docker-compose.yml", neg_content, &mut counter);
+        assert!(!neg_findings.iter().any(|f| f.id == "VG-DCK-015"));
+        assert!(!neg_findings.iter().any(|f| f.id == "VG-DCK-016"));
+    }
 }
