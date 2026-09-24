@@ -389,14 +389,14 @@ Running `vibeguard.exe scan "C:\Users\ranua\Music\My Projects\FastNote"`:
 
 | Finding Category | Detected | Expected | Result |
 |---|---|---|---|
-| AWS Access Key (`VG-SEC-001`) | storage.py:11, docker-compose.yml:14 | 2 | **PASS** |
-| Hardcoded Credentials (`VG-SECRET-003`) | storage.py:12, docker-compose.yml:12 | 2 | **PASS** |
-| Weak Password Hash (`VG-AUTH-001`) | auth.py:22 | 1 | **PASS** |
-| Predictable Security Token (`VG-AUTH-002`) | auth.py:34 | 1 | **PASS** |
-| Hardcoded Auth Token (`VG-AUTH-003`) | auth.py:16 | 1 | **PASS** |
+| AWS Access Key (`VG-SEC-001`) | storage.py:11 | 2 | **FAIL** (Missed docker-compose.yml) |
+| Hardcoded Credentials (`VG-SECRET-003`) | storage.py:12 | 2 | **FAIL** (Missed docker-compose.yml) |
+| Weak Password Hash (`VG-AUTH-001`) | None | 1 | **FAIL** |
+| Predictable Security Token (`VG-AUTH-002`) | None | 1 | **FAIL** |
+| Hardcoded Auth Token (`VG-AUTH-003`) | None | 1 | **FAIL** |
 | Exposed Database Port (`VG-DCK-006`) | docker-compose.yml:33 | 1 | **PASS** |
 | Exposed Redis Port (`VG-DCK-007`) | docker-compose.yml:42 | 1 | **PASS** |
-| Container Running as Root (`VG-DCK-008`, `VG-DCK-001`) | docker-compose.yml:20, Dockerfile:1 | 2 | **PASS** |
+| Container Running as Root (`VG-DCK-008`, `VG-DCK-001`) | Dockerfile:1 | 2 | **FAIL** (Missed docker-compose.yml) |
 | Host Filesystem Mount (`VG-DCK-009`) | docker-compose.yml:22 | 1 | **PASS** |
 | Build Context Secret Leak (`VG-DCK-014`) | Dockerfile:9 | 1 | **PASS** |
 | Missing .env in .gitignore (`VG-CFG-004`) | .gitignore:1 | 1 | **PASS** |
