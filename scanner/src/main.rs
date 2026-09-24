@@ -81,8 +81,8 @@ fn main() {
                 eprintln!("Error: --path requires a directory argument");
                 std::process::exit(2);
             }
-        } else if let Some(stripped) = arg.strip_prefix("--path=") {
-            project_path = stripped.to_string();
+        } else if arg.starts_with("--path=") {
+            project_path = arg["--path=".len()..].to_string();
             i += 1;
             continue;
         } else if arg.starts_with('-') {
