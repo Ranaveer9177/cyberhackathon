@@ -1,10 +1,14 @@
+mod analysis;
 mod config;
 mod docker;
+mod frameworks;
 mod git;
 mod rules;
 mod sast;
 mod scanner;
 mod secrets;
+mod semantic;
+mod taint;
 mod types;
 
 use std::env;
@@ -81,8 +85,8 @@ fn main() {
                 eprintln!("Error: --path requires a directory argument");
                 std::process::exit(2);
             }
-        } else if arg.starts_with("--path=") {
-            project_path = arg["--path=".len()..].to_string();
+        } else if let Some(stripped) = arg.strip_prefix("--path=") {
+            project_path = stripped.to_string();
             i += 1;
             continue;
         } else if arg.starts_with('-') {
