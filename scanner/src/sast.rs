@@ -353,12 +353,19 @@ pub fn scan_source_code(
         // Skip rule definition metadata lines and scanner self-inspection
         if trimmed.starts_with("description:")
             || trimmed.starts_with("recommendation:")
+            || trimmed.starts_with("remediation:")
+            || trimmed.starts_with("sources:")
+            || trimmed.starts_with("sinks:")
+            || trimmed.starts_with("sanitizers:")
+            || trimmed.starts_with("confidence:")
+            || trimmed.starts_with("cwe:")
             || trimmed.starts_with("name:")
             || trimmed.starts_with("id:")
             || trimmed.starts_with("category:")
             || trimmed.starts_with("severity:")
             || trimmed.starts_with("pattern:")
             || trimmed.starts_with("Rule {")
+            || trimmed.starts_with("Rule::new")
             || trimmed.starts_with("Regex::new")
             || trimmed.starts_with("regexp.MustCompile")
             || trimmed.starts_with("r#\"")
@@ -510,12 +517,14 @@ pub fn scan_source_code(
                     *finding_counter += 1;
                     findings.push(Finding {
                         id: rule.id.clone(),
+                        rule_id: Some(rule.id.clone()),
                         category: rule.category.clone(),
                         severity,
                         title: rule.name.clone(),
                         description,
                         file: file_path.to_string(),
                         line: line_num,
+                        column: Some(1),
                         evidence: Some(line.trim().to_string()),
                         recommendation: Some(rule.recommendation.clone()),
                         confidence,
@@ -523,6 +532,7 @@ pub fn scan_source_code(
                         sink: sink_field,
                         data_flow: data_flow_trace,
                         cwe,
+                        ..Default::default()
                     });
                 }
             }
@@ -564,12 +574,14 @@ pub fn scan_source_code(
                 *finding_counter += 1;
                 findings.push(Finding {
                     id: "VG-WEBHOOK-001".to_string(),
+                    rule_id: Some("VG-WEBHOOK-001".to_string()),
                     category: Category::SourceCode,
                     severity: Severity::HIGH,
                     title: "Missing Webhook Signature Verification".to_string(),
                     description: "Webhook handler processes incoming request payload without cryptographic signature verification (e.g., HMAC, X-Hub-Signature, Stripe-Signature). An attacker can forge arbitrary webhook events.".to_string(),
                     file: file_path.to_string(),
                     line: consumes_line,
+                    column: Some(1),
                     evidence: Some(lines[consumes_line - 1].trim().to_string()),
                     recommendation: Some("Verify incoming webhook signatures using HMAC-SHA256 and timing-safe comparison before processing events.".to_string()),
                     confidence: "HIGH".to_string(),
@@ -580,6 +592,7 @@ pub fn scan_source_code(
                         format!("Line {}: Payload consumed without signature verification", consumes_line),
                     ]),
                     cwe: rule_cwe("VG-WEBHOOK-001").map(String::from),
+                    ..Default::default()
                 });
             }
         }

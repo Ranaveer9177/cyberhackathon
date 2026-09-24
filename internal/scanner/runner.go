@@ -36,12 +36,14 @@ type ScanResult struct {
 
 type Finding struct {
 	ID             string   `json:"id"`
+	RuleID         string   `json:"rule_id,omitempty"`
 	Category       string   `json:"category"`
 	Severity       string   `json:"severity"`
 	Title          string   `json:"title"`
 	Description    string   `json:"description"`
 	File           string   `json:"file"`
 	Line           int      `json:"line"`
+	Column         int      `json:"column,omitempty"`
 	Evidence       string   `json:"evidence,omitempty"`
 	Recommendation string   `json:"recommendation,omitempty"`
 	Confidence     string   `json:"confidence"`
@@ -49,6 +51,25 @@ type Finding struct {
 	Sink           string   `json:"sink,omitempty"`
 	DataFlow       []string `json:"data_flow,omitempty"`
 	CWE            string   `json:"cwe,omitempty"`
+	Fingerprint    string   `json:"fingerprint,omitempty"`
+}
+
+func (f *Finding) ComputeFingerprint() string {
+	rule := f.RuleID
+	if rule == "" || strings.HasPrefix(rule, "VG-0") {
+		rule = strings.ToLower(strings.TrimSpace(f.Title))
+	}
+	normFile := strings.ReplaceAll(f.File, "\\", "/")
+	normFile = strings.TrimPrefix(normFile, "./")
+	col := f.Column
+	if col <= 0 {
+		col = 1
+	}
+	evidence := strings.TrimSpace(f.Evidence)
+	if len(evidence) > 60 {
+		evidence = evidence[:60]
+	}
+	return fmt.Sprintf("%s:%s:%d:%d:%s:%s:%s", rule, normFile, f.Line, col, strings.TrimSpace(f.Source), strings.TrimSpace(f.Sink), evidence)
 }
 
 func RuleCWE(ruleID string) string {
@@ -303,15 +324,70 @@ func RunScannerWithProgressAndFlags(projectPath string, progress ScanProgressFun
 	return RunInternalScannerWithProgress(projectPath, progress)
 }
 
+// CanonicalRule represents the unified authoritative rule definition across VibeGuard engines.
+type CanonicalRule struct {
+	ID             string         `json:"id"`
+	CWE            string         `json:"cwe"`
+	Severity       string         `json:"severity"`
+	Confidence     string         `json:"confidence"`
+	Sources        []string       `json:"sources,omitempty"`
+	Sinks          []string       `json:"sinks,omitempty"`
+	Sanitizers     []string       `json:"sanitizers,omitempty"`
+	Description    string         `json:"description"`
+	Remediation    string         `json:"remediation"`
+	Recommendation string         `json:"recommendation,omitempty"`
+	Name           string         `json:"name"`
+	Category       string         `json:"category"`
+	Pattern        *regexp.Regexp `json:"-"`
+}
+
 // Built-in rule definition
 type internalRule struct {
 	id             string
+	cwe            string
+	severity       string
+	confidence     string
+	sources        []string
+	sinks          []string
+	sanitizers     []string
+	description    string
+	remediation    string
+	recommendation string
 	name           string
 	category       string
-	severity       string
 	pattern        *regexp.Regexp
-	description    string
-	recommendation string
+}
+
+func (r internalRule) ToCanonical() CanonicalRule {
+	remed := r.remediation
+	if remed == "" {
+		remed = r.recommendation
+	}
+	return CanonicalRule{
+		ID:             r.id,
+		CWE:            r.cwe,
+		Severity:       r.severity,
+		Confidence:     r.confidence,
+		Sources:        r.sources,
+		Sinks:          r.sinks,
+		Sanitizers:     r.sanitizers,
+		Description:    r.description,
+		Remediation:    remed,
+		Recommendation: r.recommendation,
+		Name:           r.name,
+		Category:       r.category,
+		Pattern:        r.pattern,
+	}
+}
+
+// GetCanonicalRules returns the authoritative list of rules supported by VibeGuard.
+func GetCanonicalRules() []CanonicalRule {
+	internal := getInternalRules()
+	canonical := make([]CanonicalRule, len(internal))
+	for i, r := range internal {
+		canonical[i] = r.ToCanonical()
+	}
+	return canonical
 }
 
 func getInternalRules() []internalRule {
@@ -322,8 +398,14 @@ func getInternalRules() []internalRule {
 			name:           "AWS Access Key",
 			category:       "secret",
 			severity:       "CRITICAL",
+			confidence:     "HIGH",
+			cwe:            "CWE-798",
+			sources:        []string{"source_code", "config"},
+			sinks:          []string{"hardcoded credential"},
+			sanitizers:     []string{"IAM roles", "AWS Secrets Manager"},
 			pattern:        regexp.MustCompile(`AKIA[0-9A-Z]{16}`),
 			description:    "AWS Access Key ID detected.",
+			remediation:    "Revoke the key immediately and use IAM roles instead.",
 			recommendation: "Revoke the key immediately and use IAM roles instead.",
 		},
 		{
@@ -331,8 +413,14 @@ func getInternalRules() []internalRule {
 			name:           "Generic API Key",
 			category:       "secret",
 			severity:       "CRITICAL",
+			confidence:     "HIGH",
+			cwe:            "CWE-798",
+			sources:        []string{"source_code", "config"},
+			sinks:          []string{"api_key assignment"},
+			sanitizers:     []string{"environment variables", "vault"},
 			pattern:        regexp.MustCompile(`(?i)(api[_-]?key|apikey)\s*[:=]\s*['"][^'"]{8,}`),
 			description:    "Generic API Key detected.",
+			remediation:    "Remove the key from code and use a secret manager.",
 			recommendation: "Remove the key from code and use a secret manager.",
 		},
 		{
@@ -340,8 +428,14 @@ func getInternalRules() []internalRule {
 			name:           "GitHub Token",
 			category:       "secret",
 			severity:       "CRITICAL",
+			confidence:     "HIGH",
+			cwe:            "CWE-798",
+			sources:        []string{"source_code", "git config"},
+			sinks:          []string{"ghp_ token"},
+			sanitizers:     []string{"GitHub Secrets", "SSH deploy keys"},
 			pattern:        regexp.MustCompile(`ghp_[a-zA-Z0-9]{36}`),
 			description:    "GitHub Personal Access Token detected.",
+			remediation:    "Revoke the token and generate a new one if needed.",
 			recommendation: "Revoke the token and generate a new one if needed.",
 		},
 		{
@@ -349,8 +443,14 @@ func getInternalRules() []internalRule {
 			name:           "Slack Token",
 			category:       "secret",
 			severity:       "CRITICAL",
+			confidence:     "HIGH",
+			cwe:            "CWE-798",
+			sources:        []string{"source_code", "config"},
+			sinks:          []string{"xox token"},
+			sanitizers:     []string{"Slack App credentials in vault"},
 			pattern:        regexp.MustCompile(`xox[bprs]-[a-zA-Z0-9-]+`),
 			description:    "Slack Token detected.",
+			remediation:    "Revoke and rotate the Slack token.",
 			recommendation: "Revoke and rotate the Slack token.",
 		},
 		{
@@ -358,8 +458,14 @@ func getInternalRules() []internalRule {
 			name:           "Private Key",
 			category:       "secret",
 			severity:       "CRITICAL",
+			confidence:     "HIGH",
+			cwe:            "CWE-798",
+			sources:        []string{"source_code", "repo file"},
+			sinks:          []string{"RSA/DSA/EC PRIVATE KEY"},
+			sanitizers:     []string{"KMS", "vault", "SSH agent"},
 			pattern:        regexp.MustCompile(`-----BEGIN\s+(RSA|DSA|EC|OPENSSH)?\s*PRIVATE KEY-----`),
 			description:    "Private cryptographic key detected.",
+			remediation:    "Remove private keys from the repository.",
 			recommendation: "Remove private keys from the repository.",
 		},
 		// SAST & Security Rules (v6.0 Canonical IDs)
@@ -368,8 +474,14 @@ func getInternalRules() []internalRule {
 			name:           "Potential SQL Injection",
 			category:       "sourcecode",
 			severity:       "HIGH",
+			confidence:     "HIGH",
+			cwe:            "CWE-89",
+			sources:        []string{"request.args", "request.form", "req.query", "r.URL.Query", "user_input"},
+			sinks:          []string{"db.execute", "cursor.execute", "sql.Query", "SELECT", "INSERT", "UPDATE", "DELETE"},
+			sanitizers:     []string{"int", "float", "strconv.Atoi", "parameterized binding"},
 			pattern:        regexp.MustCompile(`(?i)(f["'].*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM|DROP\s+TABLE|UNION\s+(?:ALL\s+)?SELECT)\b.*\{|["'].*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM)\b.*["']\s*\+|query.*\+.*request|execute\(["'].*%\s*|execute\(["'].*\{\}.*\.format|execute\(f["']|\bfmt\.Sprintf\(["'].*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM)\b|` + "`" + `.*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM)\b.*\$\{)`),
 			description:    "Potential SQL injection vulnerability detected via dynamic query construction.",
+			remediation:    "Use parameterized queries, prepared statements, or ORM parameter binding.",
 			recommendation: "Use parameterized queries or prepared statements.",
 		},
 		{
@@ -377,8 +489,14 @@ func getInternalRules() []internalRule {
 			name:           "Potential OS Command Injection",
 			category:       "sourcecode",
 			severity:       "HIGH",
+			confidence:     "HIGH",
+			cwe:            "CWE-78",
+			sources:        []string{"request.args", "req.body", "user_input", "sys.argv"},
+			sinks:          []string{"os.system", "os.popen", "subprocess.run", "subprocess.Popen", "exec.Command", "child_process.exec"},
+			sanitizers:     []string{"shlex.quote", "argument array without shell"},
 			pattern:        regexp.MustCompile(`(?i)(exec\.Command\(|os\.system\(|os\.popen\(|subprocess\.(call|check_output|run|Popen)\(|child_process\.(exec|spawn)\(|Runtime\.getRuntime\(\)\.exec\()`),
 			description:    "Potential OS command injection vulnerability detected.",
+			remediation:    "Avoid executing OS commands with untrusted input. Use safe parameter lists without a shell.",
 			recommendation: "Avoid executing OS commands with user input. Use safe parameter lists without a shell.",
 		},
 		{
@@ -386,8 +504,14 @@ func getInternalRules() []internalRule {
 			name:           "Dangerous Eval",
 			category:       "sourcecode",
 			severity:       "HIGH",
+			confidence:     "HIGH",
+			cwe:            "CWE-95",
+			sources:        []string{"user_input", "request_payload"},
+			sinks:          []string{"eval", "Function", "exec"},
+			sanitizers:     []string{"json.loads", "JSON.parse"},
 			pattern:        regexp.MustCompile(`(?i)\b(eval\(|Function\(|exec\()`),
 			description:    "Use of dangerous dynamic code evaluation functions detected.",
+			remediation:    "Avoid using eval or dynamic code execution on untrusted input.",
 			recommendation: "Avoid using eval or similar functions on untrusted input.",
 		},
 		{
@@ -395,8 +519,14 @@ func getInternalRules() []internalRule {
 			name:           "Potential TLS Misconfiguration",
 			category:       "sourcecode",
 			severity:       "HIGH",
+			confidence:     "HIGH",
+			cwe:            "CWE-295",
+			sources:        []string{"tls_options", "config"},
+			sinks:          []string{"verify=False", "InsecureSkipVerify: true", "rejectUnauthorized: false"},
+			sanitizers:     []string{"trusted_ca_bundle", "strict verification"},
 			pattern:        regexp.MustCompile(`(?i)(InsecureSkipVerify.*true|verify.*False|rejectUnauthorized.*false|NODE_TLS_REJECT_UNAUTHORIZED)`),
 			description:    "TLS verification seems to be disabled.",
+			remediation:    "Enable strict TLS certificate verification in production environments.",
 			recommendation: "Enable TLS verification for all network connections in production.",
 		},
 		{
@@ -404,8 +534,14 @@ func getInternalRules() []internalRule {
 			name:           "Weak Crypto",
 			category:       "sourcecode",
 			severity:       "MEDIUM",
+			confidence:     "MEDIUM",
+			cwe:            "CWE-327",
+			sources:        []string{"source_code"},
+			sinks:          []string{"hashlib.md5", "hashlib.sha1", "DES.new", "Math.random"},
+			sanitizers:     []string{"SHA-256", "AES-GCM", "crypto/rand"},
 			pattern:        regexp.MustCompile(`(?i)\b(md5|sha1|DES|RC4)\b`),
 			description:    "Weak cryptographic algorithm detected.",
+			remediation:    "Use modern algorithms (e.g., SHA-256, AES-GCM) and cryptographically secure PRNGs.",
 			recommendation: "Use strong algorithms (e.g., SHA-256, AES).",
 		},
 		{
@@ -413,8 +549,14 @@ func getInternalRules() []internalRule {
 			name:           "Potential Insecure HTTP Connection",
 			category:       "sourcecode",
 			severity:       "MEDIUM",
+			confidence:     "MEDIUM",
+			cwe:            "CWE-319",
+			sources:        []string{"url_constant", "network_call"},
+			sinks:          []string{"http://"},
+			sanitizers:     []string{"https://", "localhost", "127.0.0.1"},
 			pattern:        regexp.MustCompile(`http://[a-zA-Z0-9]`),
 			description:    "Insecure HTTP connection detected.",
+			remediation:    "Use HTTPS for all network communication.",
 			recommendation: "Use HTTPS for all network communication.",
 		},
 		{
@@ -422,8 +564,14 @@ func getInternalRules() []internalRule {
 			name:           "Hardcoded Credentials",
 			category:       "sourcecode",
 			severity:       "HIGH",
+			confidence:     "HIGH",
+			cwe:            "CWE-798",
+			sources:        []string{"source_code"},
+			sinks:          []string{"password = \"...\""},
+			sanitizers:     []string{"os.environ", "secrets_manager"},
 			pattern:        regexp.MustCompile(`(?i)password\s*=\s*"[^"]+"`),
 			description:    "Hardcoded credentials in source code.",
+			remediation:    "Use environment variables or a secret management service.",
 			recommendation: "Use environment variables or a secret management service.",
 		},
 		{
@@ -431,8 +579,14 @@ func getInternalRules() []internalRule {
 			name:           "Shell Execution With Potentially Untrusted Input",
 			category:       "sourcecode",
 			severity:       "HIGH",
+			confidence:     "HIGH",
+			cwe:            "CWE-78",
+			sources:        []string{"user_input", "request_args"},
+			sinks:          []string{"subprocess.run(shell=True)", "subprocess.Popen(shell=True)"},
+			sanitizers:     []string{"shell=False", "shlex.quote"},
 			pattern:        regexp.MustCompile(`(?i)\b(shell\s*=\s*True|shell\s*=\s*1)\b`),
 			description:    "Subprocess invocation with shell=True detected. If untrusted input reaches this command, it enables arbitrary shell execution.",
+			remediation:    "Set shell=False and pass command arguments as an array/list of strings.",
 			recommendation: "Set shell=False and pass command arguments as an array/slice of strings.",
 		},
 		{
@@ -440,8 +594,14 @@ func getInternalRules() []internalRule {
 			name:           "Weak Password Hashing Algorithm",
 			category:       "sourcecode",
 			severity:       "HIGH",
+			confidence:     "HIGH",
+			cwe:            "CWE-916",
+			sources:        []string{"user_password"},
+			sinks:          []string{"hashlib.md5", "hashlib.sha1"},
+			sanitizers:     []string{"bcrypt", "Argon2id", "scrypt", "PBKDF2"},
 			pattern:        regexp.MustCompile(`(?i)(hashlib\.(md5|sha1)\(.*(password|passwd|pwd)|(md5|sha1)\(.*(password|passwd|pwd))`),
 			description:    "MD5 or SHA-1 is being used to hash passwords. These algorithms are vulnerable to high-speed collision and dictionary attacks.",
+			remediation:    "Use modern password hashing algorithms such as Argon2id, bcrypt, scrypt, or PBKDF2.",
 			recommendation: "Use modern password hashing algorithms such as Argon2id, bcrypt, scrypt, or PBKDF2.",
 		},
 		{
@@ -449,8 +609,14 @@ func getInternalRules() []internalRule {
 			name:           "Predictable Security Token",
 			category:       "sourcecode",
 			severity:       "HIGH",
+			confidence:     "HIGH",
+			cwe:            "CWE-330",
+			sources:        []string{"email", "username", "timestamp"},
+			sinks:          []string{"base64.b64encode", "urlsafe_b64encode"},
+			sanitizers:     []string{"secrets.token_urlsafe", "crypto/rand"},
 			pattern:        regexp.MustCompile(`(?i)(base64\.(b64encode|urlsafe_b64encode)\(.*(email|user_id|username|user\.)|(email|username)\.encode\(\).*(base64|b64encode)|(token|reset_token)\s*=\s*.*(username|email).*\+.*(timestamp|time))`),
 			description:    "Predictable or reversible encoding used as an authentication or reset token. Encoding does not provide cryptographic randomness.",
+			remediation:    "Generate password reset and session tokens using cryptographically secure random generators.",
 			recommendation: "Generate password reset and session tokens using cryptographically secure random generators.",
 		},
 		{
@@ -458,8 +624,14 @@ func getInternalRules() []internalRule {
 			name:           "Hardcoded Authentication Token",
 			category:       "secret",
 			severity:       "HIGH",
+			confidence:     "HIGH",
+			cwe:            "CWE-798",
+			sources:        []string{"source_code", "config"},
+			sinks:          []string{"Authorization: Bearer", "JWT_SECRET"},
+			sanitizers:     []string{"vault", "environment variables"},
 			pattern:        regexp.MustCompile(`(?i)(Authorization:\s*Bearer\s+[A-Za-z0-9._~+/-]{10,}|(?:ADMIN_TOKEN|BEARER_TOKEN|SESSION_TOKEN)\s*=\s*['"](?:Bearer\s+)?[A-Za-z0-9._~+/-]{10,}['"]|JWT_SECRET\s*[:=]\s*['"][^'"]{8,}['"])`),
 			description:    "Hardcoded Bearer authentication token or JWT secret detected in code.",
+			remediation:    "Retrieve bearer tokens and JWT secrets at runtime from environment variables or a vault.",
 			recommendation: "Retrieve bearer tokens and JWT secrets at runtime from environment variables or a vault.",
 		},
 	}
@@ -1231,7 +1403,7 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 			if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "/*") || strings.HasPrefix(trimmed, "*") || strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, "--") || strings.HasPrefix(trimmed, ";") {
 				continue
 			}
-			if strings.HasPrefix(trimmed, "description:") || strings.HasPrefix(trimmed, "recommendation:") || strings.HasPrefix(trimmed, "name:") || strings.HasPrefix(trimmed, "id:") || strings.HasPrefix(trimmed, "pattern:") || strings.HasPrefix(trimmed, "hasShellTrue :=") || strings.HasPrefix(trimmed, "let has_shell_true") {
+			if strings.HasPrefix(trimmed, "description:") || strings.HasPrefix(trimmed, "recommendation:") || strings.HasPrefix(trimmed, "remediation:") || strings.HasPrefix(trimmed, "sources:") || strings.HasPrefix(trimmed, "sinks:") || strings.HasPrefix(trimmed, "sanitizers:") || strings.HasPrefix(trimmed, "confidence:") || strings.HasPrefix(trimmed, "cwe:") || strings.HasPrefix(trimmed, "name:") || strings.HasPrefix(trimmed, "id:") || strings.HasPrefix(trimmed, "category:") || strings.HasPrefix(trimmed, "severity:") || strings.HasPrefix(trimmed, "pattern:") || strings.HasPrefix(trimmed, "hasShellTrue :=") || strings.HasPrefix(trimmed, "let has_shell_true") {
 				continue
 			}
 			if strings.Contains(line, "regexp.MustCompile") || strings.Contains(line, "Regex::new") || strings.Contains(line, "Rule {") || strings.Contains(line, `strings.Contains(lineLower, "http`) || strings.Contains(line, `line_lower.contains("http`) || strings.Contains(line, `contains("shell`) || strings.Contains(line, `Contains(line, "shell`) {
@@ -1495,6 +1667,8 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 			findings[i].CWE = RuleCWE(findings[i].ID)
 		}
 	}
+
+	findings = DeduplicateFindings(findings)
 
 	projectName := filepath.Base(projectPath)
 	duration := time.Since(start).Milliseconds()

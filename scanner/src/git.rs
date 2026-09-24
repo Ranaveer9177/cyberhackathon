@@ -30,12 +30,14 @@ pub fn scan_git_security(
             *finding_counter += 1;
             findings.push(Finding {
                 id: "VG-GIT-001".to_string(),
+                rule_id: Some("VG-GIT-001".to_string()),
                 category: Category::Git,
                 severity: Severity::CRITICAL,
                 title: "Sensitive File Tracked".to_string(),
                 description: "A potentially sensitive cryptographic or credential file is present in the repository structure.".to_string(),
                 file: file_path.clone(),
                 line: 1,
+                column: Some(1),
                 evidence: Some(file_name.to_string()),
                 recommendation: Some(
                     "Add this file to .gitignore and remove it from tracking if necessary.".to_string(),
@@ -45,6 +47,7 @@ pub fn scan_git_security(
                 sink: None,
                 data_flow: None,
                 cwe: rule_cwe("VG-GIT-001").map(String::from),
+                ..Default::default()
             });
         }
     }
@@ -66,12 +69,14 @@ pub fn scan_git_security(
             *finding_counter += 1;
             findings.push(Finding {
                 id: "VG-CFG-004".to_string(),
+                rule_id: Some("VG-CFG-004".to_string()),
                 category: Category::Configuration,
                 severity: Severity::HIGH,
                 title: "Missing .env in .gitignore".to_string(),
                 description: "A sensitive .env file exists in the repository, but .gitignore does not exclude '.env', risking accidental credential leakage.".to_string(),
                 file: ".gitignore".to_string(),
                 line: 1,
+                column: Some(1),
                 evidence: Some("Missing .env entry in .gitignore".to_string()),
                 recommendation: Some("Add '.env' and '.env*' to .gitignore to prevent committing environment variables.".to_string()),
                 confidence: "HIGH".to_string(),
@@ -79,6 +84,7 @@ pub fn scan_git_security(
                 sink: None,
                 data_flow: None,
                 cwe: rule_cwe("VG-CFG-004").map(String::from),
+                ..Default::default()
             });
         }
     }
