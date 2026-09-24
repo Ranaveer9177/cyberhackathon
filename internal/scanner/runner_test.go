@@ -133,3 +133,68 @@ func TestInternalScannerExclusions(t *testing.T) {
 		}
 	}
 }
+
+func TestRuleCWEParity(t *testing.T) {
+	ruleIDs := []string{
+		"VG-SAST-001", "VG-SAST-002", "VG-SAST-003", "VG-SAST-004", "VG-SAST-005",
+		"VG-SAST-006", "VG-SAST-007", "VG-SAST-008", "VG-AUTH-001", "VG-AUTH-002",
+		"VG-AUTH-003", "VG-WEBHOOK-001", "VG-SEC-001", "VG-SEC-002", "VG-SEC-003",
+		"VG-SEC-004", "VG-SEC-005", "VG-SECRET-001", "VG-SECRET-002", "VG-SECRET-003",
+		"VG-SECRET-FILE", "VG-DCK-001", "VG-DCK-002", "VG-DCK-003", "VG-DCK-004",
+		"VG-DCK-005", "VG-DCK-006", "VG-DCK-007", "VG-DCK-008", "VG-DCK-009",
+		"VG-DCK-010", "VG-DCK-011", "VG-DCK-012", "VG-DCK-013", "VG-DCK-014",
+		"VG-DCK-015", "VG-DCK-016", "VG-CFG-001", "VG-CFG-002", "VG-CFG-003",
+		"VG-CFG-004", "VG-CFG-005", "VG-GIT-001",
+	}
+
+	for _, id := range ruleIDs {
+		cwe := RuleCWE(id)
+		if cwe == "" {
+			t.Errorf("rule %s has empty CWE mapping", id)
+		}
+	}
+}
+
+func TestInternalRulesPositiveNegative(t *testing.T) {
+	rules := getInternalRules()
+	ruleMap := make(map[string]internalRule)
+	for _, r := range rules {
+		ruleMap[r.id] = r
+	}
+
+	// 1. VG-SAST-003 Dangerous Eval
+	evalRule, ok := ruleMap["VG-SAST-003"]
+	if !ok {
+		t.Fatalf("VG-SAST-003 not found in internal rules")
+	}
+	if !evalRule.pattern.MatchString("eval(payload)") {
+		t.Errorf("VG-SAST-003 failed positive match on eval(payload)")
+	}
+	if evalRule.pattern.MatchString("json.loads(payload)") {
+		t.Errorf("VG-SAST-003 false positive on json.loads")
+	}
+
+	// 2. VG-SAST-004 TLS
+	tlsRule, ok := ruleMap["VG-SAST-004"]
+	if !ok {
+		t.Fatalf("VG-SAST-004 not found in internal rules")
+	}
+	if !tlsRule.pattern.MatchString("verify=False") {
+		t.Errorf("VG-SAST-004 failed positive match on verify=False")
+	}
+	if tlsRule.pattern.MatchString("verify=True") {
+		t.Errorf("VG-SAST-004 false positive on verify=True")
+	}
+
+	// 3. VG-SAST-005 Weak Crypto
+	cryptoRule, ok := ruleMap["VG-SAST-005"]
+	if !ok {
+		t.Fatalf("VG-SAST-005 not found in internal rules")
+	}
+	if !cryptoRule.pattern.MatchString("hashlib.md5()") {
+		t.Errorf("VG-SAST-005 failed positive match on md5")
+	}
+	if cryptoRule.pattern.MatchString("hashlib.sha256()") {
+		t.Errorf("VG-SAST-005 false positive on sha256")
+	}
+}

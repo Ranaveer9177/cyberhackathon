@@ -688,4 +688,64 @@ def webhook():
         assert!(findings.iter().any(|f| f.id == "VG-WEBHOOK-001"));
         assert_eq!(findings[0].cwe.as_deref(), Some("CWE-345"));
     }
+
+    #[test]
+    fn test_rule_sast_003_eval_positive_and_negative() {
+        let mut counter = 0;
+        let pos_content = "result = eval(user_input)\n";
+        let pos_findings = scan_source_code("calc.py", pos_content, &mut counter);
+        assert!(pos_findings.iter().any(|f| f.id == "VG-SAST-003"));
+
+        let neg_content = "result = json.loads(user_input)\n";
+        let neg_findings = scan_source_code("calc.py", neg_content, &mut counter);
+        assert!(!neg_findings.iter().any(|f| f.id == "VG-SAST-003"));
+    }
+
+    #[test]
+    fn test_rule_sast_004_tls_positive_and_negative() {
+        let mut counter = 0;
+        let pos_content = "requests.get(url, verify=False)\n";
+        let pos_findings = scan_source_code("client.py", pos_content, &mut counter);
+        assert!(pos_findings.iter().any(|f| f.id == "VG-SAST-004"));
+
+        let neg_content = "requests.get(url, verify=True)\n";
+        let neg_findings = scan_source_code("client.py", neg_content, &mut counter);
+        assert!(!neg_findings.iter().any(|f| f.id == "VG-SAST-004"));
+    }
+
+    #[test]
+    fn test_rule_sast_005_weak_crypto_positive_and_negative() {
+        let mut counter = 0;
+        let pos_content = "cipher = DES.new(key)\n";
+        let pos_findings = scan_source_code("crypto.py", pos_content, &mut counter);
+        assert!(pos_findings.iter().any(|f| f.id == "VG-SAST-005"));
+
+        let neg_content = "hasher = hashlib.sha256()\n";
+        let neg_findings = scan_source_code("crypto.py", neg_content, &mut counter);
+        assert!(!neg_findings.iter().any(|f| f.id == "VG-SAST-005"));
+    }
+
+    #[test]
+    fn test_rule_sast_006_insecure_http_positive_and_negative() {
+        let mut counter = 0;
+        let pos_content = "API_URL = \"http://api.remote-service.com/v1\"\n";
+        let pos_findings = scan_source_code("api.py", pos_content, &mut counter);
+        assert!(pos_findings.iter().any(|f| f.id == "VG-SAST-006"));
+
+        let neg_content = "API_URL = \"https://api.remote-service.com/v1\"\n";
+        let neg_findings = scan_source_code("api.py", neg_content, &mut counter);
+        assert!(!neg_findings.iter().any(|f| f.id == "VG-SAST-006"));
+    }
+
+    #[test]
+    fn test_rule_sast_007_hardcoded_creds_positive_and_negative() {
+        let mut counter = 0;
+        let pos_content = "password = \"SuperSecretPass123\"\n";
+        let pos_findings = scan_source_code("db.py", pos_content, &mut counter);
+        assert!(pos_findings.iter().any(|f| f.id == "VG-SAST-007"));
+
+        let neg_content = "password = os.environ.get(\"DB_PASSWORD\")\n";
+        let neg_findings = scan_source_code("db.py", neg_content, &mut counter);
+        assert!(!neg_findings.iter().any(|f| f.id == "VG-SAST-007"));
+    }
 }

@@ -2,7 +2,23 @@
 
 All notable changes to the VibeGuard project are documented in this file.
 
-## [v6.1.0] — 2026-09-24 (Current Release)
+## [v6.1.1] — 2026-09-25 (Stabilization Release)
+
+### Fixed & Stabilized
+- **Rust/Go Engine Parity & Deterministic Deduplication**:
+  - Implemented `deduplicate_findings` in the Rust core scanner (`scanner/src/main.rs`) matching Go fallback engine's normalization key (`category|title|file|line|evidence_prefix`).
+  - Eliminates duplicate findings from concurrent regex matches and multi-stage analysis passes.
+- **Complete Canonical MITRE CWE Coverage**:
+  - Added missing CWE bindings for `VG-SECRET-001`, `VG-SECRET-002`, `VG-SECRET-003` (`CWE-798`), `VG-SECRET-FILE` (`CWE-200`), `VG-DCK-003` (`CWE-200`), `VG-DCK-004` (`CWE-250`), `VG-DCK-005` (`CWE-345`), and `VG-DCK-015` (`CWE-250`).
+  - 100% parity verified between Rust `rule_cwe` and Go `RuleCWE`.
+- **Isolated Positive & Negative Test Suite Expansion**:
+  - Added dedicated unit tests for every SAST rule: `VG-SAST-003` (eval vs json.parse), `VG-SAST-004` (verify=False vs verify=True), `VG-SAST-005` (DES/md5 vs sha256), `VG-SAST-006` (insecure HTTP vs HTTPS), `VG-SAST-007` (hardcoded credential vs os.environ).
+  - Added dedicated unit tests for Docker rules: `VG-DCK-001` (root vs non-root USER), `VG-DCK-007` (exposed Redis), `VG-DCK-009` (host filesystem mount), `VG-DCK-015` (host network mode), `VG-DCK-016` (host PID/IPC namespace).
+  - Expanded Rust unit test suite from 18 to 26 passed tests; all 13 Go packages passing.
+- **Deep Offline Architecture Module Scaffolding**:
+  - Scaffolded foundational Rust data structures for project semantic modeling (`ProjectModel`, `SymbolTable`, `CallGraph`), vulnerability-specific taint propagation (`TaintKind`, `TaintStep`), framework models (Flask, FastAPI, Django, Express), and finding verification (`FindingVerificationEngine`).
+
+## [v6.1.0] — 2026-09-24
 
 ### Added & Enhanced
 - **Scope-Aware Function-Level Taint Tracking**:
