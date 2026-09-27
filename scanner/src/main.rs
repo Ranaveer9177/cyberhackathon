@@ -1,3 +1,6 @@
+#[path = "../ast/mod.rs"]
+pub mod ast;
+
 mod analysis;
 mod config;
 mod docker;
@@ -7,7 +10,8 @@ mod rules;
 mod sast;
 mod scanner;
 mod secrets;
-mod semantic;
+#[path = "../semantic/mod.rs"]
+pub mod semantic;
 mod taint;
 mod types;
 
@@ -49,7 +53,7 @@ fn main() {
     }
 
     if args.iter().any(|a| a == "--version" || a == "-v") {
-        println!("vibeguard-scanner v6.1.0");
+        println!("vibeguard-scanner v6.3.0");
         std::process::exit(0);
     }
 
@@ -158,6 +162,7 @@ fn main() {
     let mut finding_counter = 0;
     let mut files_skipped_count = binary_skipped;
     let mut scan_warnings = Vec::new();
+    let mut parsed_ast_files: Vec<(String, ast::types::FileNode)> = Vec::new();
 
     for (idx, file_path) in files.iter().enumerate() {
         if emit_progress {
@@ -184,6 +189,13 @@ fn main() {
         if enable_sast {
             let mut findings = sast::scan_source_code(file_path, &content, &mut finding_counter);
             all_findings.append(&mut findings);
+
+            if let Some(file_node) = ast::parse_file(file_path, &content) {
+                let mut ast_findings =
+                    ast::security::analyze_ast_security(&file_node, &mut finding_counter);
+                all_findings.append(&mut ast_findings);
+                parsed_ast_files.push((file_path.clone(), file_node));
+            }
         }
 
         let filename = Path::new(file_path)
@@ -232,6 +244,17 @@ fn main() {
     let mut cross_docker_findings =
         docker::scan_cross_file_docker(&files, project_path, &mut finding_counter);
     all_findings.append(&mut cross_docker_findings);
+
+    // Cross-file Semantic Project Model analysis (Symbol Table, Module Resolver, Function Resolver, Call Graph)
+    if enable_sast && !parsed_ast_files.is_empty() {
+        let file_refs: Vec<(&str, &ast::types::FileNode)> = parsed_ast_files
+            .iter()
+            .map(|(p, f)| (p.as_str(), f))
+            .collect();
+        let mut semantic_findings =
+            semantic::analyze_semantic(project_path, &file_refs, &mut finding_counter);
+        all_findings.append(&mut semantic_findings);
+    }
 
     if enable_secrets {
         let mut git_findings = git::scan_git_security(&files, project_path, &mut finding_counter);
