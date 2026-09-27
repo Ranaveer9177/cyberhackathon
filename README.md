@@ -1,6 +1,6 @@
-# VibeGuard v6.1.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
+# VibeGuard v6.3.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
 
-[![Version](https://img.shields.io/badge/version-v6.1.0-blue.svg)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v6.3.0-blue.svg)](docs/CHANGELOG.md)
 [![Security Gate](https://img.shields.io/badge/security_gate-PASSED_100%2F100-brightgreen.svg)](ultimate_test.bat)
 [![Engines](https://img.shields.io/badge/engines-Go_1.21+_|_Rust_1.70+-orange.svg)](docs/LANGUAGE.md)
 [![SARIF](https://img.shields.io/badge/SARIF-2.1.0_Compliant-purple.svg)](internal/report/sarif.go)
@@ -13,7 +13,7 @@
 
 ## Overview
 
-**VibeGuard v6.1.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST with scope-aware function taint tracking), vulnerable third-party dependencies (SCA via Google OSV), Docker & Docker Compose misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
+**VibeGuard v6.3.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST with multi-language AST and project-wide semantic analysis), vulnerable third-party dependencies (SCA via Google OSV), Docker & Docker Compose misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
 
 ```
                     Developer Shell / Git CLI
@@ -38,11 +38,15 @@
    │  ├───────────────────────────────────┤  │  │
    │  │ 2. Secret Scan (Rust Engine)      │  │  │
    │  ├───────────────────────────────────┤  │  │
-   │  │ 3. SAST Scan (Rust Engine)        │  │  │
+   │  │ 3. Lexical SAST Scan              │  │  │
    │  ├───────────────────────────────────┤  │  │
-   │  │ 4. Dependency Scan (Google OSV)   │  │  │
+   │  │ 4. Multi-Language AST Analysis    │  │  │
    │  ├───────────────────────────────────┤  │  │
-   │  │ 5. Security Policy Evaluation     │  │  │
+   │  │ 5. Semantic Project Model & Calls │  │  │
+   │  ├───────────────────────────────────┤  │  │
+   │  │ 6. Dependency Scan (Google OSV)   │  │  │
+   │  ├───────────────────────────────────┤  │  │
+   │  │ 7. Security Policy Evaluation     │  │  │
    │  └───────────────────────────────────┘  │  │
    └────────────────────┬────────────────────┘  │
                         │                       │
@@ -56,23 +60,19 @@
 
 ---
 
-## What's New in v6.1.0
+## What's New in v6.3.0
 
-1. **Scope-Aware Function-Level Taint Tracking**:
-   - Upgraded to **inter-procedural taint propagation** (`Source → Var → Arg → Param → Local → Sink`).
-   - Tracks untrusted user inputs (Flask `request.args`, Express `req.query`, Go `r.URL.Query`) across function call boundaries into database queries and operating system command invocations.
-   - Generates complete multi-line data-flow provenance traces attached to findings in terminal, JSON, and SARIF 2.1.0 outputs.
-2. **Sink-Specific Sanitizer Modeling**:
-   - Command injection: recognizes `shlex.quote(...)`, `escapeshellarg(...)`, and `escapeshellcmd(...)`. Non-shell invocations (`subprocess.run(["cmd", arg])`) are verified as safe.
-   - SQL injection: recognizes parameterized query bindings and numeric type casting (`int(...)`, `float(...)`, `strconv.Atoi`).
-3. **Canonical Rule IDs & Exact MITRE CWE Mappings**:
-   - All rules mapped to canonical CWE definitions (`CWE-89`, `CWE-78`, `CWE-95`, `CWE-295`, `CWE-327`, `CWE-319`, `CWE-798`, `CWE-916`, `CWE-330`, `CWE-345`, `CWE-250`, `CWE-214`, `CWE-668`, `CWE-552`, `CWE-259`, `CWE-200`, `CWE-489`, `CWE-942`).
-4. **Expanded Docker & Repository Configuration Rules**:
-   - **`VG-DCK-015`** (`CWE-668`): Flags containers using host networking (`network_mode: host`).
-   - **`VG-DCK-016`** (`CWE-668`): Flags containers sharing host PID or IPC namespaces (`pid: host`, `ipc: host`).
-   - **`VG-CFG-004`** (`CWE-200`): Verifies target repository `.gitignore` contains `.env` whenever `.env` files are present in the project.
-5. **100% Rust & Go Dual-Engine Parity**:
-   - Full functional equivalence between the primary Rust scanner (`vibeguard-scanner.exe`) and the Go fallback engine (`runner.go`).
+1. **Semantic Project Model (`scanner/semantic/`)**:
+   - **Project-Wide Symbol Table**: Tracks modules, imports, functions, methods, classes, variables, parameters, and return values across the entire codebase.
+   - **Module Resolver**: Translates module import paths across directories and file structures (`app.py` $\rightarrow$ `services/user.py` $\rightarrow$ `database/query.py`).
+   - **Function Resolver**: Maps call expressions (`foo()`, `user_svc.get_user()`, `self.execute()`) to their true declaration and implementation across files.
+   - **Call Graph**: Constructs interprocedural call chains (`A()` $\rightarrow$ `B()` $\rightarrow$ `C()` $\rightarrow$ `sink()`) and traces multi-step data flow from source to sink.
+2. **Multi-Language AST Engine (`scanner/ast/`)**:
+   - Native AST structural parsers for **Python**, **JavaScript**, **TypeScript**, **Go**, and **Java**.
+   - Def-use taint correlation understanding expression relations (e.g. `query = f"SELECT ... {user}"` $\rightarrow$ `conn.execute(query)`).
+3. **Multi-Stage Interprocedural Security Findings**:
+   - Generates high-confidence `VG-SAST-001` (SQL Injection) and `VG-SAST-002` (Command Injection) findings with complete cross-file call traces and data flow provenance.
+4. **100% Rust & Go Dual-Engine Parity**:
    - Passed `ultimate_test.bat` with a perfect **100/100** score and clean repository self-scan.
 
 ---

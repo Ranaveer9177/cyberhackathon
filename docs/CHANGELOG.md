@@ -2,6 +2,38 @@
 
 All notable changes to the VibeGuard project are documented in this file.
 
+## [v6.3.0] — 2026-09-28 (Semantic Project Model & Call Graph Upgrade)
+
+### Added
+- **Semantic Project Model (`scanner/semantic/`)**:
+  - **Project-Wide Symbol Table (`symbols.rs`)**:
+    - Tracks modules, imports, functions, methods, classes, variables, parameters, and return values.
+    - Provides fast lookup by fully qualified name or short name across files.
+  - **Module Resolver (`module_resolver.rs`)**:
+    - Understands cross-file and multi-directory import relations (`app.py` $\rightarrow$ `services/user.py` $\rightarrow$ `database/query.py`).
+    - Supports Python relative/dotted imports, JavaScript/TypeScript ES6/CommonJS paths, Go package imports, and Java package imports.
+    - Builds dependency graphs and shortest dependency chains.
+  - **Function Resolver (`function_resolver.rs`)**:
+    - Resolves call expressions (`foo()`, `user_svc.get_user()`, `self.execute()`) to their true declarations across files and modules.
+    - Supports local functions, class methods, imported module aliases, and direct imported symbols.
+  - **Call Graph Builder (`call_graph.rs`)**:
+    - Constructs project-wide interprocedural call graphs (`A()` $\rightarrow$ `B()` $\rightarrow$ `C()` $\rightarrow$ `sink()`).
+    - Reverse BFS/DFS pathfinding from vulnerability sinks back to API entrypoints and untrusted input sources.
+    - Generates visual call chain provenance diagrams and data flow steps.
+  - **Interprocedural Security Analyzer (`security.rs`)**:
+    - Detects cross-file taint flows into SQL injection, Command injection, and Dynamic Code Execution sinks.
+    - Emits normalized findings with `rule_id`, `CWE`, `evidence` call chain diagrams, and full `data_flow` arrays.
+
+## [v6.2.0] — 2026-09-27 (Multi-Language AST Engine)
+
+### Added
+- **Multi-Language AST Parsers (`scanner/ast/`)**:
+  - Added native AST structural parsing for Python, JavaScript, TypeScript, Go, and Java.
+  - Understands functions, classes, methods, imports, assignments, calls, returns, conditions, loops, expressions, attributes, subscripts, and constants.
+  - AST Def-Use Security Analysis correlating variable assignments with execution sinks (e.g. `query = f"SELECT ... {user}"` $\rightarrow$ `db.execute(query)`).
+- **Two-Tier Hybrid Scanner Pipeline**:
+  - Lexical pre-scanner $\rightarrow$ Structural AST scanner $\rightarrow$ Semantic Project Model.
+
 ## [v6.1.1] — 2026-09-25 (Stabilization Release)
 
 ### Fixed & Stabilized
