@@ -2,6 +2,40 @@
 
 All notable changes to the VibeGuard project are documented in this file.
 
+## [v7.0.0] — 2026-09-29 (Deep Offline Security Engine)
+
+### Architecture
+- **Full v7.0 Analysis Pipeline** (`scanner/pipeline/`):
+  The complete 20-stage analysis pipeline is now implemented end-to-end:
+  > File Discovery → Classification → Lexical Analysis → AST Parsing → Semantic Model → Symbol Table → Call Graph → Control Flow → Type/Value Analysis → Cross-File Data Flow → Taint Analysis → Sanitizer Analysis → Security Rules → Configuration Analysis → Docker Analysis → Local Vulnerability DB → **Correlation** → **Finding Verification** → **Deduplication** → **Confidence Scoring**
+
+### Added
+- **Confidence Scoring Engine** (`scanner/pipeline/mod.rs`):
+  - Every finding now receives a computed 0–100 numeric confidence score.
+  - Scoring factors: base label (HIGH/MEDIUM/LOW), data-flow chain depth, cross-file evidence, severity bonus, evidence length penalty, heuristic-only penalty.
+  - Score is appended to confidence label: `HIGH (87)`, `MEDIUM (52)`, `LOW (18)`.
+- **Correlation Engine**:
+  - Groups related findings into `CorrelationChain` objects: findings that share a vulnerability class and origin/sink file are linked into one logical chain.
+  - Cross-file taint chains (confirmed by interprocedural data-flow) are elevated to higher confidence.
+  - Chains are sorted by descending confidence score and included in `pipeline_meta.correlation_chains`.
+- **PipelineMeta** output:
+  - Every scan now includes `pipeline_meta` in the JSON output containing: `engine_version`, `stages_executed` (all 20 stages), `raw_finding_count`, `deduplicated_count`, `suppressed_count`, `correlation_chains`, `confidence_breakdown` (HIGH/MEDIUM/LOW counts), `analysis_scope` (intra-function/cross-function/cross-file/framework-aware/configuration-aware counts), `offline_capable`.
+- **`vibeguard benchmark` command**:
+  - New CLI command that runs a full pipeline scan and prints a comprehensive quality report.
+  - Displays: all 20 pipeline stages executed, finding counts by severity, deduplication/suppression stats, confidence breakdown with percentages, analysis scope quality (intra-function / cross-function / cross-file / framework-aware / config-aware), correlation chains with scores and rationale, and precision/recall measurement guidance (TP/FP/FN/Recall/Precision/F1 methodology).
+  - Supports `--offline` mode.
+- **Go-side PipelineMeta types** (`internal/scanner/pipeline.go`):
+  - `PipelineMeta`, `CorrelationChain`, `ConfidenceBreakdown`, `AnalysisScopeStats` structs.
+  - `ScanResult.RawMeta()` method — lazy-decodes the pipeline metadata from the Rust JSON output.
+
+### Quality targets
+VibeGuard v7.0 measures detection quality by Precision / Recall / F1, not by rule count:
+- **Recall** = TP / (TP + FN) — Did we find the real vulnerabilities?
+- **Precision** = TP / (TP + FP) — Are our findings trustworthy?
+- **F1** = 2 × (Precision × Recall) / (Precision + Recall)
+- **Analysis scope**: intra-function, cross-function, cross-file, cross-module, framework-aware, configuration-aware
+- **Offline capability**: No network required for complete source scan + local dependency analysis + local vulnerability database + complete report
+
 ## [v6.9.0] — 2026-09-28 (Offline Intelligence)
 
 ### Added

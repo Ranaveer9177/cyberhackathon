@@ -146,8 +146,8 @@ func TestPrintUsage(t *testing.T) {
 }
 
 func TestVersionString(t *testing.T) {
-	if version != "6.9.0" {
-		t.Errorf("expected version 6.9.0, got %s", version)
+	if version != "7.0.0" {
+		t.Errorf("expected version 7.0.0, got %s", version)
 	}
 }
 

@@ -23,7 +23,7 @@ import (
 	"github.com/vibeguard/vibeguard/internal/scanner"
 )
 
-const version = "6.9.0"
+const version = "7.0.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -98,6 +98,14 @@ func main() {
 
 	case "defender-check", "check-av", "check-defender":
 		handleDefenderCheck(os.Args[2:])
+		os.Exit(0)
+
+	case "benchmark", "bench":
+		targetDir := "."
+		if len(os.Args) > 2 && !strings.HasPrefix(os.Args[2], "-") {
+			targetDir = os.Args[2]
+		}
+		handleBenchmark(targetDir, os.Args[2:])
 		os.Exit(0)
 
 	case "db", "database":
@@ -198,6 +206,7 @@ func printUsage() {
 	fmt.Println("  vibeguard push [<repo-path>]                     Controlled commit + scan + push interactive workflow")
 	fmt.Println("  vibeguard scan [<project-path>] [options]        Run security scan")
 	fmt.Println("  vibeguard report [<project-path>] [options]      Generate HTML/JSON security report")
+	fmt.Println("  vibeguard benchmark [<project-path>] [options]   Run precision/recall quality benchmark (v7.0)")
 	fmt.Println("  vibeguard defender-check [--test-popup]          Inspect Windows Defender / Antivirus status & test pop-up")
 	fmt.Println("  vibeguard db <status|import|export|seed|query>   Manage local offline security intelligence database")
 	fmt.Println("  vibeguard cache-refresh                          Purge local OSV vulnerability intelligence cache")
@@ -1331,3 +1340,168 @@ func printDatabaseUsage() {
 	fmt.Println("  vibeguard db query <package> [version]  Query vulnerability records offline")
 }
 
+// handleBenchmark runs the v7.0 precision/recall quality benchmark over a target project.
+//
+// It performs a full scan then reads the pipeline_meta block from the scanner output
+// to display detection quality metrics: confidence breakdown, correlation chains,
+// scope analysis (intra-function / cross-function / cross-file), and offline capability.
+func handleBenchmark(targetDir string, args []string) {
+	offline := false
+	for _, a := range args {
+		if a == "--offline" {
+			offline = true
+			osv.SetOfflineMode(true)
+		}
+	}
+
+	absTarget, err := filepath.Abs(targetDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error resolving path: %v\n", err)
+		return
+	}
+
+	fmt.Println("╔══════════════════════════════════════════════════════════════╗")
+	fmt.Printf("║  VIBEGUARD v%s — Quality Benchmark & Precision/Recall Report  ║\n", version)
+	fmt.Println("╚══════════════════════════════════════════════════════════════╝")
+	fmt.Println()
+	fmt.Printf("  Target:  %s\n", absTarget)
+	if offline {
+		fmt.Println("  Mode:    OFFLINE (local security database only)")
+	} else {
+		fmt.Println("  Mode:    ONLINE (local DB + OSV cloud)")
+	}
+	fmt.Println()
+	fmt.Println("  Running full v7.0 deep analysis pipeline...")
+	fmt.Println()
+
+	startTime := time.Now()
+	result, err := scanner.RunScanner(absTarget)
+	elapsed := time.Since(startTime)
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  [ERROR] Scanner failed: %v\n", err)
+		return
+	}
+
+	// ── Finding counts by severity ────────────────────────────────────────────
+	critCount, highCount, medCount, lowCount, infoCount := 0, 0, 0, 0, 0
+	for _, f := range result.Findings {
+		switch strings.ToUpper(f.Severity) {
+		case "CRITICAL":
+			critCount++
+		case "HIGH":
+			highCount++
+		case "MEDIUM":
+			medCount++
+		case "LOW":
+			lowCount++
+		default:
+			infoCount++
+		}
+	}
+
+	fmt.Println("┌─ PIPELINE EXECUTION ───────────────────────────────────────────")
+	if pm, ok := result.RawMeta(); ok {
+		for i, stage := range pm.StagesExecuted {
+			fmt.Printf("│  %2d. ✓ %s\n", i+1, stage)
+		}
+		fmt.Printf("│  Engine: %s\n", pm.EngineVersion)
+		fmt.Printf("│  Offline Capable: %v\n", pm.OfflineCapable)
+	} else {
+		fmt.Println("│  (pipeline metadata not available — rebuild binary)")
+	}
+	fmt.Println()
+
+	fmt.Println("┌─ FINDINGS SUMMARY ─────────────────────────────────────────────")
+	fmt.Printf("│  Files Scanned:         %d\n", result.FilesScanned)
+	fmt.Printf("│  Total Findings:        %d\n", len(result.Findings))
+	fmt.Printf("│    CRITICAL:            %d\n", critCount)
+	fmt.Printf("│    HIGH:                %d\n", highCount)
+	fmt.Printf("│    MEDIUM:              %d\n", medCount)
+	fmt.Printf("│    LOW:                 %d\n", lowCount)
+	fmt.Printf("│    INFO:                %d\n", infoCount)
+	fmt.Println()
+
+	if pm, ok := result.RawMeta(); ok {
+		fmt.Println("┌─ DEDUPLICATION & SUPPRESSION ──────────────────────────────────")
+		fmt.Printf("│  Raw Findings (pre-dedup):   %d\n", pm.RawFindingCount)
+		fmt.Printf("│  After Deduplication:        %d\n", pm.DeduplicatedCount)
+		fmt.Printf("│  Suppressed (constant/sane): %d\n", pm.SuppressedCount)
+		fmt.Println()
+
+		fmt.Println("┌─ CONFIDENCE BREAKDOWN ─────────────────────────────────────────")
+		total := pm.ConfidenceBreakdown.High + pm.ConfidenceBreakdown.Medium + pm.ConfidenceBreakdown.Low
+		if total > 0 {
+			highPct := 100 * pm.ConfidenceBreakdown.High / total
+			medPct := 100 * pm.ConfidenceBreakdown.Medium / total
+			lowPct := 100 * pm.ConfidenceBreakdown.Low / total
+			fmt.Printf("│  HIGH confidence:    %3d findings (%d%%)\n", pm.ConfidenceBreakdown.High, highPct)
+			fmt.Printf("│  MEDIUM confidence:  %3d findings (%d%%)\n", pm.ConfidenceBreakdown.Medium, medPct)
+			fmt.Printf("│  LOW confidence:     %3d findings (%d%%)\n", pm.ConfidenceBreakdown.Low, lowPct)
+		} else {
+			fmt.Println("│  No findings to report.")
+		}
+		fmt.Println()
+
+		fmt.Println("┌─ ANALYSIS SCOPE QUALITY ───────────────────────────────────────")
+		fmt.Printf("│  Intra-function findings:    %d\n", pm.AnalysisScope.IntraFunction)
+		fmt.Printf("│  Cross-function findings:    %d\n", pm.AnalysisScope.CrossFunction)
+		fmt.Printf("│  Cross-file findings:        %d\n", pm.AnalysisScope.CrossFile)
+		fmt.Printf("│  Framework-aware findings:   %d\n", pm.AnalysisScope.FrameworkAware)
+		fmt.Printf("│  Config-aware findings:      %d\n", pm.AnalysisScope.ConfigurationAware)
+		fmt.Println()
+
+		fmt.Println("┌─ CORRELATION CHAINS ────────────────────────────────────────────")
+		if len(pm.CorrelationChains) == 0 {
+			fmt.Println("│  No correlation chains identified.")
+		} else {
+			for _, chain := range pm.CorrelationChains {
+				crossMark := ""
+				if chain.CrossFile {
+					crossMark = " [cross-file]"
+				} else if chain.CrossFunction {
+					crossMark = " [cross-function]"
+				}
+				fmt.Printf("│  %s  %-32s  %s / score:%d%s\n",
+					chain.ID,
+					chain.VulnClass,
+					chain.Confidence,
+					chain.ConfidenceScore,
+					crossMark,
+				)
+				fmt.Printf("│      Findings: %s  (%s)\n",
+					strings.Join(chain.FindingIDs, ", "),
+					chain.Rationale,
+				)
+			}
+		}
+		fmt.Println()
+	}
+
+	// ── Precision / Recall guidance ───────────────────────────────────────────
+	fmt.Println("┌─ QUALITY METRICS GUIDANCE ─────────────────────────────────────")
+	fmt.Println("│  VibeGuard v7.0 measures detection quality by:")
+	fmt.Println("│")
+	fmt.Println("│  Detection (Recall):")
+	fmt.Println("│    True Positives  — Real vulnerabilities that VibeGuard reported")
+	fmt.Println("│    False Negatives — Real vulnerabilities that VibeGuard missed")
+	fmt.Println("│    Recall = TP / (TP + FN)")
+	fmt.Println("│")
+	fmt.Println("│  Accuracy (Precision):")
+	fmt.Println("│    True Positives  — Real vulnerabilities correctly reported")
+	fmt.Println("│    False Positives — Non-issues incorrectly flagged")
+	fmt.Println("│    Precision = TP / (TP + FP)")
+	fmt.Println("│")
+	fmt.Println("│  Overall:")
+	fmt.Println("│    F1 Score = 2 × (Precision × Recall) / (Precision + Recall)")
+	fmt.Println("│")
+	fmt.Println("│  To measure against a known ground-truth project:")
+	fmt.Println("│    1. Label each finding as TP or FP in reports/scan.json")
+	fmt.Println("│    2. Compare known-vuln list against finding list for FN count")
+	fmt.Println("│    3. Calculate Precision, Recall, F1")
+	fmt.Println()
+
+	fmt.Printf("  Scan Duration: %s\n", elapsed.Round(time.Millisecond))
+	fmt.Println()
+	fmt.Println("  Benchmark complete. Review findings above for quality assessment.")
+}
