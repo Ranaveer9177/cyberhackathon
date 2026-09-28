@@ -199,6 +199,7 @@ Remove-Item -Force $tmpRustErr -ErrorAction SilentlyContinue
 
 if (Test-Path "scanner\target\release\vibeguard-scanner.exe") {
     Copy-Item -Force "scanner\target\release\vibeguard-scanner.exe" "vibeguard-scanner.exe"
+    Copy-Item -Force "scanner\target\release\vibeguard-scanner.exe" "scanner.exe"
     Copy-Item -Force "scanner\target\release\vibeguard-scanner.exe" "scanner\scanner.exe"
 }
 
