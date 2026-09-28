@@ -1,6 +1,6 @@
-# VibeGuard v6.5.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
+# VibeGuard v6.6.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
 
-[![Version](https://img.shields.io/badge/version-v6.5.0-blue.svg)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v6.6.0-blue.svg)](docs/CHANGELOG.md)
 [![Security Gate](https://img.shields.io/badge/security_gate-PASSED_100%2F100-brightgreen.svg)](ultimate_test.bat)
 [![Engines](https://img.shields.io/badge/engines-Go_1.21+_|_Rust_1.70+-orange.svg)](docs/LANGUAGE.md)
 [![SARIF](https://img.shields.io/badge/SARIF-2.1.0_Compliant-purple.svg)](internal/report/sarif.go)
@@ -13,7 +13,7 @@
 
 ## Overview
 
-**VibeGuard v6.5.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST with multi-language AST, project-wide semantic modeling, deep interprocedural taint propagation, and control-flow / type / value analysis), vulnerable third-party dependencies (SCA via Google OSV), Docker & Docker Compose misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
+**VibeGuard v6.6.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST with multi-language AST, semantic project modeling, deep interprocedural taint propagation, control-flow/type/value analysis, and deepened semantic security rules), vulnerable third-party dependencies (SCA via Google OSV), Docker & Docker Compose misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
 
 ```
                     Developer Shell / Git CLI
@@ -46,11 +46,13 @@
    │  ├───────────────────────────────────┤  │  │
    │  │ 6. Deep Data-Flow / Taint Engine  │  │  │
    │  ├───────────────────────────────────┤  │  │
-   │  │ 7. Control Flow, Type & Constant  │  │  │
+   │  │ 7. Control Flow & Type Tracking   │  │  │
    │  ├───────────────────────────────────┤  │  │
-   │  │ 8. Dependency Scan (Google OSV)   │  │  │
+   │  │ 8. Semantic Security Rules        │  │  │
    │  ├───────────────────────────────────┤  │  │
-   │  │ 9. Security Policy Evaluation     │  │  │
+   │  │ 9. Dependency Scan (Google OSV)   │  │  │
+   │  ├───────────────────────────────────┤  │  │
+   │  │ 10. Security Policy Evaluation    │  │  │
    │  └───────────────────────────────────┘  │  │
    └────────────────────┬────────────────────┘  │
                         │                       │
@@ -61,6 +63,41 @@
                                 Native Desktop Pop-up
                                 Terminal & HTML Report
 ```
+
+---
+
+## What's New in v6.6.0
+
+1. **Semantic SQL Rule Engine (`scanner/rules/sql/`)**:
+   - Deeply analyzes query construction across string concatenation (`+`), f-strings (`f"..."`), and `.format()` calls.
+   - Detects unparameterized raw SQL and ORM raw query escape hatches (Django `.raw()`, SQLAlchemy `text()`, Prisma `$queryRaw`, Sequelize, GORM `db.Raw`).
+   - Identifies dynamic table and column identifiers (`ORDER BY`, `GROUP BY`) that cannot be parameterized via bind variables.
+   - Verifies secure parameterized query bindings and flags unsafe query builder raw clauses (Knex `.whereRaw`, TypeORM raw strings).
+
+2. **Semantic Command Injection Rule Engine (`scanner/rules/command/`)**:
+   - Covers `os.system`, `subprocess`, `exec`, `execFile`, `child_process.spawn`, `Runtime.getRuntime().exec`, and `ProcessBuilder`.
+   - Distinguishes `shell=True` (vulnerable to metacharacters like `;`, `&`, `|`, `$()`) from `shell=False` / argv array invocation.
+   - Classifies command control levels:
+     - `Constant`: Compile-time constant (suppressed, zero false positives).
+     - `PartiallyControlled`: Constant command with dynamic unquoted arguments.
+     - `FullyControlled`: Entire command line or binary from untrusted input (CRITICAL).
+     - `Sanitized`: Protected via `shlex.quote()` or validation.
+
+3. **Semantic SSRF Rule Engine (`scanner/rules/ssrf/`)**:
+   - Analyzes HTTP client calls (`requests`, `urllib.request`, `httpx`, `fetch`, `axios`, `http.Get`, `HttpClient`).
+   - Verifies domain allowlists, hostname parsing, and IP address validation.
+   - Checks private IP blocking (preventing calls to `127.0.0.1`, `10.0.0.0/8`, `192.168.0.0/16`, `172.16.0.0/12`) and AWS/cloud metadata services (`169.254.169.254`).
+   - Tracks redirect configuration (`allow_redirects`).
+
+4. **Semantic Path Traversal Rule Engine (`scanner/rules/path/`)**:
+   - Monitors file operations (`open`, `os.remove`, `fs.readFile`, `os.Open`, `FileInputStream`).
+   - Understands relative directory traversal (`../`), absolute path overrides on POSIX and Windows, and path normalization (`realpath`, `normpath`, `filepath.Clean`).
+   - Verifies canonical directory boundary containment (`startswith(base_dir)`).
+
+5. **Semantic XSS Rule Engine (`scanner/rules/xss/`)**:
+   - Analyzes unescaped inputs reaching template output or DOM sinks (`.innerHTML =`, `document.write`).
+   - Detects raw HTML constructors that bypass framework auto-escaping (`Markup()`, `mark_safe()`, `render_template_string`, `dangerouslySetInnerHTML`, `v-html`).
+   - Verifies HTML entity escaping (`html.escape`, `DOMPurify.sanitize`).
 
 ---
 

@@ -14,6 +14,8 @@ mod scanner;
 mod secrets;
 #[path = "../semantic/mod.rs"]
 pub mod semantic;
+#[path = "../rules/mod.rs"]
+pub mod semantic_rules;
 #[path = "../taint/mod.rs"]
 pub mod taint;
 mod types;
@@ -56,7 +58,7 @@ fn main() {
     }
 
     if args.iter().any(|a| a == "--version" || a == "-v") {
-        println!("vibeguard-scanner v6.5.0");
+        println!("vibeguard-scanner v6.6.0");
         std::process::exit(0);
     }
 
@@ -264,6 +266,10 @@ fn main() {
         let mut deep_taint_findings =
             analysis::generate_taint_findings(&taint_flows, &mut finding_counter);
         all_findings.append(&mut deep_taint_findings);
+
+        let mut deep_rule_findings =
+            semantic_rules::run_semantic_rules(&file_refs, &mut finding_counter);
+        all_findings.append(&mut deep_rule_findings);
     }
 
     if enable_secrets {
