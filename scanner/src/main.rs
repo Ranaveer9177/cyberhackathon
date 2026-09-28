@@ -1,7 +1,9 @@
 #[path = "../ast/mod.rs"]
 pub mod ast;
 
-mod analysis;
+#[path = "../analysis/mod.rs"]
+pub mod analysis;
+
 mod config;
 mod docker;
 mod frameworks;
@@ -12,7 +14,8 @@ mod scanner;
 mod secrets;
 #[path = "../semantic/mod.rs"]
 pub mod semantic;
-mod taint;
+#[path = "../taint/mod.rs"]
+pub mod taint;
 mod types;
 
 use std::env;
@@ -53,7 +56,7 @@ fn main() {
     }
 
     if args.iter().any(|a| a == "--version" || a == "-v") {
-        println!("vibeguard-scanner v6.3.0");
+        println!("vibeguard-scanner v6.5.0");
         std::process::exit(0);
     }
 
@@ -245,15 +248,22 @@ fn main() {
         docker::scan_cross_file_docker(&files, project_path, &mut finding_counter);
     all_findings.append(&mut cross_docker_findings);
 
-    // Cross-file Semantic Project Model analysis (Symbol Table, Module Resolver, Function Resolver, Call Graph)
+    // Cross-file Semantic Project Model & Deep Taint Engine
     if enable_sast && !parsed_ast_files.is_empty() {
         let file_refs: Vec<(&str, &ast::types::FileNode)> = parsed_ast_files
             .iter()
             .map(|(p, f)| (p.as_str(), f))
             .collect();
+
+        let model = semantic::build_model(project_path, &file_refs);
         let mut semantic_findings =
-            semantic::analyze_semantic(project_path, &file_refs, &mut finding_counter);
+            semantic::security::analyze_project_semantic(&model, &mut finding_counter);
         all_findings.append(&mut semantic_findings);
+
+        let taint_flows = taint::analyze_deep_taint(&model, &file_refs);
+        let mut deep_taint_findings =
+            analysis::generate_taint_findings(&taint_flows, &mut finding_counter);
+        all_findings.append(&mut deep_taint_findings);
     }
 
     if enable_secrets {

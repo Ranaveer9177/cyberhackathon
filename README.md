@@ -1,6 +1,6 @@
-# VibeGuard v6.3.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
+# VibeGuard v6.5.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
 
-[![Version](https://img.shields.io/badge/version-v6.3.0-blue.svg)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v6.5.0-blue.svg)](docs/CHANGELOG.md)
 [![Security Gate](https://img.shields.io/badge/security_gate-PASSED_100%2F100-brightgreen.svg)](ultimate_test.bat)
 [![Engines](https://img.shields.io/badge/engines-Go_1.21+_|_Rust_1.70+-orange.svg)](docs/LANGUAGE.md)
 [![SARIF](https://img.shields.io/badge/SARIF-2.1.0_Compliant-purple.svg)](internal/report/sarif.go)
@@ -13,7 +13,7 @@
 
 ## Overview
 
-**VibeGuard v6.3.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST with multi-language AST and project-wide semantic analysis), vulnerable third-party dependencies (SCA via Google OSV), Docker & Docker Compose misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
+**VibeGuard v6.5.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST with multi-language AST, project-wide semantic modeling, deep interprocedural taint propagation, and control-flow / type / value analysis), vulnerable third-party dependencies (SCA via Google OSV), Docker & Docker Compose misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
 
 ```
                     Developer Shell / Git CLI
@@ -44,9 +44,13 @@
    │  ├───────────────────────────────────┤  │  │
    │  │ 5. Semantic Project Model & Calls │  │  │
    │  ├───────────────────────────────────┤  │  │
-   │  │ 6. Dependency Scan (Google OSV)   │  │  │
+   │  │ 6. Deep Data-Flow / Taint Engine  │  │  │
    │  ├───────────────────────────────────┤  │  │
-   │  │ 7. Security Policy Evaluation     │  │  │
+   │  │ 7. Control Flow, Type & Constant  │  │  │
+   │  ├───────────────────────────────────┤  │  │
+   │  │ 8. Dependency Scan (Google OSV)   │  │  │
+   │  ├───────────────────────────────────┤  │  │
+   │  │ 9. Security Policy Evaluation     │  │  │
    │  └───────────────────────────────────┘  │  │
    └────────────────────┬────────────────────┘  │
                         │                       │
@@ -60,20 +64,47 @@
 
 ---
 
-## What's New in v6.3.0
+## What's New in v6.5.0
 
-1. **Semantic Project Model (`scanner/semantic/`)**:
-   - **Project-Wide Symbol Table**: Tracks modules, imports, functions, methods, classes, variables, parameters, and return values across the entire codebase.
-   - **Module Resolver**: Translates module import paths across directories and file structures (`app.py` $\rightarrow$ `services/user.py` $\rightarrow$ `database/query.py`).
-   - **Function Resolver**: Maps call expressions (`foo()`, `user_svc.get_user()`, `self.execute()`) to their true declaration and implementation across files.
-   - **Call Graph**: Constructs interprocedural call chains (`A()` $\rightarrow$ `B()` $\rightarrow$ `C()` $\rightarrow$ `sink()`) and traces multi-step data flow from source to sink.
-2. **Multi-Language AST Engine (`scanner/ast/`)**:
-   - Native AST structural parsers for **Python**, **JavaScript**, **TypeScript**, **Go**, and **Java**.
-   - Def-use taint correlation understanding expression relations (e.g. `query = f"SELECT ... {user}"` $\rightarrow$ `conn.execute(query)`).
-3. **Multi-Stage Interprocedural Security Findings**:
-   - Generates high-confidence `VG-SAST-001` (SQL Injection) and `VG-SAST-002` (Command Injection) findings with complete cross-file call traces and data flow provenance.
-4. **100% Rust & Go Dual-Engine Parity**:
-   - Passed `ultimate_test.bat` with a perfect **100/100** score and clean repository self-scan.
+1. **Control-Flow Graph (CFG) Analysis (`scanner/analysis/cfg.rs`)**:
+   - Models execution paths and branch points across `if`, `else`, `for`, `while`, `try`, `except`, `finally`, `return`.
+   - Computes path reachability between untrusted sources and sensitive sinks, eliminating false positives for unreached branches and early returns.
+
+2. **Type Tracking & Inference (`scanner/analysis/types.rs`)**:
+   - Systematically tracks and infers variable types: `string`, `integer`, `boolean`, `list`, `map`, `object`, `bytes`, `unknown`.
+   - Distinguishes inherently injection-safe types (such as `integer` and `boolean`) from exploitable string injection vectors, neutralizing SQL and Command injection risks on strongly typed values.
+
+3. **Constant Propagation Engine (`scanner/analysis/constants.rs`)**:
+   - Differentiates compile-time constant literals from untrusted request inputs:
+     - `CMD = "safe-command"` $\longrightarrow$ Compile-time constant: verified safe, suppresses false positives.
+     - `CMD = request.args["cmd"]` $\longrightarrow$ Dynamic untrusted value: tracked and flagged.
+   - Constant folding for static string concatenation and formatted strings.
+
+4. **String Transformation Propagation (`scanner/analysis/string_propagation.rs`)**:
+   - Tracks taint propagation through string transformations: `+` (concatenation), `.format()`, f-strings, `.join()`, `.replace()`, `.encode()`, and `.decode()`.
+   - Answers the core question: *"Can this actual value reach this actual dangerous operation?"* rather than superficial syntactic pattern matching.
+
+---
+
+## What's New in v6.4.0
+
+1. **Deep Data-Flow / Taint Engine (`scanner/taint/`, `scanner/analysis/`)**:
+   - **Full Taint Lifecycle Tracking**:
+     $$\text{SOURCE} \longrightarrow \text{assignment} \longrightarrow \text{transformation} \longrightarrow \text{parameter} \longrightarrow \text{call} \longrightarrow \text{return} \longrightarrow \text{another file} \longrightarrow \text{SINK}$$
+   - **Vulnerability-Specific Taint Typing**: Dedicated taint representations for **SQL**, **Command**, **SSRF**, **Path Traversal**, **XSS**, **Template (SSTI)**, and **Insecure Deserialization**.
+   - **Strict Vulnerability-Specific Sanitizer Modeling**:
+     - Accurately tracks which sanitizers neutralize which vulnerabilities.
+     - `int()`, `float()`, `strconv.Atoi()` neutralize SQL injection, while HTML entity escaping (`html.escape()`, `DOMPurify`) does **not** protect against SQL injection and leaves SQL taint active.
+     - Shell escapes (`shlex.quote()`) protect commands but not path traversal or SSRF.
+   - **Interprocedural & Cross-File Detection**: Seamlessly tracks data flow crossing functions, modules, and files (e.g. `request` $\rightarrow$ `controller` $\rightarrow$ `service` $\rightarrow$ `repository` $\rightarrow$ `database`).
+2. **Semantic Project Model & Symbol Table (`scanner/semantic/`)**:
+   - Project-wide symbol table resolving functions, methods, classes, and variables.
+   - Module and Function resolvers linking calls across directories.
+   - Interprocedural Call Graph builder.
+3. **Multi-Language AST Engine (`scanner/ast/`)**:
+   - Native AST parsers for Python, JavaScript, TypeScript, Go, and Java.
+4. **100% Rust & Go Parity & 100/100 Quality Gate**:
+   - Clean pre-push self-scan (100/100) and full `ultimate_test.bat` pass.
 
 ---
 

@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 use crate::ast::types::{
-    AssignmentNode, ClassNode, ConstantKind, ExprNode, FileNode, FunctionNode, ImportNode,
-    ReturnNode, StmtNode,
+    AssignmentNode, ClassNode, ConditionNode, ConstantKind, ExprNode, FileNode, FunctionNode,
+    ImportNode, LoopNode, ReturnNode, StmtNode, TryCatchNode,
 };
 use regex::Regex;
 
@@ -199,6 +199,93 @@ fn parse_body(
             break;
         }
 
+        // Control flow: if / elif / else
+        if trimmed.starts_with("if ") && trimmed.ends_with(':') {
+            let test_str = trimmed[3..trimmed.len() - 1].trim();
+            let test = parse_expr(test_str, line_num);
+            let (next_idx, then_body) = parse_body(lines, idx + 1, current_indent, line_num);
+            let mut else_body = Vec::new();
+            idx = next_idx;
+
+            if idx < lines.len() {
+                let next_line = lines[idx];
+                let next_trimmed = next_line.trim();
+                let next_indent = next_line.len() - next_line.trim_start().len();
+                if next_indent == current_indent
+                    && (next_trimmed == "else:" || next_trimmed.starts_with("else :"))
+                {
+                    let (else_end, parsed_else) =
+                        parse_body(lines, idx + 1, current_indent, idx + 1);
+                    else_body = parsed_else;
+                    idx = else_end;
+                }
+            }
+
+            body.push(StmtNode::Condition(ConditionNode {
+                test,
+                then_body,
+                else_body,
+                line: line_num,
+            }));
+            continue;
+        }
+
+        // Control flow: for / while loops
+        if (trimmed.starts_with("for ") || trimmed.starts_with("while ")) && trimmed.ends_with(':')
+        {
+            let cond = if trimmed.starts_with("while ") {
+                Some(parse_expr(trimmed[6..trimmed.len() - 1].trim(), line_num))
+            } else {
+                Some(parse_expr(trimmed[4..trimmed.len() - 1].trim(), line_num))
+            };
+            let (next_idx, loop_body) = parse_body(lines, idx + 1, current_indent, line_num);
+            body.push(StmtNode::Loop(LoopNode {
+                condition: cond,
+                body: loop_body,
+                line: line_num,
+            }));
+            idx = next_idx;
+            continue;
+        }
+
+        // Control flow: try / except / finally
+        if trimmed == "try:" || trimmed.starts_with("try :") {
+            let (try_end, try_body) = parse_body(lines, idx + 1, current_indent, line_num);
+            idx = try_end;
+            let mut catch_body = Vec::new();
+            let mut finally_body = Vec::new();
+
+            while idx < lines.len() {
+                let next_line = lines[idx];
+                let next_trimmed = next_line.trim();
+                let next_indent = next_line.len() - next_line.trim_start().len();
+                if next_indent != current_indent {
+                    break;
+                }
+                if next_trimmed.starts_with("except") && next_trimmed.ends_with(':') {
+                    let (catch_end, parsed_catch) =
+                        parse_body(lines, idx + 1, current_indent, idx + 1);
+                    catch_body.extend(parsed_catch);
+                    idx = catch_end;
+                } else if next_trimmed == "finally:" || next_trimmed.starts_with("finally :") {
+                    let (finally_end, parsed_finally) =
+                        parse_body(lines, idx + 1, current_indent, idx + 1);
+                    finally_body = parsed_finally;
+                    idx = finally_end;
+                } else {
+                    break;
+                }
+            }
+
+            body.push(StmtNode::TryCatch(TryCatchNode {
+                try_body,
+                catch_body,
+                finally_body,
+                line: line_num,
+            }));
+            continue;
+        }
+
         if let Some(caps) = assign_re.captures(line) {
             let target_str = caps.name("target").map_or("", |m| m.as_str());
             let val_str = caps.name("val").map_or("", |m| m.as_str());
@@ -370,18 +457,33 @@ pub fn parse_expr(raw: &str, line: usize) -> ExprNode {
     }
 
     // 7. Call: callee(args)
-    if let Some(open_paren) = trimmed.find('(') {
-        if trimmed.ends_with(')') {
-            let callee_str = &trimmed[..open_paren].trim();
-            let args_str = &trimmed[open_paren + 1..trimmed.len() - 1].trim();
-            let callee = Box::new(parse_expr(callee_str, line));
-            let mut args = Vec::new();
-            if !args_str.is_empty() {
-                for a in args_str.split(',') {
-                    args.push(parse_expr(a.trim(), line));
+    if trimmed.ends_with(')') {
+        let mut depth = 0;
+        let mut matching_open = None;
+        for (i, c) in trimmed.char_indices().rev() {
+            if c == ')' {
+                depth += 1;
+            } else if c == '(' {
+                depth -= 1;
+                if depth == 0 {
+                    matching_open = Some(i);
+                    break;
                 }
             }
-            return ExprNode::Call { callee, args, line };
+        }
+        if let Some(open_paren) = matching_open {
+            let callee_str = trimmed[..open_paren].trim();
+            if !callee_str.is_empty() {
+                let args_str = trimmed[open_paren + 1..trimmed.len() - 1].trim();
+                let callee = Box::new(parse_expr(callee_str, line));
+                let mut args = Vec::new();
+                if !args_str.is_empty() {
+                    for a in args_str.split(',') {
+                        args.push(parse_expr(a.trim(), line));
+                    }
+                }
+                return ExprNode::Call { callee, args, line };
+            }
         }
     }
 

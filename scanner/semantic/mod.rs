@@ -15,6 +15,10 @@ use project_model::ProjectModel;
 /// 3. Resolves function calls to their declarations (foo() -> actual implementation)
 /// 4. Builds project-wide Call Graph (A() -> B() -> C() -> sink())
 /// 5. Executes interprocedural security analysis and generates normalized findings
+pub fn build_model(project_root: &str, parsed_files: &[(&str, &FileNode)]) -> ProjectModel {
+    ProjectModel::build(project_root, parsed_files)
+}
+
 pub fn analyze_semantic(
     project_root: &str,
     parsed_files: &[(&str, &FileNode)],
@@ -24,6 +28,6 @@ pub fn analyze_semantic(
         return Vec::new();
     }
 
-    let model = ProjectModel::build(project_root, parsed_files);
+    let model = build_model(project_root, parsed_files);
     security::analyze_project_semantic(&model, finding_counter)
 }

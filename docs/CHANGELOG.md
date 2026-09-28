@@ -2,6 +2,47 @@
 
 All notable changes to the VibeGuard project are documented in this file.
 
+## [v6.5.0] — 2026-09-28 (Control Flow, Type & Value Analysis)
+
+### Added
+- **Control-Flow Graph (CFG) Engine (`scanner/analysis/cfg.rs`)**:
+  - Full CFG basic block and edge modeling for `if`, `else`, `for`, `while`, `try`, `except`, `finally`, and `return`.
+  - Path reachability and dominance analysis ensuring sinks are only flagged if an active, unblocked execution path connects the source to the sink.
+  - Automatically suppresses false positives where early returns or dead branches prevent values from reaching dangerous operations.
+- **Type Tracking & Inference Engine (`scanner/analysis/types.rs`)**:
+  - Inferred types: `string`, `integer`, `boolean`, `list`, `map`, `object`, `bytes`, and `unknown`.
+  - Type inference from literals, constructors, typecast calls (`int()`, `str()`, `bool()`, `parseInt()`, `strconv.Atoi()`), and binary operators.
+  - Neutralizes injection risks when variables are verified to be safe scalar types (such as `integer` or `boolean`).
+- **Constant Propagation Engine (`scanner/analysis/constants.rs`)**:
+  - Accurately distinguishes compile-time constant literals from untrusted request inputs:
+    - `CMD = "safe-command"` is folded into a constant and verified safe when passed to dangerous sinks.
+    - `CMD = request.args["cmd"]` is tracked as a dynamic untrusted value and properly flagged.
+  - Constant folding for static string concatenations and formatted string expressions.
+- **String Transformation Propagation (`scanner/analysis/string_propagation.rs`)**:
+  - Deep tracking across `+` (concatenation), `.format()`, f-strings, `.join()`, `.replace()`, `.encode()`, and `.decode()`.
+  - Tracks whether tainted values survive transformations or are replaced/neutralized before reaching dangerous sinks.
+
+## [v6.4.0] — 2026-09-28 (Deep Data-Flow / Taint Engine)
+
+### Added
+- **Deep Data-Flow & Taint Propagation Engine (`scanner/taint/`)**:
+  - Full propagation tracking from entrypoint sources across assignments, transformations, function parameters, function calls, returns, and file boundaries to sensitive sinks:
+    $$\text{SOURCE} \longrightarrow \text{assignment} \longrightarrow \text{transformation} \longrightarrow \text{parameter} \longrightarrow \text{call} \longrightarrow \text{return} \longrightarrow \text{another file} \longrightarrow \text{SINK}$$
+  - **7 Vulnerability-Specific Taint Types**:
+    - **SQL** (`VG-TAINT-SQL`, `CWE-89`)
+    - **Command** (`VG-TAINT-CMD`, `CWE-78`)
+    - **SSRF** (`VG-TAINT-SSRF`, `CWE-918`)
+    - **Path Traversal** (`VG-TAINT-PATH`, `CWE-22`)
+    - **XSS** (`VG-TAINT-XSS`, `CWE-79`)
+    - **Template Injection** (`VG-TAINT-SSTI`, `CWE-1336`)
+    - **Insecure Deserialization** (`VG-TAINT-DESER`, `CWE-502`)
+- **Strict Vulnerability-Specific Sanitizer Modeling (`sanitizers.rs`)**:
+  - Neutralizes only specific vulnerability kinds when appropriate sanitizers are present.
+  - Distinguishes numeric typecasting (valid SQL sanitizer) from HTML entity escaping (valid for XSS, invalid for SQL/Command injection).
+- **Finding Verification & Reporting Engine (`scanner/analysis/`)**:
+  - Categorizes evidence into `ConfirmedFinding`, `PotentialIssue`, and `Informational`.
+  - Attaches multi-step ASCII provenance diagrams and structured `data_flow` arrays to emitted findings.
+
 ## [v6.3.0] — 2026-09-28 (Semantic Project Model & Call Graph Upgrade)
 
 ### Added
