@@ -2,6 +2,29 @@
 
 All notable changes to the VibeGuard project are documented in this file.
 
+## [v6.6.0] — 2026-09-28 (Security Rule Deepening)
+
+### Added
+- **Semantic SQL Rule Engine (`scanner/rules/sql/`)**:
+  - Full structural analysis of SQL query construction across concatenation (`+`), f-strings, and `.format()` calls.
+  - Detects unparameterized raw SQL and ORM raw query escape hatches across Django, SQLAlchemy, Prisma, Sequelize, and GORM.
+  - Flags unparameterizable dynamic identifiers in `ORDER BY` and `GROUP BY` clauses.
+  - Verifies parameterized query safety and flags unsafe query builder raw methods (Knex `whereRaw`, TypeORM raw queries).
+- **Semantic Command Injection Engine (`scanner/rules/command/`)**:
+  - Covers `os.system`, `subprocess`, `exec`, `execFile`, `child_process.spawn`, `Runtime.getRuntime().exec`, and `ProcessBuilder`.
+  - Distinguishes shell-interpreted executions (`shell=True`, `os.system`) from argv-based process spawning (`shell=False`).
+  - Classifies command control levels (`Constant`, `PartiallyControlled`, `FullyControlled`, `Sanitized`).
+- **Semantic SSRF Rule Engine (`scanner/rules/ssrf/`)**:
+  - Inspects HTTP client sinks across Python, Node.js, Go, and Java.
+  - Validates URL construction, domain allowlists, hostname resolution, and private IP blocking (`127.0.0.1`, `10.0.0.0/8`, `169.254.169.254`).
+  - Evaluates open redirect following configurations.
+- **Semantic Path Traversal Rule Engine (`scanner/rules/path/`)**:
+  - Analyzes file operation sinks against relative traversal (`../`), absolute path overrides, and path normalization.
+  - Verifies canonical directory boundary containment validation.
+- **Semantic XSS Rule Engine (`scanner/rules/xss/`)**:
+  - Identifies raw HTML constructors bypassing auto-escaping (`Markup()`, `mark_safe()`, `render_template_string`, `dangerouslySetInnerHTML`, `v-html`).
+  - Verifies HTML entity escaping across template and DOM contexts.
+
 ## [v6.5.0] — 2026-09-28 (Control Flow, Type & Value Analysis)
 
 ### Added
