@@ -1,0 +1,20 @@
+[
+  "crates.io:time",
+  "crates.io:tokio",
+  "go:golang.org/x/crypto",
+  "go:golang.org/x/net",
+  "go:golang.org/x/text",
+  "npm:axios",
+  "npm:express",
+  "npm:jsonwebtoken",
+  "npm:lodash",
+  "pypi:cryptography",
+  "pypi:django",
+  "pypi:flask",
+  "pypi:pillow",
+  "pypi:pyjwt",
+  "pypi:pyyaml",
+  "pypi:requests",
+  "pypi:sqlalchemy",
+  "pypi:urllib3"
+]

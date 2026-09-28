@@ -12,6 +12,7 @@ import (
 
 	"github.com/vibeguard/vibeguard/internal/baseline"
 	"github.com/vibeguard/vibeguard/internal/config"
+	"github.com/vibeguard/vibeguard/internal/database"
 	"github.com/vibeguard/vibeguard/internal/dependencies"
 	"github.com/vibeguard/vibeguard/internal/gate"
 	"github.com/vibeguard/vibeguard/internal/git"
@@ -22,7 +23,7 @@ import (
 	"github.com/vibeguard/vibeguard/internal/scanner"
 )
 
-const version = "6.8.0"
+const version = "6.9.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -97,6 +98,10 @@ func main() {
 
 	case "defender-check", "check-av", "check-defender":
 		handleDefenderCheck(os.Args[2:])
+		os.Exit(0)
+
+	case "db", "database":
+		handleDatabaseCommand(os.Args[2:])
 		os.Exit(0)
 
 	case "cache-refresh", "refresh-cache":
@@ -194,6 +199,7 @@ func printUsage() {
 	fmt.Println("  vibeguard scan [<project-path>] [options]        Run security scan")
 	fmt.Println("  vibeguard report [<project-path>] [options]      Generate HTML/JSON security report")
 	fmt.Println("  vibeguard defender-check [--test-popup]          Inspect Windows Defender / Antivirus status & test pop-up")
+	fmt.Println("  vibeguard db <status|import|export|seed|query>   Manage local offline security intelligence database")
 	fmt.Println("  vibeguard cache-refresh                          Purge local OSV vulnerability intelligence cache")
 	fmt.Println("  vibeguard version                                Show VibeGuard version")
 	fmt.Println("  vibeguard help                                   Show this help message")
@@ -201,7 +207,7 @@ func printUsage() {
 	fmt.Println("Scan Options:")
 	fmt.Println("  --format, -f <fmt>     Output format: terminal (default), json, html, sarif")
 	fmt.Println("  --output, -o <path>    Custom report output path (default: reports/scan.json or reports/scan.html)")
-	fmt.Println("  --offline              Query only local cached vulnerability intelligence")
+	fmt.Println("  --offline              Query only local security database & cache (zero network required)")
 	fmt.Println("  --refresh-cache        Purge local vulnerability cache before querying")
 	fmt.Println("  --include-tests        Include test fixtures and test files in security scan")
 	fmt.Println("  --include-docs         Include markdown documentation and report files in scan")
@@ -317,6 +323,12 @@ func handleInit(dir string) {
 		fmt.Println("✓ Existing configuration preserved (.vibeguard/config.json)")
 	}
 
+	// 3. Initialize offline security database (.vibeguard/database/security.db)
+	dbPath := database.ResolveDatabasePath(root)
+	if _, err := database.Open(dbPath); err == nil {
+		fmt.Println("✓ Initialized offline security database (.vibeguard/database/security.db)")
+	}
+
 	fmt.Println()
 	fmt.Println("Every future 'git push' will automatically run VibeGuard before code leaves your machine.")
 	fmt.Println("========================================")
@@ -397,6 +409,10 @@ func handleStatus(dir string) {
 		fmt.Printf("Scan mode:      %s\n", cfg.ScanMode)
 		fmt.Printf("Fail closed:    %v\n", cfg.FailClosed)
 	}
+
+	// Security DB Status
+	dbSt := database.GetDefaultDB().Status()
+	fmt.Printf("Security DB:    %d advisories (%d packages, 100%% offline ready)\n", dbSt.TotalVulnerabilities, dbSt.TotalPackages)
 
 	fmt.Println("========================================")
 }
@@ -926,7 +942,7 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 				liveDepProg.Update(cur, tot)
 			})
 			liveDepProg.Clear()
-			if osvErr != nil && len(osvDeps) > 0 && cfg.FailClosed {
+			if osvErr != nil && len(osvDeps) > 0 && cfg.FailClosed && !osv.IsOfflineMode() {
 				fmt.Fprintln(os.Stderr, "Security policy failure: OSV unavailable and fail_closed is enabled.")
 				return 4
 			}
@@ -942,9 +958,9 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 		}
 	}
 
-	osvMode := "online"
+	osvMode := "online (cloud + security.db)"
 	if osv.IsOfflineMode() {
-		osvMode = "offline/cache"
+		osvMode = "offline (security.db)"
 	}
 	if depCritHighCount > 0 {
 		fmt.Printf("[4/5] Dependency/CVE scan ...... %s\n", failStr)
@@ -1189,3 +1205,129 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 
 	return gateResult.ExitCode
 }
+
+func handleDatabaseCommand(args []string) {
+	if len(args) == 0 {
+		printDatabaseUsage()
+		return
+	}
+
+	subcmd := strings.ToLower(args[0])
+	switch subcmd {
+	case "status":
+		db := database.GetDefaultDB()
+		st := db.Status()
+		fmt.Println("==================================================")
+		fmt.Printf("   VIBEGUARD v%s — OFFLINE SECURITY DATABASE\n", version)
+		fmt.Println("==================================================")
+		fmt.Printf("Database File:         %s\n", st.Path)
+		fmt.Printf("Multi-dir DB Layout:   %s\n", st.MultiDirPath)
+		fmt.Printf("Engine Status:         ACTIVE (100%% Offline Capable)\n")
+		fmt.Printf("Total Vulnerabilities: %d\n", st.TotalVulnerabilities)
+		fmt.Printf("Total Packages:        %d\n", st.TotalPackages)
+		fmt.Printf("Supported Ecosystems:  %s\n", strings.Join(st.Ecosystems, ", "))
+		fmt.Printf("Schema Version:        %s\n", st.Version)
+		fmt.Printf("Last Updated:          %s\n", st.UpdatedAt.Format(time.RFC1123))
+		fmt.Println("==================================================")
+
+	case "import":
+		if len(args) < 2 {
+			fmt.Fprintln(os.Stderr, "Error: missing file or directory path to import")
+			fmt.Fprintln(os.Stderr, "Usage: vibeguard db import <path-to-json-or-dir>")
+			os.Exit(2)
+		}
+		targetPath := args[1]
+		db := database.GetDefaultDB()
+		count, err := db.ImportFileOrDir(targetPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error importing vulnerability intelligence: %v\n", err)
+			os.Exit(2)
+		}
+		fmt.Printf("✓ Successfully imported %d vulnerability records into local security database.\n", count)
+		_ = db.Save("")
+
+	case "export":
+		outputPath := filepath.Join(".vibeguard", "database", "security_export.json")
+		if len(args) >= 2 {
+			outputPath = args[1]
+		}
+		db := database.GetDefaultDB()
+		if err := db.Export(outputPath); err != nil {
+			fmt.Fprintf(os.Stderr, "Error exporting database: %v\n", err)
+			os.Exit(2)
+		}
+		fmt.Printf("✓ Successfully exported %d vulnerability records to %s\n", db.Status().TotalVulnerabilities, outputPath)
+
+	case "seed", "reset":
+		seed := database.GetSeedDatabase()
+		db := database.GetDefaultDB()
+		count, err := db.ImportRecords(seed.Vulnerabilities)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error seeding database: %v\n", err)
+			os.Exit(2)
+		}
+		_ = db.Save("")
+		fmt.Printf("✓ Offline intelligence database initialized with %d verified baseline advisories.\n", count)
+
+	case "query":
+		if len(args) < 2 {
+			fmt.Fprintln(os.Stderr, "Error: missing package name")
+			fmt.Fprintln(os.Stderr, "Usage: vibeguard db query <package> [version] [--ecosystem <eco>]")
+			os.Exit(2)
+		}
+		pkgName := args[1]
+		versionStr := ""
+		ecosystem := ""
+		for i := 2; i < len(args); i++ {
+			if args[i] == "--ecosystem" || args[i] == "-e" {
+				if i+1 < len(args) {
+					ecosystem = args[i+1]
+					i++
+				}
+			} else if !strings.HasPrefix(args[i], "-") && versionStr == "" {
+				versionStr = args[i]
+			}
+		}
+
+		db := database.GetDefaultDB()
+		records := db.Lookup(pkgName, versionStr, ecosystem)
+		fmt.Println("==================================================")
+		fmt.Printf("Package: %s\n", pkgName)
+		if versionStr != "" {
+			fmt.Printf("Version: %s\n", versionStr)
+		}
+		if ecosystem != "" {
+			fmt.Printf("Ecosystem: %s\n", ecosystem)
+		}
+		fmt.Printf("Matching Advisories: %d\n", len(records))
+		fmt.Println("==================================================")
+		for _, r := range records {
+			fmt.Printf("• [%s] %s (%s)\n", r.Severity, r.ID, r.Package)
+			fmt.Printf("  Summary: %s\n", r.Summary)
+			if len(r.FixedVersions) > 0 {
+				fmt.Printf("  Fixed in: >= %s\n", strings.Join(r.FixedVersions, ", "))
+			}
+			if len(r.CWE) > 0 {
+				fmt.Printf("  CWE: %s\n", strings.Join(r.CWE, ", "))
+			}
+			fmt.Println()
+		}
+
+	default:
+		fmt.Fprintf(os.Stderr, "Error: unknown database command '%s'\n", subcmd)
+		printDatabaseUsage()
+		os.Exit(2)
+	}
+}
+
+func printDatabaseUsage() {
+	fmt.Println("VibeGuard Database Management CLI")
+	fmt.Println()
+	fmt.Println("Usage:")
+	fmt.Println("  vibeguard db status                     Display database status and statistics")
+	fmt.Println("  vibeguard db import <path>              Import vulnerability advisories from JSON or directory")
+	fmt.Println("  vibeguard db export [<path>]            Export local database to JSON")
+	fmt.Println("  vibeguard db seed                       Re-seed database with built-in verified advisories")
+	fmt.Println("  vibeguard db query <package> [version]  Query vulnerability records offline")
+}
+

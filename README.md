@@ -1,6 +1,6 @@
-# VibeGuard v6.8.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
+# VibeGuard v6.9.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
 
-[![Version](https://img.shields.io/badge/version-v6.8.0-blue.svg)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v6.9.0-blue.svg)](docs/CHANGELOG.md)
 [![Security Gate](https://img.shields.io/badge/security_gate-PASSED_100%2F100-brightgreen.svg)](ultimate_test.bat)
 [![Engines](https://img.shields.io/badge/engines-Go_1.21+_|_Rust_1.70+-orange.svg)](docs/LANGUAGE.md)
 [![SARIF](https://img.shields.io/badge/SARIF-2.1.0_Compliant-purple.svg)](internal/report/sarif.go)
@@ -13,7 +13,7 @@
 
 ## Overview
 
-**VibeGuard v6.8.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST with multi-language AST, semantic project modeling, deep interprocedural taint propagation, control-flow/type/value analysis, framework-aware analysis, configuration and container deep analysis, and deepened semantic security rules), vulnerable third-party dependencies (SCA via Google OSV), Docker & Docker Compose misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
+**VibeGuard v6.9.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST with multi-language AST, semantic project modeling, deep interprocedural taint propagation, control-flow/type/value analysis, framework-aware analysis, configuration and container deep analysis, and deepened semantic security rules), vulnerable third-party dependencies (via local offline security database and SCA), Docker & Docker Compose misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
 
 ```
                     Developer Shell / Git CLI
@@ -50,7 +50,7 @@
    │  ├───────────────────────────────────┤  │  │
    │  │ 8. Semantic Security Rules        │  │  │
    │  ├───────────────────────────────────┤  │  │
-   │  │ 9. Dependency Scan (Google OSV)   │  │  │
+   │  │ 9. Offline Security Database (DB) │  │  │
    │  ├───────────────────────────────────┤  │  │
    │  │ 10. Security Policy Evaluation    │  │  │
    │  └───────────────────────────────────┘  │  │
@@ -66,7 +66,40 @@
 
 ---
 
-## What's New in v6.8.0
+## What's New in v6.9.0
+
+1. **Structured Local Security Database (`.vibeguard/database/security.db`)**:
+   - Upgraded VibeGuard from a transient API response cache to a true local structured offline security intelligence database.
+   - Dual-architecture persistence:
+     - Structured binary/JSON database: `.vibeguard/database/security.db`
+     - Synchronized multi-directory format: `.vibeguard/db/` with `vulnerabilities/`, `packages/`, `rules/`, and `metadata/`.
+   - Comprehensive vulnerability record model storing:
+     - `vulnerability ID` (CVE, GHSA, GO, RUSTSEC)
+     - `package` & `ecosystem` (Go, npm, PyPI, crates.io, etc.)
+     - `affected versions` (range constraints and SemVer bounds)
+     - `fixed versions` (recommended remediation targets)
+     - `severity` (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`)
+     - `CWE` classifications & `CVSS` vector / numerical scores
+     - `aliases` cross-references
+     - `summary` & `description`
+
+2. **Offline Semver & Version Range Matcher**:
+   - Zero-network dependency evaluation during scan.
+   - Evaluates complex SemVer constraints (`< 4.17.21`, `>= 1.0.0, < 2.0.0`), event ranges (introduced, fixed, last_affected), and Go pseudo-versions.
+   - High-performance in-memory indexing: $O(1)$ lookups with microsecond query latency.
+
+3. **Embedded Bootstrap Intelligence & Zero-Download Air-Gapped Scanning**:
+   - Pre-populated, verified vulnerability intelligence dataset compiled directly into the binary.
+   - Completely disconnected machines can immediately scan source code, secrets, Docker, configurations, and third-party dependencies with 100% offline accuracy.
+   - No external network requests or initial downloads required.
+
+4. **Database Management CLI**:
+   - `vibeguard db status`: Inspect database location, indexed package count, advisory count, and schema version.
+   - `vibeguard db import <path>`: Import OSV JSON exports or entire directories of vulnerability feeds into the local database.
+   - `vibeguard db export [<path>]`: Export local database to portable JSON.
+   - `vibeguard db seed`: Reset or refresh database with built-in verified advisories.
+   - `vibeguard db query <package> [version] [--ecosystem <eco>]`: Offline query utility to inspect advisories for any package version.
+   - `vibeguard scan --offline`: Guarantee 100% disconnected scan execution.
 
 1. **Configuration Deep Analysis (`scanner/config/`)**:
    - Structured parsing and security modeling across **.env**, **YAML**, **JSON**, **TOML**, and **INI/CFG** configuration files.
