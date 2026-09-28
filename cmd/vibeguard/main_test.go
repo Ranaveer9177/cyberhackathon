@@ -146,8 +146,8 @@ func TestPrintUsage(t *testing.T) {
 }
 
 func TestVersionString(t *testing.T) {
-	if version != "6.8.0" {
-		t.Errorf("expected version 6.8.0, got %s", version)
+	if version != "6.9.0" {
+		t.Errorf("expected version 6.9.0, got %s", version)
 	}
 }
 
@@ -240,4 +240,29 @@ func TestRunScan_CleanDirectory(t *testing.T) {
 		t.Errorf("expected exitCode 0 on clean directory, got %d", exitCode)
 	}
 }
+
+func TestHandleDatabaseCommand(t *testing.T) {
+	// 1. Status
+	handleDatabaseCommand([]string{"status"})
+
+	// 2. Query lodash
+	handleDatabaseCommand([]string{"query", "lodash", "4.17.20", "--ecosystem", "npm"})
+
+	// 3. Query clean version
+	handleDatabaseCommand([]string{"query", "lodash", "4.17.21", "--ecosystem", "npm"})
+
+	// 4. Seed
+	handleDatabaseCommand([]string{"seed"})
+
+	// 5. Export to temp file
+	tmpExport := filepath.Join(t.TempDir(), "db_export.json")
+	handleDatabaseCommand([]string{"export", tmpExport})
+	if _, err := os.Stat(tmpExport); os.IsNotExist(err) {
+		t.Errorf("expected export file to exist at %s", tmpExport)
+	}
+
+	// 6. Usage with no args
+	handleDatabaseCommand([]string{})
+}
+
 

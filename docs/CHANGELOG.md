@@ -2,6 +2,28 @@
 
 All notable changes to the VibeGuard project are documented in this file.
 
+## [v6.9.0] — 2026-09-28 (Offline Intelligence)
+
+### Added
+- **Local Structured Security Database (`internal/database/`)**:
+  - Replaced transient response cache with a persistent, structured local security intelligence database (`.vibeguard/database/security.db`).
+  - Implemented automatic directory synchronization with `.vibeguard/db/` (`vulnerabilities/`, `packages/`, `rules/`, `metadata/`).
+  - Comprehensive vulnerability record model storing `ID`, `Package`, `Ecosystem`, `AffectedVersions`, `FixedVersions`, `Severity`, `CWE`, `CVSS`, `Aliases`, `Summary`, and `Description`.
+- **Offline Semver & Range Engine (`internal/database/semver.go`)**:
+  - Offline evaluation of SemVer boundaries, range events (`introduced`, `fixed`, `last_affected`), and Go pseudo-versions without network requests.
+  - Microsecond in-memory index queries with $O(1)$ lookups.
+- **Embedded Seed Intelligence & Air-Gapped Scanning**:
+  - Embedded pre-populated, verified advisories across npm, PyPI, Go, and crates.io directly into the Go binary.
+  - Air-gapped environments scan immediately upon installation with zero downloads required.
+- **Database Management CLI (`vibeguard db`)**:
+  - `vibeguard db status`: Inspect database location, indexed package count, advisory count, and schema version.
+  - `vibeguard db import <path>`: Ingest OSV JSON feeds or directories of advisories into the local database.
+  - `vibeguard db export [<path>]`: Export local intelligence to portable JSON.
+  - `vibeguard db seed`: Reset or refresh database with built-in verified advisories.
+  - `vibeguard db query <package> [version] [--ecosystem <eco>]`: Offline query utility to inspect advisories for any package version.
+- **Offline Scan Flag (`--offline`)**:
+  - Guarantees 100% disconnected scan execution against local intelligence without making network calls.
+
 ## [v6.8.0] — 2026-09-28 (Configuration + Container Deep Analysis)
 
 ### Added

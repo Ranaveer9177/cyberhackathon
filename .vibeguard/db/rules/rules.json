@@ -1,0 +1,11 @@
+{
+  "offline_engine": "v6.9.0",
+  "rule_types": [
+    "range",
+    "semver",
+    "ecosystem",
+    "cve",
+    "ghsa"
+  ],
+  "semver_matching": "enabled"
+}

@@ -61,7 +61,7 @@ fn main() {
     }
 
     if args.iter().any(|a| a == "--version" || a == "-v") {
-        println!("vibeguard-scanner v6.8.0");
+        println!("vibeguard-scanner v6.9.0");
         std::process::exit(0);
     }
 

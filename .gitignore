@@ -31,6 +31,8 @@ reports/*.sarif
 
 # Cache directories
 .vibeguard/cache/
+internal/**/.vibeguard/
+cmd/**/.vibeguard/
 
 # Log files and temporary artifacts
 *.log

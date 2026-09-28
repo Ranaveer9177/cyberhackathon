@@ -175,3 +175,31 @@ func TestClearCache(t *testing.T) {
 		t.Errorf("expected cache to be empty after ClearCache")
 	}
 }
+
+func TestQueryOSVFromLocalDatabase(t *testing.T) {
+	// Disable network and cache; verify local database resolves lodash 4.17.20
+	SetOfflineMode(true)
+	defer SetOfflineMode(false)
+	SetCacheEnabled(false)
+	defer SetCacheEnabled(true)
+
+	vulns, err := QueryOSV("lodash", "4.17.20", "npm")
+	if err != nil {
+		t.Fatalf("expected offline resolution from local database to succeed, got: %v", err)
+	}
+	if len(vulns) == 0 {
+		t.Fatalf("expected vulnerabilities for lodash 4.17.20 from local database, got 0")
+	}
+
+	foundPrototype := false
+	for _, v := range vulns {
+		if v.ID == "GHSA-p6fg-5544-jd52" || v.ID == "CVE-2020-8203" {
+			foundPrototype = true
+			break
+		}
+	}
+	if !foundPrototype {
+		t.Errorf("expected GHSA-p6fg-5544-jd52 in matched vulnerabilities, got: %+v", vulns)
+	}
+}
+

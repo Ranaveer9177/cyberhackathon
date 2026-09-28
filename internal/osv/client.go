@@ -9,6 +9,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/vibeguard/vibeguard/internal/database"
 )
 
 type DependencyInfo struct {
@@ -43,13 +45,18 @@ func QueryOSV(name, version, ecosystem string) ([]Vulnerability, error) {
 		return cached, nil
 	}
 
+	// 2. Check local offline security database
+	if dbVulns, ok := QueryLocalDatabase(name, version, ecosystem); ok {
+		return dbVulns, nil
+	}
+
 	cacheMu.RLock()
 	isOffline := offlineMode
 	endpoint := customBaseURL
 	cacheMu.RUnlock()
 
 	if isOffline {
-		return nil, fmt.Errorf("OSV offline: package %s@%s not in local cache", name, version)
+		return nil, fmt.Errorf("OSV offline: package %s@%s not in local database or cache", name, version)
 	}
 
 	if endpoint == "" {
@@ -96,8 +103,13 @@ func QueryOSV(name, version, ecosystem string) ([]Vulnerability, error) {
 		return nil, err
 	}
 
-	// 2. Save result into cache
+	// 3. Save result into cache & local database
 	_ = SaveCachedVulns(name, version, ecosystem, queryResp.Vulns)
+	if defaultDB := database.GetDefaultDB(); defaultDB != nil && len(queryResp.Vulns) > 0 {
+		if rawJSON, err := json.Marshal(queryResp); err == nil {
+			_, _ = defaultDB.ImportOSVData(rawJSON)
+		}
+	}
 
 	return queryResp.Vulns, nil
 }
