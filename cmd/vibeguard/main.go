@@ -22,7 +22,7 @@ import (
 	"github.com/vibeguard/vibeguard/internal/scanner"
 )
 
-const version = "6.6.0"
+const version = "6.7.0"
 
 func main() {
 	if len(os.Args) < 2 {

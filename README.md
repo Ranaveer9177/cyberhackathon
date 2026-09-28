@@ -1,6 +1,6 @@
-# VibeGuard v6.6.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
+# VibeGuard v6.7.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
 
-[![Version](https://img.shields.io/badge/version-v6.6.0-blue.svg)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v6.7.0-blue.svg)](docs/CHANGELOG.md)
 [![Security Gate](https://img.shields.io/badge/security_gate-PASSED_100%2F100-brightgreen.svg)](ultimate_test.bat)
 [![Engines](https://img.shields.io/badge/engines-Go_1.21+_|_Rust_1.70+-orange.svg)](docs/LANGUAGE.md)
 [![SARIF](https://img.shields.io/badge/SARIF-2.1.0_Compliant-purple.svg)](internal/report/sarif.go)
@@ -13,7 +13,7 @@
 
 ## Overview
 
-**VibeGuard v6.6.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST with multi-language AST, semantic project modeling, deep interprocedural taint propagation, control-flow/type/value analysis, and deepened semantic security rules), vulnerable third-party dependencies (SCA via Google OSV), Docker & Docker Compose misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
+**VibeGuard v6.7.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST with multi-language AST, semantic project modeling, deep interprocedural taint propagation, control-flow/type/value analysis, framework-aware analysis, and deepened semantic security rules), vulnerable third-party dependencies (SCA via Google OSV), Docker & Docker Compose misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
 
 ```
                     Developer Shell / Git CLI
@@ -65,6 +65,21 @@
 ```
 
 ---
+
+## What's New in v6.7.0
+
+1. **Framework-Aware Analysis (`scanner/frameworks/`)**:
+   - Comprehensive modeling for **Flask**, **Django**, **FastAPI**, **Express**, **NestJS**, and **Spring**.
+   - Models across 8 distinct dimensions for every framework:
+     - **Sources**: HTTP query params, request bodies, path params, headers, cookies, and JSON payloads.
+     - **Sinks**: Database queries, raw ORM execution, unsafe response reflection, open redirects, template injection.
+     - **Sanitizers**: Framework validation pipes, escape functions, type-casting, secure filename wrappers.
+     - **Routing**: Route decorators (`@app.route`, `@router.get`, `app.get`, `@Get`, `@GetMapping`, `urlpatterns`).
+     - **Request objects**: `flask.request`, `django.http.HttpRequest`, `fastapi.Request`, `express.Request`, `HttpServletRequest`.
+     - **Database interfaces**: SQLAlchemy, Django ORM, Prisma, Sequelize, TypeORM, JdbcTemplate, JPA EntityManager.
+     - **Template rendering**: Safe file rendering vs unsafe string rendering (SSTI/XSS).
+     - **Authentication**: Route guards (`@login_required`, `Depends(get_current_user)`, `passport.authenticate`, `@UseGuards`, `@PreAuthorize`).
+   - Cross-layer interprocedural tracing: resolves flows from `HTTP request -> Route -> Service -> Repository -> Database Sink` across multiple files without requiring everything to be defined in one file.
 
 ## What's New in v6.6.0
 

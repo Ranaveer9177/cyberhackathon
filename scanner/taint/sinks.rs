@@ -1,5 +1,4 @@
-#![allow(dead_code)]
-
+use crate::frameworks::FrameworkRegistry;
 use crate::taint::types::TaintKind;
 
 pub struct SinkModel;
@@ -7,6 +6,10 @@ pub struct SinkModel;
 impl SinkModel {
     /// Categorizes a callee expression or statement into its corresponding vulnerability TaintKind.
     pub fn classify_sink(callee: &str) -> Option<(TaintKind, &'static str)> {
+        if let Some(fw_sink) = FrameworkRegistry::new().classify_sink(callee) {
+            return Some(fw_sink);
+        }
+
         let clean = callee.trim();
         let lower = clean.to_lowercase();
 
