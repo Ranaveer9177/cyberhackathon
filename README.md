@@ -1,6 +1,6 @@
-# VibeGuard v6.7.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
+# VibeGuard v6.8.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
 
-[![Version](https://img.shields.io/badge/version-v6.7.0-blue.svg)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v6.8.0-blue.svg)](docs/CHANGELOG.md)
 [![Security Gate](https://img.shields.io/badge/security_gate-PASSED_100%2F100-brightgreen.svg)](ultimate_test.bat)
 [![Engines](https://img.shields.io/badge/engines-Go_1.21+_|_Rust_1.70+-orange.svg)](docs/LANGUAGE.md)
 [![SARIF](https://img.shields.io/badge/SARIF-2.1.0_Compliant-purple.svg)](internal/report/sarif.go)
@@ -13,7 +13,7 @@
 
 ## Overview
 
-**VibeGuard v6.7.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST with multi-language AST, semantic project modeling, deep interprocedural taint propagation, control-flow/type/value analysis, framework-aware analysis, and deepened semantic security rules), vulnerable third-party dependencies (SCA via Google OSV), Docker & Docker Compose misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
+**VibeGuard v6.8.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST with multi-language AST, semantic project modeling, deep interprocedural taint propagation, control-flow/type/value analysis, framework-aware analysis, configuration and container deep analysis, and deepened semantic security rules), vulnerable third-party dependencies (SCA via Google OSV), Docker & Docker Compose misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
 
 ```
                     Developer Shell / Git CLI
@@ -65,6 +65,26 @@
 ```
 
 ---
+
+## What's New in v6.8.0
+
+1. **Configuration Deep Analysis (`scanner/config/`)**:
+   - Structured parsing and security modeling across **.env**, **YAML**, **JSON**, **TOML**, and **INI/CFG** configuration files.
+   - Detects:
+     - **Debug mode enabled**: `debug = true`, `DEBUG = 1`, `APP_DEBUG = true`, `ENV = development` with debug active (`VG-CFG-001`).
+     - **Weak security configuration**: Disabled secure cookies (`session_cookie_secure = false`), missing `httpOnly`, disabled CSRF (`csrf_enabled = false`, `wtf_csrf_enabled = false`), disabled HSTS (`VG-CFG-006`).
+     - **TLS disabled**: `ssl_verify = false`, `tls_verify = false`, `insecure_skip_verify = true`, `reject_unauthorized = 0` (`VG-CFG-007`).
+     - **Unsafe CORS**: Wildcard origins `Access-Control-Allow-Origin: *` or `allow_origins = ["*"]` (`VG-CFG-002`).
+     - **Hardcoded secrets in config**: High-entropy API keys, AWS credentials, JWT tokens, and embedded database connection passwords in config files (`VG-CFG-008`).
+     - **Unsafe defaults**: Known default passwords (`admin`, `password123`, `root`, `postgres`, `secret`), binding to `0.0.0.0` (`VG-CFG-003`), plain HTTP remote URLs (`VG-CFG-005`, `VG-CFG-009`).
+
+2. **Container & Docker Deep Relationship Analysis (`scanner/docker/`)**:
+   - Deep structural parsing of **Dockerfile** instructions and **docker-compose.yml** multi-service definitions.
+   - Cross-analyzes structural relationships instead of isolated lines:
+     - **`source files` $\longleftrightarrow$ `.env` $\longleftrightarrow$ `Dockerfile` $\longleftrightarrow$ `docker-compose.yml`**: Tracks environment variable lifecycles, detecting hardcoded credentials baked into image layers via `ENV` or build history via `ARG` (`VG-DCK-017`).
+     - **`Dockerfile` `COPY` $\longleftrightarrow$ Sensitive project files (`VG-DCK-014`)**: Discovers when `.env`, `*.pem`, `id_rsa`, or credentials in the build context are bundled into container layers by `COPY . .` without proper `.dockerignore` coverage.
+     - **`volumes` $\longleftrightarrow$ `user: root` (`VG-DCK-019`)**: Flags services that mount host working directories (`.:/app`) while executing as root, preventing host filesystem tampering.
+     - **`ports` $\longleftrightarrow$ `services` inter-service isolation (`VG-DCK-018`)**: Detects backend databases/caches (PostgreSQL, MySQL, Redis, MongoDB) unnecessarily published to the host network when sibling web/API services already connect via private internal Docker networks.
 
 ## What's New in v6.7.0
 

@@ -4,8 +4,10 @@ pub mod ast;
 #[path = "../analysis/mod.rs"]
 pub mod analysis;
 
-mod config;
-mod docker;
+#[path = "../config/mod.rs"]
+pub mod config;
+#[path = "../docker/mod.rs"]
+pub mod docker;
 #[path = "../frameworks/mod.rs"]
 pub mod frameworks;
 mod git;
@@ -59,7 +61,7 @@ fn main() {
     }
 
     if args.iter().any(|a| a == "--version" || a == "-v") {
-        println!("vibeguard-scanner v6.7.0");
+        println!("vibeguard-scanner v6.8.0");
         std::process::exit(0);
     }
 
@@ -236,8 +238,11 @@ fn main() {
         let source_exts = [
             "go", "js", "ts", "py", "java", "rs", "rb", "php", "c", "cpp", "cs",
         ];
-        let config_exts = ["yaml", "yml", "toml", "ini", "conf", "cfg", "json"];
+        let config_exts = ["yaml", "yml", "toml", "ini", "conf", "cfg", "json", "env"];
         if config_exts.contains(&ext)
+            || filename == ".env"
+            || filename.starts_with(".env.")
+            || filename.ends_with(".env")
             || (filename.starts_with("config.") && !source_exts.contains(&ext))
         {
             let mut config_findings =
