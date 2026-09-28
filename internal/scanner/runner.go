@@ -184,24 +184,24 @@ func FindScannerExecutable() (string, bool) {
 
 	candidates := []string{
 		// 1. In the same directory as the running VibeGuard executable
-		filepath.Join(exeDir, "scanner.exe"),
 		filepath.Join(exeDir, "vibeguard-scanner.exe"),
+		filepath.Join(exeDir, "scanner.exe"),
 		filepath.Join(exeDir, "vibeguard-scanner"),
-		filepath.Join(exeDir, "scanner", "scanner.exe"),
 		filepath.Join(exeDir, "scanner", "vibeguard-scanner.exe"),
+		filepath.Join(exeDir, "scanner", "scanner.exe"),
 
 		// 2. In the global %LOCALAPPDATA%\VibeGuard installation directory
-		filepath.Join(localAppDataDir, "scanner.exe"),
 		filepath.Join(localAppDataDir, "vibeguard-scanner.exe"),
-		filepath.Join(localAppDataDir, "bin", "scanner.exe"),
+		filepath.Join(localAppDataDir, "scanner.exe"),
 		filepath.Join(localAppDataDir, "bin", "vibeguard-scanner.exe"),
+		filepath.Join(localAppDataDir, "bin", "scanner.exe"),
 
 		// 3. In the current working directory / repo root
-		filepath.Join(cwd, "scanner.exe"),
 		filepath.Join(cwd, "vibeguard-scanner.exe"),
+		filepath.Join(cwd, "scanner.exe"),
 		filepath.Join(cwd, "vibeguard-scanner"),
-		filepath.Join(cwd, "scanner", "scanner.exe"),
 		filepath.Join(cwd, "scanner", "vibeguard-scanner.exe"),
+		filepath.Join(cwd, "scanner", "scanner.exe"),
 
 		// 4. In build output directories (cargo target release/debug)
 		filepath.Join(cwd, "scanner", "target", "release", "vibeguard-scanner.exe"),
