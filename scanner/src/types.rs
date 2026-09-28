@@ -90,11 +90,7 @@ impl Finding {
         let snk = self.sink.as_deref().unwrap_or("").trim();
         let col = self.column.unwrap_or(1);
         let evidence = self.evidence.as_deref().unwrap_or("").trim();
-        let evidence_prefix = if evidence.len() > 60 {
-            &evidence[..60]
-        } else {
-            evidence
-        };
+        let evidence_prefix: String = evidence.chars().take(60).collect();
         format!(
             "{}:{}:{}:{}:{}:{}:{}",
             rule_clean, norm_file, self.line, col, src, snk, evidence_prefix

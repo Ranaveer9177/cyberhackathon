@@ -154,6 +154,29 @@ fn analyze_block_security(
                     findings,
                 );
             }
+            StmtNode::TryCatch(try_catch) => {
+                analyze_block_security(
+                    &try_catch.try_body,
+                    params,
+                    file_path,
+                    finding_counter,
+                    findings,
+                );
+                analyze_block_security(
+                    &try_catch.catch_body,
+                    params,
+                    file_path,
+                    finding_counter,
+                    findings,
+                );
+                analyze_block_security(
+                    &try_catch.finally_body,
+                    params,
+                    file_path,
+                    finding_counter,
+                    findings,
+                );
+            }
             StmtNode::Expression(e) => {
                 inspect_call_in_expr(e, &var_table, file_path, finding_counter, findings);
             }

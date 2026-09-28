@@ -525,6 +525,11 @@ fn collect_statements(
                 }
                 collect_statements(&l.body, vars, calls, returns, scope, file_path);
             }
+            StmtNode::TryCatch(t) => {
+                collect_statements(&t.try_body, vars, calls, returns, scope, file_path);
+                collect_statements(&t.catch_body, vars, calls, returns, scope, file_path);
+                collect_statements(&t.finally_body, vars, calls, returns, scope, file_path);
+            }
             StmtNode::Expression(e) => {
                 extract_calls_from_expr(e, calls);
             }

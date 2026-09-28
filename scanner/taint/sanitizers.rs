@@ -1,0 +1,118 @@
+#![allow(dead_code)]
+
+use crate::taint::types::TaintKind;
+use std::collections::HashSet;
+
+pub struct SanitizerModel;
+
+impl SanitizerModel {
+    /// Returns which taint kinds are legitimately sanitized by the given expression.
+    /// Crucial: HTML escaping does NOT sanitize SQL; numeric casting does NOT sanitize Path Traversal.
+    pub fn sanitized_kinds(expr: &str) -> (HashSet<TaintKind>, Option<String>) {
+        let mut kinds = HashSet::new();
+        let mut used_name = None;
+        let lower = expr.to_lowercase();
+
+        // 1. SQL Sanitizers (numeric casting, parameterized wrappers)
+        if lower.contains("int(")
+            || lower.contains("float(")
+            || lower.contains("parseint(")
+            || lower.contains("parsefloat(")
+            || lower.contains("number(")
+            || lower.contains("strconv.atoi(")
+            || lower.contains("strconv.parseint(")
+            || lower.contains("integer.parseint(")
+            || lower.contains("long.parselong(")
+            || lower.contains("double.parsedouble(")
+            || lower.contains("to_i")
+        {
+            kinds.insert(TaintKind::Sql);
+            kinds.insert(TaintKind::Xss); // Numbers are also safe against HTML injection
+            if used_name.is_none() {
+                used_name = Some("numeric_typecast".to_string());
+            }
+        }
+
+        // 2. Command Injection Sanitizers
+        if lower.contains("shlex.quote(")
+            || lower.contains("escapeshellarg(")
+            || lower.contains("escapeshellcmd(")
+            || lower.contains("shell_escape(")
+        {
+            kinds.insert(TaintKind::Command);
+            if used_name.is_none() {
+                used_name = Some("shell_escape_function".to_string());
+            }
+        }
+
+        // 3. Path Traversal Sanitizers
+        if lower.contains("os.path.basename(")
+            || lower.contains("path.basename(")
+            || lower.contains("filepath.base(")
+            || lower.contains("secure_filename(")
+            || lower.contains("path.clean(")
+            || lower.contains("filepath.clean(")
+        {
+            kinds.insert(TaintKind::Path);
+            if used_name.is_none() {
+                used_name = Some("basename_path_isolation".to_string());
+            }
+        }
+
+        // 4. SSRF Sanitizers (URL validation, allowlisting)
+        if lower.contains("is_safe_url(")
+            || lower.contains("validate_url(")
+            || lower.contains("validate_ip(")
+            || lower.contains("check_url_allowlist(")
+            || lower.contains("is_allowed_host(")
+        {
+            kinds.insert(TaintKind::Ssrf);
+            if used_name.is_none() {
+                used_name = Some("url_allowlist_validator".to_string());
+            }
+        }
+
+        // 5. XSS Sanitizers (HTML entity encoders)
+        // NOTICE: Does NOT sanitize SQL or Command!
+        if lower.contains("html.escape(")
+            || lower.contains("cgi.escape(")
+            || lower.contains("dompurify.sanitize(")
+            || lower.contains("escapehtml(")
+            || lower.contains("encodeuricomponent(")
+            || lower.contains("validator.escape(")
+        {
+            kinds.insert(TaintKind::Xss);
+            if used_name.is_none() {
+                used_name = Some("html_entity_encoder".to_string());
+            }
+        }
+
+        // 6. Template Injection Sanitizers
+        if lower.contains("render_template(") && !lower.contains("render_template_string(") {
+            kinds.insert(TaintKind::Template);
+            if used_name.is_none() {
+                used_name = Some("static_template_file".to_string());
+            }
+        }
+
+        // 7. Deserialization Sanitizers (safe parsers)
+        if lower.contains("yaml.safe_load(")
+            || lower.contains("json.loads(")
+            || lower.contains("json.parse(")
+            || lower.contains("json.unmarshal(")
+        {
+            kinds.insert(TaintKind::Deserialization);
+            if used_name.is_none() {
+                used_name = Some("safe_deserializer".to_string());
+            }
+        }
+
+        (kinds, used_name)
+    }
+
+    /// Evaluates if an expression effectively sanitizes a specific vulnerability taint kind.
+    pub fn is_effective_for(kind: TaintKind, expr: &str) -> bool {
+        let (sanitized_kinds, _) = Self::sanitized_kinds(expr);
+        sanitized_kinds.contains(&kind)
+    }
+}

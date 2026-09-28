@@ -144,12 +144,21 @@ pub struct LoopNode {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TryCatchNode {
+    pub try_body: Vec<StmtNode>,
+    pub catch_body: Vec<StmtNode>,
+    pub finally_body: Vec<StmtNode>,
+    pub line: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum StmtNode {
     Assignment(AssignmentNode),
     Call(ExprNode),
     Return(ReturnNode),
     Condition(ConditionNode),
     Loop(LoopNode),
+    TryCatch(TryCatchNode),
     Expression(ExprNode),
 }
 
@@ -161,6 +170,7 @@ impl StmtNode {
             StmtNode::Return(r) => r.line,
             StmtNode::Condition(c) => c.line,
             StmtNode::Loop(l) => l.line,
+            StmtNode::TryCatch(t) => t.line,
             StmtNode::Expression(e) => e.line(),
         }
     }
