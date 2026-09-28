@@ -1,6 +1,6 @@
-# VibeGuard v6.9.0 — Autonomous Git Pre-Push Security Gate & Code Security Scanner
+# VibeGuard v7.0.0 — Deep Offline Security Engine
 
-[![Version](https://img.shields.io/badge/version-v6.9.0-blue.svg)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v7.0.0-blue.svg)](docs/CHANGELOG.md)
 [![Security Gate](https://img.shields.io/badge/security_gate-PASSED_100%2F100-brightgreen.svg)](ultimate_test.bat)
 [![Engines](https://img.shields.io/badge/engines-Go_1.21+_|_Rust_1.70+-orange.svg)](docs/LANGUAGE.md)
 [![SARIF](https://img.shields.io/badge/SARIF-2.1.0_Compliant-purple.svg)](internal/report/sarif.go)
@@ -13,50 +13,69 @@
 
 ## Overview
 
-**VibeGuard v6.9.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It stops hardcoded secrets, dangerous code patterns (SAST with multi-language AST, semantic project modeling, deep interprocedural taint propagation, control-flow/type/value analysis, framework-aware analysis, configuration and container deep analysis, and deepened semantic security rules), vulnerable third-party dependencies (via local offline security database and SCA), Docker & Docker Compose misconfigurations, and sensitive configuration leaks *before* they are pushed to remote repositories or deployed to production.
+**VibeGuard v7.0.0** is an enterprise-grade security scanner and autonomous Git pre-push hook gate written in **Go** and **Rust**. It executes a complete 20-stage deep analysis pipeline — from file discovery through correlation and confidence scoring — entirely offline, with zero network dependency during scanning.
 
 ```
-                    Developer Shell / Git CLI
-                                │
-                ┌───────────────┴───────────────┐
-                ▼                               ▼
-        git push / vibeguard push        vibeguard scan
-                │                               │
-                ▼                               │
-         Git Pre-Push Hook                      │
-   (stdin: local & remote refs)                 │
-                │                               │
-                ▼                               │
-      Commit Tree Snapshot                      │
-   (committed tree, not dirty)                  │
-                │                               │
-                ▼                               │
-   ┌─────────────────────────────────────────┐  │
-   │      VibeGuard Security Gate (Go)       │  │
-   │  ┌───────────────────────────────────┐  │  │
-   │  │ 1. Project Detection              │  │  │
-   │  ├───────────────────────────────────┤  │  │
-   │  │ 2. Secret Scan (Rust Engine)      │  │  │
-   │  ├───────────────────────────────────┤  │  │
-   │  │ 3. Lexical SAST Scan              │  │  │
-   │  ├───────────────────────────────────┤  │  │
-   │  │ 4. Multi-Language AST Analysis    │  │  │
-   │  ├───────────────────────────────────┤  │  │
-   │  │ 5. Semantic Project Model & Calls │  │  │
-   │  ├───────────────────────────────────┤  │  │
-   │  │ 6. Deep Data-Flow / Taint Engine  │  │  │
-   │  ├───────────────────────────────────┤  │  │
-   │  │ 7. Control Flow & Type Tracking   │  │  │
-   │  ├───────────────────────────────────┤  │  │
-   │  │ 8. Semantic Security Rules        │  │  │
-   │  ├───────────────────────────────────┤  │  │
-   │  │ 9. Offline Security Database (DB) │  │  │
-   │  ├───────────────────────────────────┤  │  │
-   │  │ 10. Security Policy Evaluation    │  │  │
-   │  └───────────────────────────────────┘  │  │
-   └────────────────────┬────────────────────┘  │
-                        │                       │
-           ┌────────────┴────────────┐          │
+PROJECT
+   ↓
+File Discovery
+   ↓
+Classification
+   ↓
+Lexical Analysis
+   ↓
+AST Parsing
+   ↓
+Semantic Model
+   ↓
+Symbol Table
+   ↓
+Call Graph
+   ↓
+Control Flow
+   ↓
+Type / Value Analysis
+   ↓
+Cross-File Data Flow
+   ↓
+Taint Analysis
+   ↓
+Sanitizer Analysis
+   ↓
+Security Rules
+   ↓
+Configuration Analysis
+   ↓
+Docker Analysis
+   ↓
+Local Vulnerability DB
+   ↓
+Correlation
+   ↓
+Finding Verification
+   ↓
+Deduplication
+   ↓
+Confidence Scoring
+   ↓
+JSON / SARIF / HTML / Terminal
+```
+
+### Quality Targets (v7.0)
+
+VibeGuard measures detection quality by Precision / Recall / F1 — not by "how many rules do we have":
+
+| Metric | Definition |
+|---|---|
+| **Recall** | TP / (TP + FN) — Did we find real vulnerabilities? |
+| **Precision** | TP / (TP + FP) — Are our findings trustworthy? |
+| **F1 Score** | 2 × (Precision × Recall) / (Precision + Recall) |
+| **Analysis scope** | intra-function, cross-function, cross-file, framework-aware, config-aware |
+| **Offline capability** | No network required for complete scan + local dependency analysis + local vuln DB + report |
+
+Run `vibeguard benchmark <project>` to get a full pipeline quality report with confidence breakdown, correlation chains, and scope statistics.
+
+
            ▼                         ▼          ▼
      Score >= 90                Score < 90 / Findings
      [PASS: Code Pushed]        [BLOCK: Push Aborted]

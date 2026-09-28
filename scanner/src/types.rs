@@ -116,4 +116,7 @@ pub struct ScanResult {
     pub scan_time_ms: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scan_warnings: Option<Vec<ScanWarning>>,
+    /// v7.0 — Deep Offline Security Engine pipeline metadata
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pipeline_meta: Option<crate::pipeline::PipelineMeta>,
 }

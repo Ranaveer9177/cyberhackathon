@@ -25,13 +25,28 @@ type ScanWarning struct {
 }
 
 type ScanResult struct {
-	Project       string        `json:"project"`
-	FilesScanned  int           `json:"files_scanned"`
-	FilesSkipped  int           `json:"files_skipped,omitempty"`
-	ExcludedFiles int           `json:"excluded_files,omitempty"`
-	Findings      []Finding     `json:"findings"`
-	ScanTimeMs    int64         `json:"scan_time_ms"`
-	ScanWarnings  []ScanWarning `json:"scan_warnings,omitempty"`
+	Project        string          `json:"project"`
+	FilesScanned   int             `json:"files_scanned"`
+	FilesSkipped   int             `json:"files_skipped,omitempty"`
+	ExcludedFiles  int             `json:"excluded_files,omitempty"`
+	Findings       []Finding       `json:"findings"`
+	ScanTimeMs     int64           `json:"scan_time_ms"`
+	ScanWarnings   []ScanWarning   `json:"scan_warnings,omitempty"`
+	// v7.0 pipeline metadata — populated by the Rust scanner's pipeline post-processor
+	PipelineMetaRaw json.RawMessage `json:"pipeline_meta,omitempty"`
+}
+
+// RawMeta decodes and returns the v7.0 pipeline metadata embedded in this scan result.
+// Returns (PipelineMeta, true) if pipeline_meta was present, or (PipelineMeta{}, false) otherwise.
+func (r *ScanResult) RawMeta() (PipelineMeta, bool) {
+	if len(r.PipelineMetaRaw) == 0 {
+		return PipelineMeta{}, false
+	}
+	var pm PipelineMeta
+	if err := json.Unmarshal(r.PipelineMetaRaw, &pm); err != nil {
+		return PipelineMeta{}, false
+	}
+	return pm, true
 }
 
 type Finding struct {

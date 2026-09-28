@@ -11,6 +11,8 @@ pub mod docker;
 #[path = "../frameworks/mod.rs"]
 pub mod frameworks;
 mod git;
+#[path = "../pipeline/mod.rs"]
+pub mod pipeline;
 mod rules;
 mod sast;
 mod scanner;
@@ -61,7 +63,7 @@ fn main() {
     }
 
     if args.iter().any(|a| a == "--version" || a == "-v") {
-        println!("vibeguard-scanner v6.9.0");
+        println!("vibeguard-scanner v7.0.0");
         std::process::exit(0);
     }
 
@@ -257,6 +259,7 @@ fn main() {
     all_findings.append(&mut cross_docker_findings);
 
     // Cross-file Semantic Project Model & Deep Taint Engine
+    let mut taint_flows: Vec<taint::TaintFlow> = Vec::new();
     if enable_sast && !parsed_ast_files.is_empty() {
         let file_refs: Vec<(&str, &ast::types::FileNode)> = parsed_ast_files
             .iter()
@@ -268,7 +271,7 @@ fn main() {
             semantic::security::analyze_project_semantic(&model, &mut finding_counter);
         all_findings.append(&mut semantic_findings);
 
-        let taint_flows = taint::analyze_deep_taint(&model, &file_refs);
+        taint_flows = taint::analyze_deep_taint(&model, &file_refs);
         let mut deep_taint_findings =
             analysis::generate_taint_findings(&taint_flows, &mut finding_counter);
         all_findings.append(&mut deep_taint_findings);
@@ -283,7 +286,14 @@ fn main() {
         all_findings.append(&mut git_findings);
     }
 
+    let raw_count = all_findings.len();
     let all_findings = deduplicate_findings(all_findings);
+    let dedup_count = all_findings.len();
+    let suppressed = raw_count.saturating_sub(dedup_count);
+
+    // ── v7.0: Pipeline post-processor (confidence, correlation, scope stats) ──
+    let (all_findings, pipeline_meta) =
+        pipeline::run_pipeline_postprocessor(all_findings, raw_count, suppressed, &taint_flows);
 
     let project_name = Path::new(project_path)
         .file_name()
@@ -313,6 +323,7 @@ fn main() {
         } else {
             Some(scan_warnings)
         },
+        pipeline_meta: Some(pipeline_meta),
     };
 
     match serde_json::to_string(&result) {
