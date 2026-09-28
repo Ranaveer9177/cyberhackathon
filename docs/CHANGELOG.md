@@ -2,6 +2,24 @@
 
 All notable changes to the VibeGuard project are documented in this file.
 
+## [v6.7.0] — 2026-09-28 (Framework-Aware Analysis)
+
+### Added
+- **Framework-Aware Modeling Engine (`scanner/frameworks/`)**:
+  - Implemented specialized models for 6 major enterprise web frameworks: **Flask**, **Django**, **FastAPI**, **Express**, **NestJS**, and **Spring**.
+  - Structured 8-point analysis modeling for each framework:
+    1. **Sources**: Request parameters, query strings, headers, cookies, body payloads, and path variables.
+    2. **Sinks**: Database execution, raw ORM queries, response reflections, open redirects, and unsafe template rendering.
+    3. **Sanitizers**: Framework validation pipes, escaping utilities, type casts, and secure file wrappers.
+    4. **Routing**: Endpoint decorators (`@app.route`, `@router.get`, `app.get`, `@Get`, `@GetMapping`, `urlpatterns`).
+    5. **Request objects**: `flask.request`, `django.http.HttpRequest`, `fastapi.Request`, `express.Request`, `HttpServletRequest`.
+    6. **Database interfaces**: SQLAlchemy, Django ORM, Prisma, Sequelize, TypeORM, JdbcTemplate, JPA EntityManager.
+    7. **Template rendering**: Distinguishes safe template files from dynamic string rendering (SSTI/XSS).
+    8. **Authentication**: Route security decorators (`@login_required`, `Depends(get_current_user)`, `passport.authenticate`, `@UseGuards`, `@PreAuthorize`).
+- **Cross-Layer Interprocedural Tracing**:
+  - Resolves cross-file flows from `HTTP request -> Route -> Service -> Repository -> Database Sink` without requiring everything in a single file.
+  - Automatically seeds entrypoint route parameters with untrusted taints and tracks them through call graphs and module imports.
+
 ## [v6.6.0] — 2026-09-28 (Security Rule Deepening)
 
 ### Added

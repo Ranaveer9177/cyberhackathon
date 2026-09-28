@@ -6,7 +6,8 @@ pub mod analysis;
 
 mod config;
 mod docker;
-mod frameworks;
+#[path = "../frameworks/mod.rs"]
+pub mod frameworks;
 mod git;
 mod rules;
 mod sast;
@@ -58,7 +59,7 @@ fn main() {
     }
 
     if args.iter().any(|a| a == "--version" || a == "-v") {
-        println!("vibeguard-scanner v6.6.0");
+        println!("vibeguard-scanner v6.7.0");
         std::process::exit(0);
     }
 

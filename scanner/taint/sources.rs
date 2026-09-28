@@ -1,10 +1,15 @@
-#![allow(dead_code)]
+use crate::frameworks::FrameworkRegistry;
 
 pub struct SourceModel;
 
 impl SourceModel {
     /// Detects if an expression or variable initialization originates from an external untrusted source.
     pub fn is_untrusted_source(expr: &str) -> bool {
+        let registry = FrameworkRegistry::new();
+        if registry.is_request_source(expr) {
+            return true;
+        }
+
         let lower = expr.to_lowercase();
 
         // Python (Flask, Django, FastAPI)
@@ -67,6 +72,11 @@ impl SourceModel {
 
     /// Checks if a parameter name indicates incoming request / user input.
     pub fn is_untrusted_parameter_name(name: &str) -> bool {
+        let registry = FrameworkRegistry::new();
+        if registry.is_request_param(name) {
+            return true;
+        }
+
         let lower = name.to_lowercase();
         lower.contains("user_id")
             || lower.contains("uid")

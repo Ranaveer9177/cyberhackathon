@@ -223,7 +223,11 @@ fn is_likely_source(func: &symbols::FunctionSymbol) -> bool {
     }
 
     // Check if parameters indicate external input
+    let fw = crate::frameworks::FrameworkRegistry::new();
     for p in &func.parameters {
+        if fw.is_request_param(&p.name) {
+            return true;
+        }
         let p_lower = p.name.to_lowercase();
         if p_lower.contains("req")
             || p_lower.contains("request")
@@ -241,6 +245,9 @@ fn is_likely_source(func: &symbols::FunctionSymbol) -> bool {
     // Check local variables for request / input access
     for var in func.local_variables.values() {
         if let Some(val) = &var.initial_value {
+            if fw.is_request_source(val) {
+                return true;
+            }
             let v_lower = val.to_lowercase();
             if v_lower.contains("request.args")
                 || v_lower.contains("request.form")
@@ -261,6 +268,10 @@ fn is_likely_source(func: &symbols::FunctionSymbol) -> bool {
 }
 
 fn classify_sink(callee: &str) -> Option<(String, String)> {
+    if let Some((kind, name)) = crate::frameworks::FrameworkRegistry::new().classify_sink(callee) {
+        return Some((format!("{:?}", kind).to_uppercase(), name.to_string()));
+    }
+
     let clean = callee.trim();
 
     // SQL Injection Sinks

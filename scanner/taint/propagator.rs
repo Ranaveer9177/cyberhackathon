@@ -617,15 +617,26 @@ fn is_api_entrypoint(name: &str, file: &str) -> bool {
     let lower_file = file.to_lowercase();
 
     lower_file.contains("routes")
+        || lower_file.contains("route")
         || lower_file.contains("views")
+        || lower_file.contains("view")
         || lower_file.contains("controllers")
+        || lower_file.contains("controller")
         || lower_file.contains("api")
+        || lower_file.contains("endpoints")
+        || lower_file.contains("endpoint")
+        || lower_file.contains("handlers")
+        || lower_file.contains("handler")
         || lower_file.contains("app.py")
+        || lower_file.contains("main.py")
         || lower_file.contains("server.")
+        || lower_file.contains("index.")
         || lower_name.starts_with("handle_")
         || lower_name.starts_with("get_")
         || lower_name.starts_with("post_")
         || lower_name.starts_with("put_")
         || lower_name.starts_with("delete_")
+        || lower_name.starts_with("patch_")
         || lower_name == "main"
+        || lower_name == "handler"
 }

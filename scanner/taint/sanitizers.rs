@@ -1,5 +1,4 @@
-#![allow(dead_code)]
-
+use crate::frameworks::FrameworkRegistry;
 use crate::taint::types::TaintKind;
 use std::collections::HashSet;
 
@@ -9,8 +8,7 @@ impl SanitizerModel {
     /// Returns which taint kinds are legitimately sanitized by the given expression.
     /// Crucial: HTML escaping does NOT sanitize SQL; numeric casting does NOT sanitize Path Traversal.
     pub fn sanitized_kinds(expr: &str) -> (HashSet<TaintKind>, Option<String>) {
-        let mut kinds = HashSet::new();
-        let mut used_name = None;
+        let (mut kinds, mut used_name) = FrameworkRegistry::new().sanitize_kinds(expr);
         let lower = expr.to_lowercase();
 
         // 1. SQL Sanitizers (numeric casting, parameterized wrappers)
