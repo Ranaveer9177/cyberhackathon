@@ -342,16 +342,21 @@ pub fn rule_cwe(rule_id: &str) -> Option<&'static str> {
         "VG-AUTH-002" => Some("CWE-330"),
         "VG-WEBHOOK-001" | "VG-DCK-005" => Some("CWE-345"),
         "VG-DCK-001" | "VG-DCK-004" | "VG-DCK-008" | "VG-DCK-011" | "VG-DCK-012" | "VG-DCK-013"
-        | "VG-DCK-015" => Some("CWE-250"),
+        | "VG-DCK-015" | "VG-DCK-019" => Some("CWE-250"),
         "VG-DCK-002" => Some("CWE-214"),
-        "VG-DCK-006" | "VG-DCK-007" | "VG-DCK-016" => Some("CWE-668"),
+        "VG-DCK-006" | "VG-DCK-007" | "VG-DCK-016" | "VG-DCK-018" => Some("CWE-668"),
         "VG-DCK-009" => Some("CWE-552"),
         "VG-DCK-010" => Some("CWE-259"),
+        "VG-DCK-017" => Some("CWE-798"),
         "VG-DCK-003" | "VG-DCK-014" | "VG-CFG-004" | "VG-SECRET-FILE" => Some("CWE-200"),
         "VG-CFG-001" => Some("CWE-489"),
         "VG-CFG-002" => Some("CWE-942"),
         "VG-CFG-003" => Some("CWE-668"),
         "VG-CFG-005" => Some("CWE-319"),
+        "VG-CFG-006" => Some("CWE-614"),
+        "VG-CFG-007" => Some("CWE-295"),
+        "VG-CFG-008" => Some("CWE-798"),
+        "VG-CFG-009" => Some("CWE-1188"),
         _ => None,
     }
 }

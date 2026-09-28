@@ -2,6 +2,28 @@
 
 All notable changes to the VibeGuard project are documented in this file.
 
+## [v6.8.0] — 2026-09-28 (Configuration + Container Deep Analysis)
+
+### Added
+- **Configuration Deep Analysis Engine (`scanner/config/`)**:
+  - Implemented multi-format configuration parsers for **.env**, **YAML**, **JSON**, **TOML**, and **INI/CFG**.
+  - Detects critical misconfigurations:
+    - Debug mode enabled (`VG-CFG-001`, CWE-489)
+    - Wildcard CORS origins (`VG-CFG-002`, CWE-942)
+    - Binding to 0.0.0.0 (`VG-CFG-003`, CWE-668)
+    - Plain HTTP endpoints (`VG-CFG-005`, CWE-319)
+    - Weak security configurations (disabled secure/httpOnly cookies, disabled CSRF, disabled HSTS) (`VG-CFG-006`, CWE-614)
+    - Disabled TLS / SSL certificate verification (`VG-CFG-007`, CWE-295)
+    - Hardcoded secrets and embedded database credentials (`VG-CFG-008`, CWE-798)
+    - Known insecure default passwords and initializations (`VG-CFG-009`, CWE-1188)
+- **Container & Docker Deep Relationship Analysis (`scanner/docker/`)**:
+  - Deep AST-like instruction parser for Dockerfile and Docker Compose multi-service definitions.
+  - Cross-relationship analyses:
+    - Sensitive build context leakage (`.env`, `*.pem`, `id_rsa`) via `COPY . .` without `.dockerignore` (`VG-DCK-014`, CWE-200)
+    - Sensitive build-time credentials leaked in Dockerfile `ARG` (`VG-DCK-017`, CWE-798)
+    - Unrestricted inter-service host port publishing for private databases/caches (`VG-DCK-018`, CWE-668)
+    - Root container execution with mounted host filesystem volumes (`VG-DCK-019`, CWE-250)
+
 ## [v6.7.0] — 2026-09-28 (Framework-Aware Analysis)
 
 ### Added
