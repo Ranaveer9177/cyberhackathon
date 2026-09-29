@@ -11,7 +11,7 @@ impl SanitizerModel {
         let (mut kinds, mut used_name) = FrameworkRegistry::new().sanitize_kinds(expr);
         let lower = expr.to_lowercase();
 
-        // 1. SQL Sanitizers (numeric casting, parameterized wrappers)
+        // 1. SQL & Command Sanitizers (numeric casting, parameterized wrappers)
         if lower.contains("int(")
             || lower.contains("float(")
             || lower.contains("parseint(")
@@ -25,6 +25,7 @@ impl SanitizerModel {
             || lower.contains("to_i")
         {
             kinds.insert(TaintKind::Sql);
+            kinds.insert(TaintKind::Command); // Numeric scalars cannot inject shell command operators
             kinds.insert(TaintKind::Xss); // Numbers are also safe against HTML injection
             if used_name.is_none() {
                 used_name = Some("numeric_typecast".to_string());
@@ -112,5 +113,86 @@ impl SanitizerModel {
     pub fn is_effective_for(kind: TaintKind, expr: &str) -> bool {
         let (sanitized_kinds, _) = Self::sanitized_kinds(expr);
         sanitized_kinds.contains(&kind)
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    #[test]
+    fn test_shlex_quote_sanitizer_precision() {
+        assert!(SanitizerModel::is_effective_for(
+            TaintKind::Command,
+            "shlex.quote(user_input)"
+        ));
+        assert!(!SanitizerModel::is_effective_for(
+            TaintKind::Sql,
+            "shlex.quote(user_input)"
+        ));
+        assert!(!SanitizerModel::is_effective_for(
+            TaintKind::Path,
+            "shlex.quote(user_input)"
+        ));
+    }
+
+    #[test]
+    fn test_basename_sanitizer_precision() {
+        assert!(SanitizerModel::is_effective_for(
+            TaintKind::Path,
+            "os.path.basename(path)"
+        ));
+        assert!(SanitizerModel::is_effective_for(
+            TaintKind::Path,
+            "filepath.Base(path)"
+        ));
+        assert!(!SanitizerModel::is_effective_for(
+            TaintKind::Command,
+            "os.path.basename(path)"
+        ));
+        assert!(!SanitizerModel::is_effective_for(
+            TaintKind::Sql,
+            "os.path.basename(path)"
+        ));
+    }
+
+    #[test]
+    fn test_numeric_cast_sanitizer_precision() {
+        assert!(SanitizerModel::is_effective_for(
+            TaintKind::Sql,
+            "int(user_id)"
+        ));
+        assert!(SanitizerModel::is_effective_for(
+            TaintKind::Sql,
+            "float(price)"
+        ));
+        assert!(SanitizerModel::is_effective_for(
+            TaintKind::Command,
+            "int(port)"
+        ));
+        assert!(SanitizerModel::is_effective_for(
+            TaintKind::Command,
+            "float(timeout)"
+        ));
+        assert!(!SanitizerModel::is_effective_for(
+            TaintKind::Ssrf,
+            "int(id)"
+        ));
+    }
+
+    #[test]
+    fn test_html_escape_does_not_sanitize_sql() {
+        assert!(SanitizerModel::is_effective_for(
+            TaintKind::Xss,
+            "html.escape(raw)"
+        ));
+        assert!(!SanitizerModel::is_effective_for(
+            TaintKind::Sql,
+            "html.escape(raw)"
+        ));
+        assert!(!SanitizerModel::is_effective_for(
+            TaintKind::Command,
+            "html.escape(raw)"
+        ));
     }
 }

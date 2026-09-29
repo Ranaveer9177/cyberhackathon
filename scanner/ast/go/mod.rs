@@ -260,14 +260,58 @@ pub fn parse_go_expr(raw: &str, line: usize) -> ExprNode {
         };
     }
 
+    fn find_top_level_binop(s: &str) -> Option<(usize, &str)> {
+        let mut paren_depth = 0;
+        let mut bracket_depth = 0;
+        let mut brace_depth = 0;
+        let mut in_single = false;
+        let mut in_double = false;
+
+        for (i, c) in s.char_indices() {
+            match c {
+                '\'' if !in_double => in_single = !in_single,
+                '"' if !in_single => in_double = !in_double,
+                '(' if !in_single && !in_double => paren_depth += 1,
+                ')' if !in_single && !in_double => {
+                    if paren_depth > 0 {
+                        paren_depth -= 1;
+                    }
+                }
+                '[' if !in_single && !in_double => bracket_depth += 1,
+                ']' if !in_single && !in_double => {
+                    if bracket_depth > 0 {
+                        bracket_depth -= 1;
+                    }
+                }
+                '{' if !in_single && !in_double => brace_depth += 1,
+                '}' if !in_single && !in_double => {
+                    if brace_depth > 0 {
+                        brace_depth -= 1;
+                    }
+                }
+                '+' if !in_single
+                    && !in_double
+                    && paren_depth == 0
+                    && bracket_depth == 0
+                    && brace_depth == 0 =>
+                {
+                    return Some((i, "+"));
+                }
+                _ => {}
+            }
+        }
+        None
+    }
+
     // 5. Binary op (+)
-    if trimmed.contains('+') {
-        let parts: Vec<&str> = trimmed.splitn(2, '+').collect();
-        if parts.len() == 2 {
+    if let Some((idx, op)) = find_top_level_binop(trimmed) {
+        let left_part = trimmed[..idx].trim();
+        let right_part = trimmed[idx + op.len()..].trim();
+        if !left_part.is_empty() && !right_part.is_empty() {
             return ExprNode::BinaryOp {
-                op: "+".to_string(),
-                left: Box::new(parse_go_expr(parts[0], line)),
-                right: Box::new(parse_go_expr(parts[1], line)),
+                op: op.to_string(),
+                left: Box::new(parse_go_expr(left_part, line)),
+                right: Box::new(parse_go_expr(right_part, line)),
                 line,
             };
         }

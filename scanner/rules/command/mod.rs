@@ -9,8 +9,9 @@ use crate::types::{Category, Finding, Severity};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CommandControl {
     Constant,
-    PartiallyControlled,
-    FullyControlled,
+    Unknown,
+    UserControlled,
+    Derived,
     Sanitized,
 }
 
@@ -21,10 +22,13 @@ pub enum ShellMode {
     DirectShell,
 }
 
+use std::collections::{HashMap, HashSet};
+
 pub struct CommandRuleEngine<'a> {
     pub file_node: &'a FileNode,
     pub var_types: &'a TypeEnvironment,
     pub constants: &'a ConstantEnvironment,
+    pub sanitized_vars: &'a HashMap<String, HashSet<crate::taint::types::TaintKind>>,
 }
 
 impl<'a> CommandRuleEngine<'a> {
@@ -32,11 +36,13 @@ impl<'a> CommandRuleEngine<'a> {
         file_node: &'a FileNode,
         var_types: &'a TypeEnvironment,
         constants: &'a ConstantEnvironment,
+        sanitized_vars: &'a HashMap<String, HashSet<crate::taint::types::TaintKind>>,
     ) -> Self {
         Self {
             file_node,
             var_types,
             constants,
+            sanitized_vars,
         }
     }
 
@@ -135,22 +141,35 @@ impl<'a> CommandRuleEngine<'a> {
                 let fid = format!("VG-{:03}", *finding_counter);
                 let snippet = expr.to_source_string();
 
-                let (sev, title_suffix) = match control {
-                    CommandControl::FullyControlled => (
+                let (sev, title_suffix, conf) = match control {
+                    CommandControl::UserControlled => (
                         Severity::CRITICAL,
-                        "Arbitrary Command Injection (Fully Controlled)",
+                        "Arbitrary Command Injection (User-Controlled)",
+                        "HIGH",
                     ),
-                    CommandControl::PartiallyControlled => match shell_mode {
+                    CommandControl::Derived => match shell_mode {
                         ShellMode::ShellTrue | ShellMode::DirectShell => (
                             Severity::CRITICAL,
                             "Command Injection (Shell Metacharacters Enabled)",
+                            "HIGH",
                         ),
                         ShellMode::ShellFalse => (
                             Severity::HIGH,
                             "Argument Injection (Shell Disabled, Subprocess Argument)",
+                            "HIGH",
                         ),
                     },
-                    _ => (Severity::HIGH, "Command Injection"),
+                    CommandControl::Unknown => match shell_mode {
+                        ShellMode::ShellTrue | ShellMode::DirectShell => (
+                            Severity::HIGH,
+                            "Command Execution (Unknown Variable Source)",
+                            "MEDIUM",
+                        ),
+                        ShellMode::ShellFalse => {
+                            (Severity::LOW, "Potential Command Execution", "LOW")
+                        }
+                    },
+                    _ => (Severity::HIGH, "Command Injection", "MEDIUM"),
                 };
 
                 findings.push(Finding {
@@ -170,7 +189,7 @@ impl<'a> CommandRuleEngine<'a> {
                     recommendation: Some(
                         "Pass arguments as a fixed array with shell=False, or sanitize parameters using shlex.quote() / escapeshellarg(). Avoid dynamic shell string concatenation.".to_string(),
                     ),
-                    confidence: "HIGH".to_string(),
+                    confidence: conf.to_string(),
                     source: Some(callee_str.clone()),
                     sink: Some(format!("{}:{}", self.file_node.file_path, line)),
                     data_flow: Some(vec![format!("{}: {}", line, expr.to_source_string())]),
@@ -243,10 +262,18 @@ impl<'a> CommandRuleEngine<'a> {
                 return (CommandControl::Constant, shell_mode);
             }
 
-            // 1. Sanitized Check: shlex.quote() or regex validation
+            // 1. Sanitized Check: shlex.quote() or regex validation or previously sanitized variable
             let (sanitized_kinds, is_sanitizer) = SanitizerModel::sanitized_kinds(&cmd_str);
+            let is_var_sanitized = if let ExprNode::Identifier { name, .. } = cmd_arg {
+                self.sanitized_vars
+                    .get(name)
+                    .is_some_and(|kinds| kinds.contains(&crate::taint::types::TaintKind::Command))
+            } else {
+                false
+            };
             if is_sanitizer.is_some()
                 || sanitized_kinds.contains(&crate::taint::types::TaintKind::Command)
+                || is_var_sanitized
             {
                 return (CommandControl::Sanitized, shell_mode);
             }
@@ -261,7 +288,7 @@ impl<'a> CommandRuleEngine<'a> {
                 if all_constant {
                     return (CommandControl::Constant, shell_mode);
                 } else {
-                    return (CommandControl::PartiallyControlled, shell_mode);
+                    return (CommandControl::Derived, shell_mode);
                 }
             }
 
@@ -273,7 +300,7 @@ impl<'a> CommandRuleEngine<'a> {
                 if all_constant {
                     return (CommandControl::Constant, shell_mode);
                 } else {
-                    return (CommandControl::PartiallyControlled, shell_mode);
+                    return (CommandControl::Derived, shell_mode);
                 }
             }
 
@@ -288,35 +315,124 @@ impl<'a> CommandRuleEngine<'a> {
                 return (CommandControl::Constant, shell_mode);
             }
 
-            // 6. Formatted string or concatenation with constant binary: Partially Controlled
-            if let ExprNode::FormattedString { raw, .. } = cmd_arg {
-                if raw.starts_with("f\"") || raw.starts_with("f'") {
-                    return (CommandControl::PartiallyControlled, shell_mode);
-                }
-            }
-
-            if let ExprNode::BinaryOp { op, left, .. } = cmd_arg {
-                if op == "+" && self.constants.eval_expr(left).is_constant() {
-                    return (CommandControl::PartiallyControlled, shell_mode);
-                }
-            }
-
-            // 7. Bare identifier or dynamic request parameter: Fully Controlled
-            if let ExprNode::Identifier { .. } = cmd_arg {
-                return (CommandControl::FullyControlled, shell_mode);
-            }
-
+            // 6. Untrusted User Input check: UserControlled
             if cmd_str.contains("request.")
                 || cmd_str.contains("req.")
                 || cmd_str.contains("params[")
                 || cmd_str.contains("args[")
+                || cmd_str.contains("r.URL")
+                || cmd_str.contains("GET[")
+                || cmd_str.contains("POST[")
+                || cmd_str.contains("sys.argv")
+                || cmd_str.contains("input(")
             {
-                return (CommandControl::FullyControlled, shell_mode);
+                return (CommandControl::UserControlled, shell_mode);
             }
 
-            (CommandControl::PartiallyControlled, shell_mode)
+            // 7. Formatted string or concatenation: Derived
+            if let ExprNode::FormattedString { .. } = cmd_arg {
+                return (CommandControl::Derived, shell_mode);
+            }
+
+            if let ExprNode::BinaryOp { op, .. } = cmd_arg {
+                if op == "+" {
+                    return (CommandControl::Derived, shell_mode);
+                }
+            }
+
+            // 8. Bare identifier or expression not proved constant or user-controlled: Unknown
+            if let ExprNode::Identifier { .. } = cmd_arg {
+                return (CommandControl::Unknown, shell_mode);
+            }
+
+            (CommandControl::Unknown, shell_mode)
         } else {
             (CommandControl::Constant, shell_mode)
         }
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+    use crate::ast::parse_file;
+    use crate::semantic_rules::run_semantic_rules;
+    use crate::types::Severity;
+
+    #[test]
+    fn test_constant_command_suppressed() {
+        let code = "CMD = \"ls -la /tmp\"\nos.system(CMD)\n";
+        let file_node = parse_file("test.py", code).expect("parse failed");
+        let parsed_files = [("test.py", &file_node)];
+        let mut counter = 0;
+        let findings = run_semantic_rules(&parsed_files, &mut counter);
+        assert_eq!(
+            findings.len(),
+            0,
+            "Constant command variable must produce 0 findings"
+        );
+    }
+
+    #[test]
+    fn test_concatenated_constant_command_suppressed() {
+        let code = "CMD = \"ls -la \" + \"/tmp\"\nos.system(CMD)\n";
+        let file_node = parse_file("test.py", code).expect("parse failed");
+        let parsed_files = [("test.py", &file_node)];
+        let mut counter = 0;
+        let findings = run_semantic_rules(&parsed_files, &mut counter);
+        assert_eq!(
+            findings.len(),
+            0,
+            "Concatenated constant command must produce 0 findings"
+        );
+    }
+
+    #[test]
+    fn test_sanitized_command_suppressed() {
+        let code = "cmd = shlex.quote(user_input)\nos.system(cmd)\n";
+        let file_node = parse_file("test.py", code).expect("parse failed");
+        let parsed_files = [("test.py", &file_node)];
+        let mut counter = 0;
+        let findings = run_semantic_rules(&parsed_files, &mut counter);
+        assert_eq!(
+            findings.len(),
+            0,
+            "Sanitized command must produce 0 findings"
+        );
+    }
+
+    #[test]
+    fn test_user_controlled_command_detected_critical() {
+        let code = "os.system(request.args.get(\"cmd\"))\n";
+        let file_node = parse_file("test.py", code).expect("parse failed");
+        let parsed_files = [("test.py", &file_node)];
+        let mut counter = 0;
+        let findings = run_semantic_rules(&parsed_files, &mut counter);
+        assert_eq!(findings.len(), 1);
+        assert_eq!(findings[0].severity, Severity::CRITICAL);
+        assert!(findings[0].title.contains("User-Controlled"));
+    }
+
+    #[test]
+    fn test_unknown_variable_command_detected_high() {
+        let code = "os.system(unknown_var)\n";
+        let file_node = parse_file("test.py", code).expect("parse failed");
+        let parsed_files = [("test.py", &file_node)];
+        let mut counter = 0;
+        let findings = run_semantic_rules(&parsed_files, &mut counter);
+        assert_eq!(findings.len(), 1);
+        assert_eq!(findings[0].severity, Severity::HIGH);
+        assert!(findings[0].title.contains("Unknown Variable Source"));
+    }
+
+    #[test]
+    fn test_derived_command_detected() {
+        let code = "os.system(\"ping \" + host)\n";
+        let file_node = parse_file("test.py", code).expect("parse failed");
+        let parsed_files = [("test.py", &file_node)];
+        let mut counter = 0;
+        let findings = run_semantic_rules(&parsed_files, &mut counter);
+        assert_eq!(findings.len(), 1);
+        assert_eq!(findings[0].severity, Severity::CRITICAL);
+        assert!(findings[0].title.contains("Shell Metacharacters Enabled"));
     }
 }

@@ -17,6 +17,44 @@ pub use sql::SqlRuleEngine;
 pub use ssrf::SsrfRuleEngine;
 pub use xss::XssRuleEngine;
 
+use std::collections::{HashMap, HashSet};
+
+fn collect_stmts_env(
+    stmts: &[StmtNode],
+    const_env: &mut ConstantEnvironment,
+    type_env: &mut TypeEnvironment,
+    sanitizer_env: &mut HashMap<String, HashSet<crate::taint::types::TaintKind>>,
+) {
+    for stmt in stmts {
+        match stmt {
+            StmtNode::Assignment(assign) => {
+                let target = assign.target.to_source_string();
+                const_env.set_constant(&target, const_env.eval_expr(&assign.value));
+                type_env.set_type(&target, type_env.infer_expr(&assign.value));
+                let (kinds, _) = crate::taint::sanitizers::SanitizerModel::sanitized_kinds(
+                    &assign.value.to_source_string(),
+                );
+                if !kinds.is_empty() {
+                    sanitizer_env.entry(target).or_default().extend(kinds);
+                }
+            }
+            StmtNode::Condition(c) => {
+                collect_stmts_env(&c.then_body, const_env, type_env, sanitizer_env);
+                collect_stmts_env(&c.else_body, const_env, type_env, sanitizer_env);
+            }
+            StmtNode::Loop(l) => {
+                collect_stmts_env(&l.body, const_env, type_env, sanitizer_env);
+            }
+            StmtNode::TryCatch(t) => {
+                collect_stmts_env(&t.try_body, const_env, type_env, sanitizer_env);
+                collect_stmts_env(&t.catch_body, const_env, type_env, sanitizer_env);
+                collect_stmts_env(&t.finally_body, const_env, type_env, sanitizer_env);
+            }
+            _ => {}
+        }
+    }
+}
+
 /// Runs all semantic security rules (SQL, Command Injection, SSRF, Path Traversal, XSS)
 /// across the project's parsed AST files.
 pub fn run_semantic_rules(
@@ -28,21 +66,42 @@ pub fn run_semantic_rules(
     for (_file_path, file_node) in parsed_files {
         let mut type_env = TypeEnvironment::new();
         let mut const_env = ConstantEnvironment::new();
+        let mut sanitizer_env: HashMap<String, HashSet<crate::taint::types::TaintKind>> =
+            HashMap::new();
 
-        for stmt in &file_node.statements {
-            if let StmtNode::Assignment(assign) = stmt {
-                let target = assign.target.to_source_string();
-                const_env.set_constant(&target, const_env.eval_expr(&assign.value));
-                type_env.set_type(&target, type_env.infer_expr(&assign.value));
-            }
-        }
+        collect_stmts_env(
+            &file_node.statements,
+            &mut const_env,
+            &mut type_env,
+            &mut sanitizer_env,
+        );
         for func in &file_node.functions {
-            for stmt in &func.body {
-                if let StmtNode::Assignment(assign) = stmt {
-                    let target = assign.target.to_source_string();
-                    const_env.set_constant(&target, const_env.eval_expr(&assign.value));
-                    type_env.set_type(&target, type_env.infer_expr(&assign.value));
+            collect_stmts_env(
+                &func.body,
+                &mut const_env,
+                &mut type_env,
+                &mut sanitizer_env,
+            );
+        }
+        for cls in &file_node.classes {
+            for field in &cls.fields {
+                let target = field.target.to_source_string();
+                const_env.set_constant(&target, const_env.eval_expr(&field.value));
+                type_env.set_type(&target, type_env.infer_expr(&field.value));
+                let (kinds, _) = crate::taint::sanitizers::SanitizerModel::sanitized_kinds(
+                    &field.value.to_source_string(),
+                );
+                if !kinds.is_empty() {
+                    sanitizer_env.entry(target).or_default().extend(kinds);
                 }
+            }
+            for method in &cls.methods {
+                collect_stmts_env(
+                    &method.body,
+                    &mut const_env,
+                    &mut type_env,
+                    &mut sanitizer_env,
+                );
             }
         }
 
@@ -51,7 +110,7 @@ pub fn run_semantic_rules(
         findings.append(&mut sql_engine.analyze(finding_counter));
 
         // 2. Semantic Command Injection rules
-        let cmd_engine = CommandRuleEngine::new(file_node, &type_env, &const_env);
+        let cmd_engine = CommandRuleEngine::new(file_node, &type_env, &const_env, &sanitizer_env);
         findings.append(&mut cmd_engine.analyze(finding_counter));
 
         // 3. Semantic SSRF rules

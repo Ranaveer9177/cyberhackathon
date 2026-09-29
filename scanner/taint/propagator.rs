@@ -155,9 +155,14 @@ impl<'a> DeepTaintPropagator<'a> {
                 break;
             }
 
+            let origin = ctx
+                .steps
+                .first()
+                .map(|s| format!("{}:{}", s.file, s.symbol))
+                .unwrap_or_default();
             let ctx_key = format!(
-                "{}:{}:{:?}",
-                ctx.target_func_qname, ctx.param_index, ctx.taint_kind
+                "{}:{}:{}:{:?}",
+                origin, ctx.target_func_qname, ctx.param_index, ctx.taint_kind
             );
             if !visited_contexts.insert(ctx_key) {
                 continue;
