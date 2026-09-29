@@ -29,7 +29,7 @@ struct AnalysisContext<'b> {
     pub cfg: Option<&'b ControlFlowGraph>,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct LocalEnv {
     pub taints: HashMap<String, TaintedVariable>,
     pub type_env: TypeEnvironment,
@@ -391,8 +391,24 @@ impl<'a> DeepTaintPropagator<'a> {
                 }
                 StmtNode::Condition(c) => {
                     self.inspect_calls_in_expr(&c.test, ctx, env, queue, flows);
-                    self.analyze_statement_block(&c.then_body, ctx, env, queue, flows);
-                    self.analyze_statement_block(&c.else_body, ctx, env, queue, flows);
+                    let test_str = c.test.to_source_string();
+                    let is_allowlist_guard = test_str.contains("ALLOWED_")
+                        || test_str.contains("allowlist")
+                        || test_str.contains("whitelist")
+                        || test_str.contains(".is_safe_host");
+
+                    if is_allowlist_guard {
+                        let mut guarded_env = env.clone();
+                        for var in guarded_env.taints.values_mut() {
+                            var.taints.remove(&TaintKind::Ssrf);
+                            var.sanitized_for.insert(TaintKind::Ssrf);
+                        }
+                        self.analyze_statement_block(&c.then_body, ctx, &mut guarded_env, queue, flows);
+                        self.analyze_statement_block(&c.else_body, ctx, env, queue, flows);
+                    } else {
+                        self.analyze_statement_block(&c.then_body, ctx, env, queue, flows);
+                        self.analyze_statement_block(&c.else_body, ctx, env, queue, flows);
+                    }
                 }
                 StmtNode::Loop(l) => {
                     if let Some(cond) = &l.condition {

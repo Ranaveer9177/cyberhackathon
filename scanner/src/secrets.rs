@@ -82,8 +82,14 @@ pub fn compute_secret_confidence(
     // Non-quoted values are code expressions (variables, booleans, types, etc.)
     let is_quoted = (val.starts_with('"') && val.ends_with('"'))
         || (val.starts_with('\'') && val.ends_with('\''));
-    if is_source && (!is_quoted || line.contains("==") || line.contains("!=")) {
+    if is_source && (!is_quoted || line.contains("!=")) {
         return None;
+    }
+    if is_source && line.contains("==") {
+        // Only flag equality comparison if compared value is a long/sensitive string token (len >= 8, not pure digits)
+        if val_clean.len() < 8 || val_clean.chars().all(|c| c.is_ascii_digit()) {
+            return None;
+        }
     }
 
     // Ignore boolean/type/expression tokens
@@ -385,7 +391,7 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
 
     // 3. Credential Assignment Detection with Context + Confidence
     let assign_re = Regex::new(
-        r#"(?i)(?:^|[\s,;{(])(?P<key>[a-zA-Z0-9_-]*(?:password|passwd|pwd|api[_-]?key|apikey|secret|token)[a-zA-Z0-9_-]*)\s*[:=]\s*(?P<val>['"]?[^\s'";,]{3,}['"]?)"#,
+        r#"(?i)(?:^|[\s,;{(])(?P<key>[a-zA-Z0-9_-]*(?:password|passwd|pwd|api[_-]?key|apikey|secret|token|key)[a-zA-Z0-9_-]*)\s*(?:[:=]|==)\s*(?P<val>['"]?[^\s'";,]{3,}['"]?)"#,
     ).unwrap();
 
     for (line_idx, line) in content.lines().enumerate() {

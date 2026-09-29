@@ -1,6 +1,6 @@
 # VibeGuard — Feature Specifications
 
-> **Complete Feature Reference for VibeGuard v6.0.0**
+> **Complete Feature Reference for VibeGuard v7.2.0**
 
 ---
 

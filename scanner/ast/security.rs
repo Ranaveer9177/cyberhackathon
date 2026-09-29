@@ -220,6 +220,7 @@ fn inspect_call_in_expr(
                     file_path,
                     finding_counter,
                     findings,
+                    false,
                 );
             }
         }
@@ -289,6 +290,29 @@ fn check_sql_arg(
         // Case 2: Inline formatted string or concatenation: db.execute(f"SELECT ... {user}")
         ExprNode::FormattedString { raw, line, .. } => {
             if is_sql_keyword(raw) {
+                // Check if all variables inside the f-string are safe integer casts or constants
+                let var_matches: Vec<&str> = raw
+                    .split('{')
+                    .skip(1)
+                    .filter_map(|part| part.split('}').next().map(|v| v.trim()))
+                    .collect();
+
+                let all_vars_safe = !var_matches.is_empty()
+                    && var_matches.iter().all(|v| {
+                        if let Some(v_info) = var_table.get(*v) {
+                            v_info.is_constant
+                                || v_info.raw_expr.starts_with("int(")
+                                || v_info.raw_expr.starts_with("float(")
+                        } else {
+                            false
+                        }
+                    });
+
+                if all_vars_safe {
+                    // Safe integer cast or constant: do not flag false positive
+                    return;
+                }
+
                 *finding_counter += 1;
                 findings.push(Finding {
                     id: "VG-SAST-001".to_string(),
@@ -361,6 +385,7 @@ fn check_command_arg(
     file_path: &str,
     finding_counter: &mut usize,
     findings: &mut Vec<Finding>,
+    is_in_list: bool,
 ) {
     match arg {
         ExprNode::List { elements, line } => {
@@ -373,12 +398,19 @@ fn check_command_arg(
                     file_path,
                     finding_counter,
                     findings,
+                    true,
                 );
             }
         }
         ExprNode::Identifier { name, .. } => {
             if let Some(var_info) = var_table.get(name) {
                 if !var_info.is_constant {
+                    if var_info.raw_expr.contains("shlex.quote")
+                        || var_info.raw_expr.contains("escapeshellarg")
+                        || var_info.raw_expr.contains("escapeshellcmd")
+                    {
+                        return;
+                    }
                     *finding_counter += 1;
                     let source_desc = var_info
                         .untrusted_source
@@ -395,26 +427,49 @@ fn check_command_arg(
                         ),
                     ];
 
+                    let (rule_id, severity, title, desc, cwe, rec) = if is_in_list {
+                        (
+                            "VG-CMD-LIST",
+                            Severity::HIGH,
+                            "Argument Injection via Subprocess List (AST Correlated)".to_string(),
+                            format!(
+                                "AST analysis detected variable '{}' (defined on line {}) passed as an argument in subprocess list execution '{}([...])'. Attacker-controlled list arguments can enable option/argument injection.",
+                                name, var_info.assigned_line, callee
+                            ),
+                            "CWE-88",
+                            "Validate and allowlist all arguments passed to subprocess calls. Never pass raw user input as a subprocess list element.",
+                        )
+                    } else {
+                        (
+                            "VG-SAST-002",
+                            Severity::CRITICAL,
+                            "Potential OS Command Injection (AST Correlated)".to_string(),
+                            format!(
+                                "AST analysis detected variable '{}' (defined on line {}) passed to command execution sink '{}(...)'.",
+                                name, var_info.assigned_line, callee
+                            ),
+                            "CWE-78",
+                            "Avoid executing OS commands with untrusted input. Use safe parameter lists without a shell.",
+                        )
+                    };
+
                     findings.push(Finding {
-                        id: "VG-SAST-002".to_string(),
-                        rule_id: Some("VG-SAST-002".to_string()),
+                        id: rule_id.to_string(),
+                        rule_id: Some(rule_id.to_string()),
                         category: Category::SourceCode,
-                        severity: Severity::CRITICAL,
-                        title: "Potential OS Command Injection (AST Correlated)".to_string(),
-                        description: format!(
-                            "AST analysis detected variable '{}' (defined on line {}) passed to command execution sink '{}(...)'.",
-                            name, var_info.assigned_line, callee
-                        ),
+                        severity,
+                        title,
+                        description: desc,
                         file: file_path.to_string(),
                         line: call_line,
                         column: Some(1),
                         evidence: Some(format!("{}({})", callee, name)),
-                        recommendation: Some("Avoid executing OS commands with untrusted input. Use safe parameter lists without a shell.".to_string()),
+                        recommendation: Some(rec.to_string()),
                         confidence: "HIGH".to_string(),
                         source: Some(source_desc),
                         sink: Some(format!("{}({})", callee, name)),
                         data_flow: Some(data_flow),
-                        cwe: Some("CWE-78".to_string()),
+                        cwe: Some(cwe.to_string()),
                         ..Default::default()
                     });
                 }
@@ -422,26 +477,49 @@ fn check_command_arg(
         }
         ExprNode::FormattedString { raw, line, .. } => {
             *finding_counter += 1;
+            let (rule_id, severity, title, desc, cwe, rec) = if is_in_list {
+                (
+                    "VG-CMD-LIST",
+                    Severity::HIGH,
+                    "Argument Injection via Subprocess List (AST Correlated)".to_string(),
+                    format!(
+                        "AST analysis detected inline dynamic string formatting in subprocess list argument in '{}([...])'.",
+                        callee
+                    ),
+                    "CWE-88",
+                    "Validate and allowlist all arguments passed to subprocess calls. Never pass raw user input as a subprocess list element.",
+                )
+            } else {
+                (
+                    "VG-SAST-002",
+                    Severity::CRITICAL,
+                    "Potential OS Command Injection (AST Correlated)".to_string(),
+                    format!(
+                        "AST analysis detected inline dynamic string formatting in command execution sink '{}(...)'.",
+                        callee
+                    ),
+                    "CWE-78",
+                    "Avoid executing OS commands with untrusted input. Use safe parameter lists without a shell.",
+                )
+            };
+
             findings.push(Finding {
-                id: "VG-SAST-002".to_string(),
-                rule_id: Some("VG-SAST-002".to_string()),
+                id: rule_id.to_string(),
+                rule_id: Some(rule_id.to_string()),
                 category: Category::SourceCode,
-                severity: Severity::CRITICAL,
-                title: "Potential OS Command Injection (AST Correlated)".to_string(),
-                description: format!(
-                    "AST analysis detected inline dynamic string formatting in command execution sink '{}(...)'.",
-                    callee
-                ),
+                severity,
+                title,
+                description: desc,
                 file: file_path.to_string(),
                 line: *line,
                 column: Some(1),
                 evidence: Some(format!("{}({})", callee, raw)),
-                recommendation: Some("Avoid executing OS commands with untrusted input. Use safe parameter lists without a shell.".to_string()),
+                recommendation: Some(rec.to_string()),
                 confidence: "HIGH".to_string(),
                 source: Some("Inline string interpolation".to_string()),
                 sink: Some(format!("{}(...)", callee)),
                 data_flow: Some(vec![format!("Line {}: {}({})", line, callee, raw)]),
-                cwe: Some("CWE-78".to_string()),
+                cwe: Some(cwe.to_string()),
                 ..Default::default()
             });
         }
@@ -454,26 +532,49 @@ fn check_command_arg(
             let left_str = left.to_source_string();
             let right_str = right.to_source_string();
             *finding_counter += 1;
+            let (rule_id, severity, title, desc, cwe, rec) = if is_in_list {
+                (
+                    "VG-CMD-LIST",
+                    Severity::HIGH,
+                    "Argument Injection via Subprocess List (AST Correlated)".to_string(),
+                    format!(
+                        "AST analysis detected dynamic string concatenation in subprocess list argument in '{}([...])'.",
+                        callee
+                    ),
+                    "CWE-88",
+                    "Validate and allowlist all arguments passed to subprocess calls. Never pass raw user input as a subprocess list element.",
+                )
+            } else {
+                (
+                    "VG-SAST-002",
+                    Severity::CRITICAL,
+                    "Potential OS Command Injection (AST Correlated)".to_string(),
+                    format!(
+                        "AST analysis detected dynamic string concatenation in command execution sink '{}(...)'.",
+                        callee
+                    ),
+                    "CWE-78",
+                    "Avoid executing OS commands with untrusted input. Use safe parameter lists without a shell.",
+                )
+            };
+
             findings.push(Finding {
-                id: "VG-SAST-002".to_string(),
-                rule_id: Some("VG-SAST-002".to_string()),
+                id: rule_id.to_string(),
+                rule_id: Some(rule_id.to_string()),
                 category: Category::SourceCode,
-                severity: Severity::CRITICAL,
-                title: "Potential OS Command Injection (AST Correlated)".to_string(),
-                description: format!(
-                    "AST analysis detected dynamic string concatenation in command execution sink '{}(...)'.",
-                    callee
-                ),
+                severity,
+                title,
+                description: desc,
                 file: file_path.to_string(),
                 line: *line,
                 column: Some(1),
                 evidence: Some(format!("{}({} + {})", callee, left_str, right_str)),
-                recommendation: Some("Avoid executing OS commands with untrusted input. Use safe parameter lists without a shell.".to_string()),
+                recommendation: Some(rec.to_string()),
                 confidence: "HIGH".to_string(),
                 source: Some("Dynamic string concatenation".to_string()),
                 sink: Some(format!("{}(...)", callee)),
                 data_flow: Some(vec![format!("Line {}: {}({} + {})", line, callee, left_str, right_str)]),
-                cwe: Some("CWE-78".to_string()),
+                cwe: Some(cwe.to_string()),
                 ..Default::default()
             });
         }

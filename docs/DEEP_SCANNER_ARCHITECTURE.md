@@ -1,6 +1,6 @@
 # VibeGuard Deep Offline Scanner Architecture Specification
 
-> **Version:** 7.0.0 Architecture Blueprint  
+> **Version:** 7.2.0 Architecture Blueprint  
 > **Status:** Active Implementation  
 > **Focus:** Offline-First Semantic Project Modeling, Cross-File Inter-procedural Data-Flow & Vulnerability-Specific Taint Analysis
 

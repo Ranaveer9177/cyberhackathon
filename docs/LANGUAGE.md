@@ -1,6 +1,6 @@
 # VibeGuard — Language & Technology Decisions
 
-> **Architecture Rationale & Technology Evaluation for VibeGuard v6.0.0**
+> **Architecture Rationale & Technology Evaluation for VibeGuard v7.2.0**
 
 ---
 

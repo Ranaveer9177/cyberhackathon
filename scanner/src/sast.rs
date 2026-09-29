@@ -158,7 +158,7 @@ pub fn scan_source_code(
     // 2. Data-Flow & Taint Tracking Analysis
     // -------------------------------------------------------------
     let source_assign_re = Regex::new(
-        r#"(?i)(?:^|[\s;])(?P<var>[a-zA-Z_][a-zA-Z0-9_]*)\s*[:=]\s*(?P<expr>(?:request\.(?:args|form|values|json|get_json|data|files)|req\.(?:query|body|params)|r\.(?:URL\.Query|FormValue))[^;\n]*)"#,
+        r#"(?i)(?:^|[\s;])(?P<var>[a-zA-Z_][a-zA-Z0-9_]*)\s*[:=]\s*(?P<expr>(?:(?:int|float|str|shlex\.quote)\s*\(\s*)?(?:request\.(?:args|form|values|json|get_json|data|files)|req\.(?:query|body|params)|r\.(?:URL\.Query|FormValue))[^;\n]*)"#,
     ).unwrap();
     let assign_re =
         Regex::new(r#"(?i)(?:^|[\s;])(?P<var>[a-zA-Z_][a-zA-Z0-9_]*)\s*[:=]\s*(?P<rhs>[^;\n]+)"#)
@@ -193,6 +193,14 @@ pub fn scan_source_code(
                 let expr = caps["expr"].trim().to_string();
                 let scope_start = get_scope_start(line_num);
 
+                let is_sql_sanitized = expr.starts_with("int(")
+                    || expr.starts_with("float(")
+                    || expr.starts_with("strconv.Atoi");
+
+                let is_cmd_sanitized = expr.starts_with("shlex.quote(")
+                    || expr.starts_with("escapeshellarg(")
+                    || expr.starts_with("escapeshellcmd(");
+
                 tainted_table.insert(
                     (var_name.clone(), scope_start),
                     TaintInfo {
@@ -202,8 +210,8 @@ pub fn scan_source_code(
                             "Line {}: {} = {} [SOURCE: Untrusted user input]",
                             line_num, var_name, expr
                         )],
-                        sanitized_cmd: false,
-                        sanitized_sql: false,
+                        sanitized_cmd: is_cmd_sanitized,
+                        sanitized_sql: is_sql_sanitized,
                     },
                 );
             }
@@ -508,11 +516,13 @@ pub fn scan_source_code(
                 // Check taint reachability for SQL Injection (VG-SAST-001)
                 if rule.id == "VG-SAST-001" {
                     sink_field = Some("SQL Query Construction / Execution".to_string());
+                    let mut is_sql_sanitized = false;
                     for ((t_var, t_scope), info) in &tainted_table {
                         if (*t_scope == scope_start || *t_scope == 0) && contains_var(line, t_var) {
                             if info.sanitized_sql {
                                 // Sanitized via int()/float() casting
-                                continue;
+                                is_sql_sanitized = true;
+                                break;
                             }
                             confidence = "HIGH".to_string();
                             severity = Severity::HIGH;
@@ -530,6 +540,108 @@ pub fn scan_source_code(
                             break;
                         }
                     }
+                    if is_sql_sanitized {
+                        continue;
+                    }
+                }
+
+                // Argument Injection via list-form subprocess (VG-CMD-LIST)
+                if rule.id == "VG-CMD-LIST" {
+                    sink_field = Some("Subprocess List Argument Injection".to_string());
+
+                    let has_shell_true = line.contains("shell=True")
+                        || line.contains("shell = True")
+                        || line.contains("shell=1");
+
+                    // If shell=True, this is already VG-SAST-002 (shell injection), skip here
+                    if has_shell_true {
+                        continue;
+                    }
+
+                    // Extract the list contents between [ and ]
+                    let list_start = line.find('[');
+                    let list_end = line.rfind(']');
+                    let (is_all_const, has_tainted_arg, has_unsanitized) = if let (Some(ls), Some(le)) = (list_start, list_end) {
+                        if le > ls {
+                            let inner = &line[ls + 1..le];
+                            let all_const = inner.split(',').all(|item| {
+                                let it = item.trim();
+                                (it.starts_with('"') && it.ends_with('"'))
+                                    || (it.starts_with('\'') && it.ends_with('\''))
+                                    || it.parse::<i64>().is_ok()
+                                    || constant_var_table.keys().any(|(c_var, c_scope)| {
+                                        (*c_scope == scope_start || *c_scope == 0) && it == c_var
+                                    })
+                                    || tainted_table.iter().any(|((t_var, t_scope), info)| {
+                                        (*t_scope == scope_start || *t_scope == 0) && it == t_var && info.sanitized_cmd
+                                    })
+                                    || it.contains("shlex.quote")
+                            });
+                            let is_tainted = tainted_table.iter().any(|((t_var, t_scope), info)| {
+                                (*t_scope == scope_start || *t_scope == 0)
+                                    && contains_var(inner, t_var)
+                                    && !info.sanitized_cmd
+                                    && !inner.contains("shlex.quote")
+                            });
+                            let unsanitized = inner.split(',').any(|item| {
+                                let it = item.trim();
+                                let is_c = (it.starts_with('"') && it.ends_with('"'))
+                                    || (it.starts_with('\'') && it.ends_with('\''))
+                                    || it.parse::<i64>().is_ok()
+                                    || constant_var_table.keys().any(|(c_var, c_scope)| {
+                                        (*c_scope == scope_start || *c_scope == 0) && it == c_var
+                                    });
+                                let is_s = it.contains("shlex.quote")
+                                    || tainted_table.iter().any(|((t_var, t_scope), info)| {
+                                        (*t_scope == scope_start || *t_scope == 0) && it == t_var && info.sanitized_cmd
+                                    });
+                                !is_c && !is_s
+                            });
+                            (all_const, is_tainted, unsanitized)
+                        } else {
+                            (true, false, false) // empty/unknown list — treat as constant
+                        }
+                    } else {
+                        (true, false, false) // no list found — skip
+                    };
+
+                    // Constant-only list or fully sanitized list → clean
+                    if (is_all_const && !has_tainted_arg) || !has_unsanitized {
+                        continue;
+                    }
+
+                    if has_tainted_arg {
+                        // Confirmed tainted argument → HIGH
+                        severity = Severity::HIGH;
+                        confidence = "HIGH".to_string();
+                        for ((t_var, t_scope), info) in &tainted_table {
+                            if (*t_scope == scope_start || *t_scope == 0)
+                                && contains_var(line, t_var)
+                            {
+                                source_field = Some(info.source_expr.clone());
+                                let mut trace = info.data_flow.clone();
+                                trace.push(format!(
+                                    "Line {}: {} [SINK: Subprocess list argument injection]",
+                                    line_num, trimmed
+                                ));
+                                data_flow_trace = Some(trace);
+                                description = format!(
+                                    "Tainted variable '{}' passed as argument to a subprocess list call. Attacker-controlled arguments may enable option/argument injection.",
+                                    t_var
+                                );
+                                break;
+                            }
+                        }
+                    } else if !is_all_const {
+                        // Unknown variable (could be tainted) → HIGH with medium confidence
+                        severity = Severity::HIGH;
+                        confidence = "MEDIUM".to_string();
+                        description =
+                            "Subprocess list call with non-constant argument detected. If the argument originates from user input, argument/option injection may be possible."
+                                .to_string();
+                    } else {
+                        continue;
+                    }
                 }
 
                 // Check taint reachability for Command Injection (VG-SAST-002 & VG-SAST-008)
@@ -542,32 +654,11 @@ pub fn scan_source_code(
                     let is_list_invocation =
                         line.contains("[") && line.contains("]") && !has_shell_true;
 
-                    // If it is a list with constant arguments without shell=True, safe!
+                    // If it is a list form without shell=True, always delegate to
+                    // VG-CMD-LIST — either clean (constant) or HIGH (tainted arg).
+                    // Never emit CRITICAL for list invocation without shell=True.
                     if is_list_invocation && rule.id == "VG-SAST-002" {
-                        if let Some(open_b) = line.find('[') {
-                            if let Some(close_b) = line.rfind(']') {
-                                if close_b > open_b {
-                                    let inner = &line[open_b + 1..close_b];
-                                    let all_const = inner.split(',').all(|item| {
-                                        let it = item.trim();
-                                        (it.starts_with('"') && it.ends_with('"'))
-                                            || (it.starts_with('\'') && it.ends_with('\''))
-                                            || it.parse::<i64>().is_ok()
-                                            || it == "True"
-                                            || it == "False"
-                                            || it == "true"
-                                            || it == "false"
-                                            || constant_var_table.keys().any(|(c_var, c_scope)| {
-                                                (*c_scope == scope_start || *c_scope == 0)
-                                                    && it == c_var
-                                            })
-                                    });
-                                    if all_const {
-                                        continue;
-                                    }
-                                }
-                            }
-                        }
+                        continue;
                     }
 
                     // Check if arguments to exec.Command or os.system are purely constant strings or constant variables

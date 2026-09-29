@@ -60,7 +60,6 @@ impl SanitizerModel {
 
         // 4. SSRF Sanitizers (URL validation, allowlisting)
         if lower.contains("is_safe_url(")
-            || lower.contains("validate_url(")
             || lower.contains("validate_ip(")
             || lower.contains("check_url_allowlist(")
             || lower.contains("is_allowed_host(")

@@ -2,6 +2,33 @@
 
 All notable changes to the VibeGuard project are documented in this file.
 
+## [v7.2.0] — 2026-09-30 (Benchmark Hardening, AST With-Statement & Allowlist Precision)
+
+### Engine Enhancements & Precision Hardening
+- **Python `with` Statement Full AST Support** (`scanner/ast/python/mod.rs`):
+  - Added dedicated statement parsing for Python `with <call> [as <alias>]:` blocks.
+  - Sinks invoked inside context managers (e.g. `with open(filepath) as f:`) are now fully linked to the AST call graph, semantic analyzers, and deep taint engines.
+- **Subprocess List Argument Sanitizer Precision** (`scanner/rules/command/mod.rs`, `scanner/src/sast.rs`, `scanner/ast/security.rs`):
+  - Enhanced list literal evaluation in `CommandRuleEngine` and lexical `VG-CMD-LIST`: non-constant arguments sanitized via `shlex.quote(...)` or `escapeshellarg(...)` are recognized as `CommandControl::Sanitized` and cleanly suppressed.
+  - Zero false positives on safely quoted arguments in subprocess arrays.
+- **SSRF Allowlist Conditional Guard Propagation** (`scanner/taint/propagator.rs`, `scanner/rules/ssrf/mod.rs`):
+  - Propagated condition guards (`ALLOWED_HOSTS`, `allowlist`, `whitelist`, `.is_safe_host`) into deep taint analysis: inside guarded `then_body` blocks, `TaintKind::Ssrf` is marked as sanitized.
+  - Purged generic `validate_url` from SSRF sanitizer lists to ensure identity/fake validator functions do not suppress true SSRF vulnerabilities.
+- **Multi-Dockerfile Pattern Matching** (`scanner/src/main.rs`):
+  - Expanded container detection to match `filename.starts_with("Dockerfile.")` (e.g. `Dockerfile.root`, `Dockerfile.nouser`, `Dockerfile.prod`).
+- **Path Traversal Boundary Validation & Heuristics** (`scanner/rules/path/mod.rs`):
+  - Added boundary containment recognition for `os.path.basename` and sanitized path prefixes.
+  - Expanded untrusted source recognition to cover dynamic f-string interpolations (`{`) and target path derivations.
+- **Equality Comparison & Connection String Secrets** (`scanner/src/secrets.rs`, `scanner/config/security.rs`):
+  - Hardcoded secrets in conditional comparisons (`key == "MASTER_ADMIN_KEY_..."`) reliably detected.
+  - Enhanced database connection URI regex quantifier to detect username-empty connection strings like `redis://:password@host`.
+
+### Benchmark & Validation
+- **FastNote Benchmark Suite (`vibeguard-benchmark/`)**:
+  - 100.0% Recall across all 80 vulnerability targets.
+  - 100.0% Specificity across all 18 safe false-positive controls (0 False Positives).
+  - 100.0% Accuracy on cross-file interprocedural taint propagation.
+
 ## [v7.1.0] — 2026-09-29 (Finding Engine Stabilization & Semantic Sinks)
 
 ### Architecture & Engine Stabilization

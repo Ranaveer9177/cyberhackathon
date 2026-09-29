@@ -28,10 +28,10 @@ impl<'a> SsrfRuleEngine<'a> {
         let mut findings = Vec::new();
 
         for func in &self.file_node.functions {
-            self.analyze_stmts(&func.body, finding_counter, &mut findings);
+            self.analyze_stmts(&func.body, false, finding_counter, &mut findings);
         }
 
-        self.analyze_stmts(&self.file_node.statements, finding_counter, &mut findings);
+        self.analyze_stmts(&self.file_node.statements, false, finding_counter, &mut findings);
 
         findings
     }
@@ -39,6 +39,7 @@ impl<'a> SsrfRuleEngine<'a> {
     fn analyze_stmts(
         &self,
         stmts: &[StmtNode],
+        is_guarded: bool,
         finding_counter: &mut usize,
         findings: &mut Vec<Finding>,
     ) {
@@ -49,35 +50,41 @@ impl<'a> SsrfRuleEngine<'a> {
             }
             match stmt {
                 StmtNode::Assignment(assign) => {
-                    self.inspect_expr(&assign.value, assign.line, finding_counter, findings);
+                    self.inspect_expr(&assign.value, assign.line, is_guarded, finding_counter, findings);
                 }
                 StmtNode::Call(expr) => {
-                    self.inspect_expr(expr, expr.line(), finding_counter, findings);
+                    self.inspect_expr(expr, expr.line(), is_guarded, finding_counter, findings);
                 }
                 StmtNode::Return(ret) => {
                     if let Some(val) = &ret.value {
-                        self.inspect_expr(val, ret.line, finding_counter, findings);
+                        self.inspect_expr(val, ret.line, is_guarded, finding_counter, findings);
                     }
                     returned = true;
                 }
                 StmtNode::Condition(c) => {
-                    self.inspect_expr(&c.test, c.line, finding_counter, findings);
-                    self.analyze_stmts(&c.then_body, finding_counter, findings);
-                    self.analyze_stmts(&c.else_body, finding_counter, findings);
+                    let test_str = c.test.to_source_string();
+                    let guarded_then = is_guarded
+                        || test_str.contains("ALLOWED_")
+                        || test_str.contains("whitelist")
+                        || test_str.contains("allowlist")
+                        || test_str.contains(".is_safe_host");
+                    self.inspect_expr(&c.test, c.line, is_guarded, finding_counter, findings);
+                    self.analyze_stmts(&c.then_body, guarded_then, finding_counter, findings);
+                    self.analyze_stmts(&c.else_body, is_guarded, finding_counter, findings);
                 }
                 StmtNode::Loop(l) => {
                     if let Some(cond) = &l.condition {
-                        self.inspect_expr(cond, l.line, finding_counter, findings);
+                        self.inspect_expr(cond, l.line, is_guarded, finding_counter, findings);
                     }
-                    self.analyze_stmts(&l.body, finding_counter, findings);
+                    self.analyze_stmts(&l.body, is_guarded, finding_counter, findings);
                 }
                 StmtNode::TryCatch(t) => {
-                    self.analyze_stmts(&t.try_body, finding_counter, findings);
-                    self.analyze_stmts(&t.catch_body, finding_counter, findings);
-                    self.analyze_stmts(&t.finally_body, finding_counter, findings);
+                    self.analyze_stmts(&t.try_body, is_guarded, finding_counter, findings);
+                    self.analyze_stmts(&t.catch_body, is_guarded, finding_counter, findings);
+                    self.analyze_stmts(&t.finally_body, is_guarded, finding_counter, findings);
                 }
                 StmtNode::Expression(e) => {
-                    self.inspect_expr(e, e.line(), finding_counter, findings);
+                    self.inspect_expr(e, e.line(), is_guarded, finding_counter, findings);
                 }
             }
         }
@@ -87,6 +94,7 @@ impl<'a> SsrfRuleEngine<'a> {
         &self,
         expr: &ExprNode,
         line: usize,
+        is_guarded: bool,
         finding_counter: &mut usize,
         findings: &mut Vec<Finding>,
     ) {
@@ -115,11 +123,11 @@ impl<'a> SsrfRuleEngine<'a> {
 
                     // 2. Allowlist or hostname check: if the expression validates hostname against allowlist
                     let url_str = url_arg.to_source_string();
-                    let is_allowlisted = url_str.contains("ALLOWED_")
+                    let is_allowlisted = is_guarded
+                        || url_str.contains("ALLOWED_")
                         || url_str.contains("whitelist")
                         || url_str.contains("allowlist")
-                        || url_str.contains(".is_safe_host")
-                        || url_str.contains("validate_url(");
+                        || url_str.contains(".is_safe_host");
 
                     if is_allowlisted {
                         return;
@@ -180,7 +188,7 @@ impl<'a> SsrfRuleEngine<'a> {
             }
 
             for a in args {
-                self.inspect_expr(a, line, finding_counter, findings);
+                self.inspect_expr(a, line, is_guarded, finding_counter, findings);
             }
         }
     }

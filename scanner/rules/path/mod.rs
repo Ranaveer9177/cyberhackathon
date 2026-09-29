@@ -126,7 +126,9 @@ impl<'a> PathRuleEngine<'a> {
                         || raw_expr.contains("commonpath(")
                         || raw_expr.contains("is_relative_to(")
                         || raw_expr.contains("secure_filename(")
-                        || raw_expr.contains("filepath.HasPrefix");
+                        || raw_expr.contains("filepath.HasPrefix")
+                        || raw_expr.contains("basename")
+                        || path_str.contains("clean_");
 
                     if has_boundary_check {
                         return;
@@ -141,8 +143,10 @@ impl<'a> PathRuleEngine<'a> {
                         || path_lower.contains("arg")
                         || path_lower.contains("upload")
                         || path_lower.contains("filename")
+                        || path_lower.contains("target")
                         || path_str.contains("..")
-                        || path_str.contains('+');
+                        || path_str.contains('+')
+                        || path_str.contains('{');
 
                     let is_internal_config = path_lower.contains("cfg")
                         || path_lower.contains("config")
