@@ -230,6 +230,12 @@ func PrintTerminalReport(r *Report) {
 			if f.Title != "" {
 				fmt.Printf("    Title:          %s\n", f.Title)
 			}
+			if len(f.DetectorIDs) > 1 {
+				fmt.Printf("    Detectors:      %s\n", strings.Join(f.DetectorIDs, ", "))
+			}
+			if f.Evidence != "" {
+				fmt.Printf("    Evidence:       %s\n", f.Evidence)
+			}
 			if f.Description != "" && f.Description != f.Title {
 				fmt.Printf("    Description:    %s\n", f.Description)
 			}
@@ -265,6 +271,12 @@ func PrintTerminalReport(r *Report) {
 				fmt.Printf("  %s[%s]%s %s (%s) - %s:%d\n", c, strings.ToUpper(f.Severity), ColorReset, f.ID, cat, f.File, f.Line)
 				if f.Title != "" {
 					fmt.Printf("    Title:          %s\n", f.Title)
+				}
+				if len(f.DetectorIDs) > 1 {
+					fmt.Printf("    Detectors:      %s\n", strings.Join(f.DetectorIDs, ", "))
+				}
+				if f.Evidence != "" {
+					fmt.Printf("    Evidence:       %s\n", f.Evidence)
 				}
 				if f.Description != "" && f.Description != f.Title {
 					fmt.Printf("    Description:    %s\n", f.Description)

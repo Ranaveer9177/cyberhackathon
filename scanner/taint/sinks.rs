@@ -147,14 +147,19 @@ impl SinkModel {
         }
 
         // 7. Insecure Deserialization
-        if lower.contains("pickle.loads(")
-            || lower.contains("pickle.load(")
-            || (lower.contains("yaml.load(")
+        if lower.starts_with("pickle.loads")
+            || lower.starts_with("pickle.load")
+            || lower.starts_with("_pickle.loads")
+            || lower.starts_with("_pickle.load")
+            || lower.starts_with("yaml.unsafe_load")
+            || (lower.starts_with("yaml.load")
                 && !lower.contains("safeloader")
                 && !lower.contains("safe_load"))
-            || lower.contains("marshal.loads(")
-            || lower.contains("unserialize(")
-            || lower.contains("readobject(")
+            || lower.starts_with("marshal.loads")
+            || lower.starts_with("marshal.load")
+            || lower.starts_with("shelve.open")
+            || lower.starts_with("unserialize")
+            || lower.starts_with("readobject")
         {
             return Some((TaintKind::Deserialization, "object_deserialization"));
         }

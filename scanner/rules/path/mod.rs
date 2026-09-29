@@ -132,6 +132,30 @@ impl<'a> PathRuleEngine<'a> {
                         return;
                     }
 
+                    // 2.1 Untrusted Input & Internal Path check:
+                    let path_lower = path_str.to_lowercase();
+                    let is_untrusted = path_lower.contains("user")
+                        || path_lower.contains("input")
+                        || path_lower.contains("req")
+                        || path_lower.contains("param")
+                        || path_lower.contains("arg")
+                        || path_lower.contains("upload")
+                        || path_lower.contains("filename")
+                        || path_str.contains("..")
+                        || path_str.contains('+');
+
+                    let is_internal_config = path_lower.contains("cfg")
+                        || path_lower.contains("config")
+                        || path_lower.contains("baseline")
+                        || path_lower.contains("snapshot")
+                        || path_lower.contains("gitroot")
+                        || path_lower.contains("projectpath")
+                        || path_lower.contains("tempdir");
+
+                    if !is_untrusted || is_internal_config {
+                        return;
+                    }
+
                     // 3. Check for dynamic construction without boundary validation
                     let severity = if path_str.contains("..") {
                         Severity::CRITICAL

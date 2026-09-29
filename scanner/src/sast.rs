@@ -219,7 +219,10 @@ pub fn scan_source_code(
                 || (rhs.starts_with('\'')
                     && rhs.ends_with('\'')
                     && !rhs.contains("%s")
-                    && !rhs.contains("{}"));
+                    && !rhs.contains("{}"))
+                || (rhs.starts_with("b\"") && rhs.ends_with('"'))
+                || (rhs.starts_with("b'") && rhs.ends_with('\''))
+                || rhs.parse::<i64>().is_ok();
             let is_const_list = rhs.starts_with('[')
                 && rhs.ends_with(']')
                 && !rhs.contains("request.")
@@ -626,6 +629,95 @@ pub fn scan_source_code(
                     }
                 }
 
+                // Insecure Deserialization (VG-SAST-009)
+                if rule.id == "VG-SAST-009" {
+                    // Safe yaml loaders
+                    if line.contains("SafeLoader")
+                        || line.contains("yaml.safe_load")
+                        || line.contains("CSafeLoader")
+                    {
+                        continue;
+                    }
+
+                    sink_field = Some("Object Deserialization Sink".to_string());
+
+                    // Check if argument is a compile-time constant bytes/string literal
+                    let mut is_constant_data = false;
+                    let mut is_attacker_controlled = false;
+                    let mut var_name = String::new();
+
+                    if let Some(open_p) = line.find('(') {
+                        if let Some(close_p) = line.rfind(')') {
+                            if close_p > open_p {
+                                let arg_str = line[open_p + 1..close_p].trim();
+                                var_name = arg_str.to_string();
+
+                                // Check literal constants: b"...", "...", b'...'
+                                if (arg_str.starts_with("b\"") && arg_str.ends_with('"'))
+                                    || (arg_str.starts_with("b'") && arg_str.ends_with('\''))
+                                    || (arg_str.starts_with('"') && arg_str.ends_with('"'))
+                                    || (arg_str.starts_with('\'') && arg_str.ends_with('\''))
+                                    || arg_str.parse::<i64>().is_ok()
+                                    || constant_var_table.keys().any(|(c_var, c_scope)| {
+                                        (*c_scope == scope_start || *c_scope == 0)
+                                            && arg_str == c_var
+                                    })
+                                {
+                                    is_constant_data = true;
+                                }
+                            }
+                        }
+                    }
+
+                    // Check if variable is confirmed attacker-controlled via taint or explicit user input signals
+                    for ((t_var, t_scope), info) in &tainted_table {
+                        if (*t_scope == scope_start || *t_scope == 0) && contains_var(line, t_var) {
+                            is_attacker_controlled = true;
+                            source_field = Some(info.source_expr.clone());
+                            let mut trace = info.data_flow.clone();
+                            trace.push(format!(
+                                "Line {}: {} [SINK: Insecure Deserialization]",
+                                line_num, trimmed
+                            ));
+                            data_flow_trace = Some(trace);
+                            break;
+                        }
+                    }
+
+                    if line.contains("user_input")
+                        || line.contains("request.")
+                        || line.contains("req.")
+                        || line.contains("untrusted_bytes")
+                        || line.contains("payload")
+                        || line.contains("body")
+                    {
+                        is_attacker_controlled = true;
+                    }
+
+                    if is_constant_data {
+                        severity = Severity::LOW;
+                        confidence = "LOW".to_string();
+                        description =
+                            "Deserialization API called with compile-time constant stream."
+                                .to_string();
+                    } else if is_attacker_controlled {
+                        severity = Severity::CRITICAL;
+                        confidence = "HIGH".to_string();
+                        description = format!(
+                            "Insecure deserialization of confirmed attacker-controlled input in '{}'. Deserializing untrusted streams leads to arbitrary code execution.",
+                            trimmed
+                        );
+                    } else {
+                        // Dangerous API with generic variable (data, x, buffer, foo, etc.)
+                        severity = Severity::HIGH;
+                        confidence = "HIGH".to_string();
+                        description = format!(
+                            "Invocation of dangerous deserialization API with variable '{}'. Deserializing untrusted streams leads to remote code execution.",
+                            var_name
+                        );
+                    }
+                }
+
                 let cwe = rule_cwe(&rule.id).map(String::from);
 
                 if !reported_lines.contains(&(rule.id.clone(), line_num)) {
@@ -876,5 +968,68 @@ def webhook():
         let neg_content = "password = os.environ.get(\"DB_PASSWORD\")\n";
         let neg_findings = scan_source_code("db.py", neg_content, &mut counter);
         assert!(!neg_findings.iter().any(|f| f.id == "VG-SAST-007"));
+    }
+
+    #[test]
+    fn test_rule_sast_009_insecure_deserialization() {
+        let mut counter = 0;
+
+        // Attacker controlled -> CRITICAL
+        let f_user = scan_source_code("api.py", "pickle.loads(user_input)\n", &mut counter);
+        assert_eq!(f_user.len(), 1);
+        assert_eq!(f_user[0].id, "VG-SAST-009");
+        assert_eq!(f_user[0].severity, Severity::CRITICAL);
+
+        // Attacker controlled via untrusted_bytes -> CRITICAL
+        let f_untrusted =
+            scan_source_code("api.py", "pickle.loads(untrusted_bytes)\n", &mut counter);
+        assert_eq!(f_untrusted.len(), 1);
+        assert_eq!(f_untrusted[0].severity, Severity::CRITICAL);
+
+        // Dangerous API with variable 'data' -> HIGH
+        let f_data = scan_source_code("api.py", "pickle.loads(data)\n", &mut counter);
+        assert_eq!(f_data.len(), 1);
+        assert_eq!(f_data[0].id, "VG-SAST-009");
+        assert_eq!(f_data[0].severity, Severity::HIGH);
+
+        // Dangerous API with variable 'x' -> HIGH
+        let f_x = scan_source_code("api.py", "pickle.loads(x)\n", &mut counter);
+        assert_eq!(f_x.len(), 1);
+        assert_eq!(f_x[0].severity, Severity::HIGH);
+
+        // Constant literal b"..." -> LOW
+        let f_const = scan_source_code("api.py", "pickle.loads(b\"safe_bytes\")\n", &mut counter);
+        assert_eq!(f_const.len(), 1);
+        assert_eq!(f_const[0].severity, Severity::LOW);
+
+        // Constant variable -> LOW
+        let f_const_var = scan_source_code(
+            "api.py",
+            "safe_constant = b\"safe_bytes\"\npickle.loads(safe_constant)\n",
+            &mut counter,
+        );
+        let deser_findings: Vec<_> = f_const_var
+            .into_iter()
+            .filter(|f| f.id == "VG-SAST-009")
+            .collect();
+        assert_eq!(deser_findings.len(), 1);
+        assert_eq!(deser_findings[0].severity, Severity::LOW);
+
+        // Safe yaml loaders -> 0 findings
+        let f_yaml_safe = scan_source_code("api.py", "yaml.safe_load(data)\n", &mut counter);
+        assert!(!f_yaml_safe.iter().any(|f| f.id == "VG-SAST-009"));
+
+        let f_yaml_loader = scan_source_code(
+            "api.py",
+            "yaml.load(data, Loader=yaml.SafeLoader)\n",
+            &mut counter,
+        );
+        assert!(!f_yaml_loader.iter().any(|f| f.id == "VG-SAST-009"));
+
+        // Unsafe yaml loader -> HIGH
+        let f_yaml_unsafe = scan_source_code("api.py", "yaml.unsafe_load(data)\n", &mut counter);
+        assert!(f_yaml_unsafe
+            .iter()
+            .any(|f| f.id == "VG-SAST-009" && f.severity == Severity::HIGH));
     }
 }
