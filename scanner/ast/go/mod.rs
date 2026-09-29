@@ -24,7 +24,7 @@ pub fn parse_go(file_path: &str, content: &str) -> FileNode {
         Regex::new(r#"^type\s+(?P<name>[a-zA-Z_][a-zA-Z0-9_]*)\s+struct\s*\{"#).unwrap();
     let single_import_re = Regex::new(r#"^import\s+['"](?P<pkg>[^'"]+)['"]"#).unwrap();
     let assign_re = Regex::new(
-        r#"^(?:\s*var\s+)?(?P<target>[a-zA-Z0-9_.*]+(?:\s*,\s*[a-zA-Z0-9_.*]+)?)\s*(?::=|=)\s*(?P<val>.+)$"#,
+        r#"^\s*(?:var\s+)?(?P<target>[a-zA-Z0-9_.*]+(?:\s*,\s*[a-zA-Z0-9_.*]+)?)\s*(?::=|=)\s*(?P<val>.+)$"#,
     ).unwrap();
     let return_re = Regex::new(r#"^\s*return(?:\s+(?P<val>.+))?$"#).unwrap();
 
@@ -162,7 +162,7 @@ fn parse_go_block(lines: &[&str], start_idx: usize, start_line: usize) -> (usize
     let mut end_line = start_line;
 
     let assign_re = Regex::new(
-        r#"^(?:\s*var\s+)?(?P<target>[a-zA-Z0-9_.*]+(?:\s*,\s*[a-zA-Z0-9_.*]+)?)\s*(?::=|=)\s*(?P<val>.+)$"#,
+        r#"^\s*(?:var\s+)?(?P<target>[a-zA-Z0-9_.*]+(?:\s*,\s*[a-zA-Z0-9_.*]+)?)\s*(?::=|=)\s*(?P<val>.+)$"#,
     ).unwrap();
     let return_re = Regex::new(r#"^\s*return(?:\s+(?P<val>.+))?$"#).unwrap();
 

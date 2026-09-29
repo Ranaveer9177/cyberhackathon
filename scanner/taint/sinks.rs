@@ -73,8 +73,7 @@ impl SinkModel {
                     || method == "executeupdate"
             }
         } else {
-            lower == "execute"
-                || lower == "db.execute"
+            lower == "db.execute"
                 || lower == "conn.execute"
                 || lower == "cursor.execute"
                 || lower == "session.execute"

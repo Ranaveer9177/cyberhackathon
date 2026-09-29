@@ -378,6 +378,103 @@ fn parse_class_body(
     (idx, methods, fields)
 }
 
+pub fn split_arg_list(s: &str) -> Vec<String> {
+    let mut args = Vec::new();
+    let mut current = String::new();
+    let mut paren_depth = 0;
+    let mut bracket_depth = 0;
+    let mut brace_depth = 0;
+    let mut in_single_quote = false;
+    let mut in_double_quote = false;
+    let mut escape = false;
+
+    for c in s.chars() {
+        if escape {
+            current.push(c);
+            escape = false;
+            continue;
+        }
+        if c == '\\' {
+            current.push(c);
+            escape = true;
+            continue;
+        }
+
+        if in_single_quote {
+            current.push(c);
+            if c == '\'' {
+                in_single_quote = false;
+            }
+            continue;
+        }
+        if in_double_quote {
+            current.push(c);
+            if c == '"' {
+                in_double_quote = false;
+            }
+            continue;
+        }
+
+        match c {
+            '\'' => {
+                in_single_quote = true;
+                current.push(c);
+            }
+            '"' => {
+                in_double_quote = true;
+                current.push(c);
+            }
+            '(' => {
+                paren_depth += 1;
+                current.push(c);
+            }
+            ')' => {
+                if paren_depth > 0 {
+                    paren_depth -= 1;
+                }
+                current.push(c);
+            }
+            '[' => {
+                bracket_depth += 1;
+                current.push(c);
+            }
+            ']' => {
+                if bracket_depth > 0 {
+                    bracket_depth -= 1;
+                }
+                current.push(c);
+            }
+            '{' => {
+                brace_depth += 1;
+                current.push(c);
+            }
+            '}' => {
+                if brace_depth > 0 {
+                    brace_depth -= 1;
+                }
+                current.push(c);
+            }
+            ',' if paren_depth == 0 && bracket_depth == 0 && brace_depth == 0 => {
+                let trimmed = current.trim();
+                if !trimmed.is_empty() {
+                    args.push(trimmed.to_string());
+                }
+                current.clear();
+            }
+            _ => {
+                current.push(c);
+            }
+        }
+    }
+
+    let trimmed = current.trim();
+    if !trimmed.is_empty() {
+        args.push(trimmed.to_string());
+    }
+
+    args
+}
+
 pub fn parse_expr(raw: &str, line: usize) -> ExprNode {
     let trimmed = raw.trim();
 
@@ -443,7 +540,19 @@ pub fn parse_expr(raw: &str, line: usize) -> ExprNode {
         };
     }
 
-    // 6. Binary operation (+)
+    // 6. List literal: [elem1, elem2, ...]
+    if trimmed.starts_with('[') && trimmed.ends_with(']') {
+        let inner = &trimmed[1..trimmed.len() - 1].trim();
+        let mut elements = Vec::new();
+        if !inner.is_empty() {
+            for item in split_arg_list(inner) {
+                elements.push(parse_expr(&item, line));
+            }
+        }
+        return ExprNode::List { elements, line };
+    }
+
+    // 7. Binary operation (+)
     if trimmed.contains('+') {
         let parts: Vec<&str> = trimmed.splitn(2, '+').collect();
         if parts.len() == 2 {
@@ -456,7 +565,7 @@ pub fn parse_expr(raw: &str, line: usize) -> ExprNode {
         }
     }
 
-    // 7. Call: callee(args)
+    // 8. Call: callee(args)
     if trimmed.ends_with(')') {
         let mut depth = 0;
         let mut matching_open = None;
@@ -478,8 +587,8 @@ pub fn parse_expr(raw: &str, line: usize) -> ExprNode {
                 let callee = Box::new(parse_expr(callee_str, line));
                 let mut args = Vec::new();
                 if !args_str.is_empty() {
-                    for a in args_str.split(',') {
-                        args.push(parse_expr(a.trim(), line));
+                    for a in split_arg_list(args_str) {
+                        args.push(parse_expr(&a, line));
                     }
                 }
                 return ExprNode::Call { callee, args, line };
@@ -487,9 +596,9 @@ pub fn parse_expr(raw: &str, line: usize) -> ExprNode {
         }
     }
 
-    // 8. Subscript: value[slice]
+    // 9. Subscript: value[slice]
     if let Some(open_bracket) = trimmed.find('[') {
-        if trimmed.ends_with(']') {
+        if open_bracket > 0 && trimmed.ends_with(']') {
             let val_str = &trimmed[..open_bracket].trim();
             let slice_str = &trimmed[open_bracket + 1..trimmed.len() - 1].trim();
             return ExprNode::Subscript {
@@ -500,7 +609,7 @@ pub fn parse_expr(raw: &str, line: usize) -> ExprNode {
         }
     }
 
-    // 9. Attribute: obj.attr
+    // 10. Attribute: obj.attr
     if let Some(dot_idx) = trimmed.rfind('.') {
         let obj_str = &trimmed[..dot_idx].trim();
         let attr_str = &trimmed[dot_idx + 1..].trim();
@@ -513,7 +622,7 @@ pub fn parse_expr(raw: &str, line: usize) -> ExprNode {
         }
     }
 
-    // 10. Identifier fallback
+    // 11. Identifier fallback
     ExprNode::Identifier {
         name: trimmed.to_string(),
         line,

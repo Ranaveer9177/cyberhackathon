@@ -330,8 +330,7 @@ impl<'a> SqlRuleEngine<'a> {
                         || method == "$executeraw"
                 }
             } else {
-                lower == "execute"
-                    || lower == "db.execute"
+                lower == "db.execute"
                     || lower == "conn.execute"
                     || lower == "cursor.execute"
                     || lower == "session.execute"
@@ -340,15 +339,23 @@ impl<'a> SqlRuleEngine<'a> {
             if is_sql_sink {
                 // Check if properly parameterized:
                 // e.g. cursor.execute("SELECT * FROM users WHERE id = %s", (id,))
-                // In Python/Go/Java, args.len() >= 2 where arg[0] has placeholders and arg[1] is params tuple/array
+                // or db.Query(parameterized_query, id)
                 let is_parameterized = args.len() >= 2 && {
-                    let first_arg_const = self.constants.eval_expr(&args[0]).is_constant();
-                    let first_arg_src = args[0].to_source_string();
+                    let eval_val = self.constants.eval_expr(&args[0]);
+                    let first_arg_const = eval_val.is_constant();
+                    let eval_str = eval_val.as_str().unwrap_or("");
+                    let src_str = args[0].to_source_string();
                     first_arg_const
-                        && (first_arg_src.contains('?')
-                            || first_arg_src.contains("%s")
-                            || first_arg_src.contains("$1")
-                            || first_arg_src.contains(':'))
+                        && (eval_str.contains('?')
+                            || eval_str.contains("%s")
+                            || eval_str.contains("$1")
+                            || eval_str.contains('$')
+                            || eval_str.contains(':')
+                            || src_str.contains('?')
+                            || src_str.contains("%s")
+                            || src_str.contains("$1")
+                            || src_str.contains('$')
+                            || src_str.contains(':'))
                 };
 
                 if is_parameterized {

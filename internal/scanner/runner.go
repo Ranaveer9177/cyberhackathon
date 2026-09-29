@@ -1573,7 +1573,28 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 						hasShellTrue := strings.Contains(line, "shell=True") || strings.Contains(line, "shell = True") || strings.Contains(line, "shell=1")
 						isListInvocation := strings.Contains(line, "[") && strings.Contains(line, "]") && !hasShellTrue && ext == ".py"
 						if isListInvocation && r.id == "VG-SAST-002" {
-							continue
+							openB := strings.Index(line, "[")
+							closeB := strings.LastIndex(line, "]")
+							if openB != -1 && closeB > openB {
+								inner := line[openB+1 : closeB]
+								items := strings.Split(inner, ",")
+								allConst := len(items) > 0
+								for _, item := range items {
+									it := strings.TrimSpace(item)
+									isLit := (strings.HasPrefix(it, "\"") && strings.HasSuffix(it, "\"")) ||
+										(strings.HasPrefix(it, "'") && strings.HasSuffix(it, "'")) ||
+										it == "True" || it == "False"
+									if !isLit {
+										if _, err := strconv.Atoi(it); err != nil {
+											allConst = false
+											break
+										}
+									}
+								}
+								if allConst {
+									continue
+								}
+							}
 						}
 						scopeStart := 0
 						for _, sc := range functionScopes {

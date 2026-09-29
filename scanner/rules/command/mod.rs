@@ -203,18 +203,25 @@ impl<'a> CommandRuleEngine<'a> {
             ShellMode::ShellFalse
         };
 
-        // Check for shell=True in kwargs or arguments
+        // Filter out keyword arguments like shell=True/False, timeout=...
+        let mut positional_args = Vec::new();
         for arg in args {
             let s = arg.to_source_string();
-            if s.contains("shell=True") || s.contains("shell=1") {
+            if s.contains("shell=True") || s.contains("shell = True") || s.contains("shell=1") {
                 shell_mode = ShellMode::ShellTrue;
-            } else if s.contains("shell=False") {
+            } else if s.contains("shell=False")
+                || s.contains("shell = False")
+                || s.contains("shell=0")
+            {
                 shell_mode = ShellMode::ShellFalse;
+            } else if !s.starts_with("timeout=") && !s.starts_with("cwd=") && !s.starts_with("env=")
+            {
+                positional_args.push(arg);
             }
         }
 
         // Determine command control level from primary argument
-        if let Some(cmd_arg) = args.first() {
+        if let Some(cmd_arg) = positional_args.first() {
             let cmd_str = cmd_arg.to_source_string();
 
             // 1. Sanitized Check: shlex.quote() or regex validation
@@ -225,31 +232,46 @@ impl<'a> CommandRuleEngine<'a> {
                 return (CommandControl::Sanitized, shell_mode);
             }
 
-            // 2. Constant Check: Compile-time constant string literal or all-constant arguments
+            // 2. List literal check (e.g. subprocess.run(["ping", "-c", "1", "127.0.0.1"]))
+            if let ExprNode::List { elements, .. } = cmd_arg {
+                let all_constant = !elements.is_empty()
+                    && elements
+                        .iter()
+                        .all(|e| self.constants.eval_expr(e).is_constant());
+
+                if all_constant {
+                    return (CommandControl::Constant, shell_mode);
+                } else {
+                    return (CommandControl::PartiallyControlled, shell_mode);
+                }
+            }
+
+            // 3. Multi-argument check (e.g. exec.Command("ping", "127.0.0.1") vs exec.Command("ping", host))
+            if positional_args.len() > 1 {
+                let all_constant = positional_args
+                    .iter()
+                    .all(|a| self.constants.eval_expr(a).is_constant());
+                if all_constant {
+                    return (CommandControl::Constant, shell_mode);
+                } else {
+                    return (CommandControl::PartiallyControlled, shell_mode);
+                }
+            }
+
+            // 4. Single-argument constant check
             if self.constants.eval_expr(cmd_arg).is_constant() {
                 return (CommandControl::Constant, shell_mode);
             }
 
-            // For non-shell calls (e.g. exec.Command), if all arguments are constants, command is constant
-            if shell_mode == ShellMode::ShellFalse
-                && !args.is_empty()
-                && args
-                    .iter()
-                    .all(|a| self.constants.eval_expr(a).is_constant())
-            {
-                return (CommandControl::Constant, shell_mode);
-            }
-
-            // 3. Integer/Boolean Check: Safe scalar types cannot inject command delimiters
+            // 5. Integer/Boolean Check: Safe scalar types cannot inject command delimiters
             let ty = self.var_types.infer_expr(cmd_arg);
             if ty == InferredType::Integer || ty == InferredType::Boolean {
                 return (CommandControl::Constant, shell_mode);
             }
 
-            // 4. Formatted string or concatenation with constant binary: Partially Controlled
+            // 6. Formatted string or concatenation with constant binary: Partially Controlled
             if let ExprNode::FormattedString { raw, .. } = cmd_arg {
                 if raw.starts_with("f\"") || raw.starts_with("f'") {
-                    // If first part is a known binary (e.g. "ping "), it is partially controlled
                     return (CommandControl::PartiallyControlled, shell_mode);
                 }
             }
@@ -260,7 +282,7 @@ impl<'a> CommandRuleEngine<'a> {
                 }
             }
 
-            // 5. Bare identifier or dynamic request parameter: Fully Controlled
+            // 7. Bare identifier or dynamic request parameter: Fully Controlled
             if let ExprNode::Identifier { .. } = cmd_arg {
                 return (CommandControl::FullyControlled, shell_mode);
             }
