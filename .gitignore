@@ -20,14 +20,9 @@ build/
 *.test
 *.prof
 
-# Generated scan outputs (keep reports/ directory structure)
-reports/*.json
-reports/*.html
-reports/*.sarif
-**/reports/*.json
-**/reports/*.html
-**/reports/*.sarif
-!reports/README.md
+# Generated scan outputs
+reports/
+**/reports/
 
 # Cache directories
 .vibeguard/cache/
