@@ -13,22 +13,74 @@ impl SinkModel {
         let clean = callee.trim();
         let lower = clean.to_lowercase();
 
-        // 1. SQL Injection Sinks
-        if lower.ends_with(".execute")
-            || lower.ends_with(".executemany")
-            || lower.ends_with(".query")
-            || lower.ends_with(".queryrow")
-            || lower.ends_with(".query_row")
-            || lower.ends_with(".exec")
-            || lower.ends_with(".raw")
-            || lower.ends_with(".executequery")
-            || lower.ends_with(".executeupdate")
-            || lower == "execute"
-            || lower == "db.execute"
-            || lower == "conn.execute"
-            || lower == "cursor.execute"
-            || lower == "session.execute"
-        {
+        // 1. SQL Injection Sinks (v7.2: Context & Receiver Analysis)
+        let is_sql_sink = if let Some(dot_idx) = lower.rfind('.') {
+            let receiver = &lower[..dot_idx];
+            let method = &lower[dot_idx + 1..];
+
+            // Explicitly filter non-SQL receivers (template rendering, cobra commands, tasks, runners)
+            let is_non_sql = receiver == "tmpl"
+                || receiver == "template"
+                || receiver == "htmltemplate"
+                || receiver == "texttemplate"
+                || receiver == "t"
+                || receiver == "w"
+                || receiver == "writer"
+                || receiver == "cmd"
+                || receiver == "rootcmd"
+                || receiver == "command"
+                || receiver == "cobracommand"
+                || receiver == "c"
+                || receiver == "app"
+                || receiver == "task"
+                || receiver == "runner"
+                || receiver == "workflow"
+                || receiver == "future"
+                || receiver == "promise"
+                || receiver == "executor"
+                || receiver == "batch";
+
+            if is_non_sql {
+                false
+            } else if method == "execute" || method == "exec" {
+                // For bare .execute / .exec, require database context
+                receiver == "db"
+                    || receiver == "cursor"
+                    || receiver == "cur"
+                    || receiver == "conn"
+                    || receiver == "connection"
+                    || receiver == "session"
+                    || receiver == "orm"
+                    || receiver == "tx"
+                    || receiver == "sql"
+                    || receiver == "repo"
+                    || receiver == "repository"
+                    || receiver == "client"
+                    || receiver == "engine"
+                    || receiver == "stmt"
+                    || receiver.ends_with("db")
+                    || receiver.ends_with("conn")
+                    || receiver.ends_with("cursor")
+                    || receiver.ends_with("session")
+                    || receiver.ends_with("repo")
+            } else {
+                method == "executemany"
+                    || method == "query"
+                    || method == "queryrow"
+                    || method == "query_row"
+                    || method == "raw"
+                    || method == "executequery"
+                    || method == "executeupdate"
+            }
+        } else {
+            lower == "execute"
+                || lower == "db.execute"
+                || lower == "conn.execute"
+                || lower == "cursor.execute"
+                || lower == "session.execute"
+        };
+
+        if is_sql_sink {
             return Some((TaintKind::Sql, "database_query_execution"));
         }
 

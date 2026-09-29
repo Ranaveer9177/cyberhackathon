@@ -73,6 +73,7 @@ pub fn generate_taint_findings(flows: &[TaintFlow], finding_counter: &mut usize)
             data_flow: Some(data_flow),
             cwe: Some(meta.cwe.to_string()),
             fingerprint: Some(fingerprint),
+            ..Default::default()
         });
     }
 

@@ -114,6 +114,14 @@ impl ConstantEnvironment {
                     ConstantValue::NonConstant
                 }
             }
+            ExprNode::List { elements, .. } => {
+                if !elements.is_empty() && elements.iter().all(|e| self.eval_expr(e).is_constant())
+                {
+                    ConstantValue::String(expr.to_source_string())
+                } else {
+                    ConstantValue::NonConstant
+                }
+            }
             ExprNode::Unknown { raw, .. } => self.eval_raw(raw),
             _ => ConstantValue::NonConstant,
         }
@@ -122,6 +130,19 @@ impl ConstantEnvironment {
     /// Evaluates raw code text to determine if it is a constant literal or constant expression.
     pub fn eval_raw(&self, raw: &str) -> ConstantValue {
         let trimmed = raw.trim();
+
+        // Array / List literals: ["ping", "127.0.0.1"]
+        if trimmed.starts_with('[') && trimmed.ends_with(']') {
+            let inner = &trimmed[1..trimmed.len() - 1];
+            let items: Vec<&str> = inner
+                .split(',')
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty())
+                .collect();
+            if !items.is_empty() && items.iter().all(|item| self.eval_raw(item).is_constant()) {
+                return ConstantValue::String(trimmed.to_string());
+            }
+        }
 
         // String literals: "safe-command" or 'safe-command'
         if (trimmed.starts_with('"') && trimmed.ends_with('"') && trimmed.len() >= 2)

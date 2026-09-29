@@ -51,6 +51,14 @@ pub struct Finding {
     pub cwe: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fingerprint: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub canonical_rule: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detector_ids: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub related_findings: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub evidences: Option<Vec<String>>,
 }
 
 impl Default for Finding {
@@ -73,6 +81,10 @@ impl Default for Finding {
             data_flow: None,
             cwe: None,
             fingerprint: None,
+            canonical_rule: None,
+            detector_ids: None,
+            related_findings: None,
+            evidences: None,
         }
     }
 }

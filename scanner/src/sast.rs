@@ -166,6 +166,8 @@ pub fn scan_source_code(
 
     // Map: (var_name, scope_start_line) -> TaintInfo
     let mut tainted_table: HashMap<(String, usize), TaintInfo> = HashMap::new();
+    // Map: (var_name, scope_start_line) -> Constant string value
+    let mut constant_var_table: HashMap<(String, usize), String> = HashMap::new();
 
     // Helper: find scope for a given line
     let get_scope_start = |line_num: usize| -> usize {
@@ -177,7 +179,7 @@ pub fn scan_source_code(
         0 // module-level / global scope
     };
 
-    // First pass: identify sources of untrusted input
+    // First pass: identify sources of untrusted input and constant variable declarations
     for (line_idx, line) in lines.iter().enumerate() {
         let line_num = line_idx + 1;
         let trimmed = line.trim();
@@ -204,6 +206,31 @@ pub fn scan_source_code(
                         sanitized_sql: false,
                     },
                 );
+            }
+        } else if let Some(caps) = assign_re.captures(line) {
+            let var_name = caps["var"].to_string();
+            let rhs = caps["rhs"].trim();
+            let scope_start = get_scope_start(line_num);
+
+            let is_str_literal = (rhs.starts_with('"')
+                && rhs.ends_with('"')
+                && !rhs.contains("%s")
+                && !rhs.contains("{}"))
+                || (rhs.starts_with('\'')
+                    && rhs.ends_with('\'')
+                    && !rhs.contains("%s")
+                    && !rhs.contains("{}"));
+            let is_const_list = rhs.starts_with('[')
+                && rhs.ends_with(']')
+                && !rhs.contains("request.")
+                && !rhs.contains("req.")
+                && !rhs.contains("input")
+                && !rhs.contains("user_")
+                && !rhs.contains("host");
+
+            if is_str_literal || is_const_list {
+                constant_var_table.insert((var_name.clone(), scope_start), rhs.to_string());
+                constant_var_table.insert((var_name, 0), rhs.to_string());
             }
         }
     }
@@ -345,8 +372,14 @@ pub fn scan_source_code(
             break;
         }
 
-        // Skip rule definition files (rules.rs)
-        if file_path.ends_with("rules.rs") {
+        // Skip scanner rule, sink, and canonical definitions
+        let norm_path = file_path.replace('\\', "/");
+        if norm_path.ends_with("rules.rs")
+            || norm_path.ends_with("sinks.rs")
+            || norm_path.ends_with("findings/mod.rs")
+            || norm_path.ends_with("internal/scanner/runner.go")
+            || norm_path.ends_with("internal/scanner/dedup.go")
+        {
             continue;
         }
 
@@ -398,6 +431,9 @@ pub fn scan_source_code(
                     || line.contains(r#"contains(lineLower, "http"#)
                     || line.contains(r#"contains("shell"#)
                     || line.contains(r#"Contains(line, "shell"#)
+                    || line.contains(r#"contains("md5"#)
+                    || line.contains(r#"contains("sha1"#)
+                    || line.contains(r#"contains("pickle"#)
                     || line.contains("Rule {")
                 {
                     continue;
@@ -473,17 +509,82 @@ pub fn scan_source_code(
                 if rule.id == "VG-SAST-002" || rule.id == "VG-SAST-008" {
                     sink_field = Some("OS Command Execution".to_string());
 
-                    // Check if subprocess.run(["ping", host]) is passed a list without shell=True
-                    // If so and not shell=True, it's not a shell injection vulnerability
                     let has_shell_true = line.contains("shell=True")
                         || line.contains("shell = True")
                         || line.contains("shell=1");
                     let is_list_invocation =
-                        line.contains("[") && line.contains("]") && !has_shell_true && ext == "py";
+                        line.contains("[") && line.contains("]") && !has_shell_true;
 
+                    // If it is a list with constant arguments without shell=True, safe!
                     if is_list_invocation && rule.id == "VG-SAST-002" {
-                        // Safe execve-style argument array without shell
-                        continue;
+                        let has_dynamic = line.contains("request.")
+                            || line.contains("req.")
+                            || line.contains("user_")
+                            || line.contains("input")
+                            || line.contains("host")
+                            || line.contains("param");
+                        if !has_dynamic {
+                            continue;
+                        }
+                    }
+
+                    // Check if arguments to exec.Command or os.system are purely constant strings or constant variables
+                    if rule.id == "VG-SAST-002" && !has_shell_true {
+                        let mut is_const_command = false;
+                        for (c_var, c_scope) in constant_var_table.keys() {
+                            if (*c_scope == scope_start || *c_scope == 0)
+                                && contains_var(line, c_var)
+                            {
+                                let is_tainted = tainted_table.keys().any(|(t_var, t_scope)| {
+                                    (*t_scope == scope_start || *t_scope == 0) && t_var == c_var
+                                });
+                                if !is_tainted
+                                    && !line.contains('+')
+                                    && !line.contains('%')
+                                    && !line.contains("format(")
+                                    && !line.contains("f\"")
+                                    && !line.contains("f'")
+                                {
+                                    is_const_command = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if !is_const_command {
+                            if let Some(open_paren) = line.find('(') {
+                                if let Some(close_paren) = line.rfind(')') {
+                                    let args_str = line[open_paren + 1..close_paren].trim();
+                                    let has_concat = args_str.contains('+')
+                                        || args_str.contains('%')
+                                        || args_str.contains("f\"")
+                                        || args_str.contains("f'")
+                                        || args_str.contains("${");
+                                    let has_taint = tainted_table.keys().any(|(t_var, t_scope)| {
+                                        (*t_scope == scope_start || *t_scope == 0)
+                                            && contains_var(args_str, t_var)
+                                    });
+                                    if !has_concat && !has_taint && !args_str.is_empty() {
+                                        let all_literals = args_str.split(',').all(|arg| {
+                                            let a = arg.trim();
+                                            (a.starts_with('"') && a.ends_with('"'))
+                                                || (a.starts_with('\'') && a.ends_with('\''))
+                                                || (a.starts_with('[') && a.ends_with(']'))
+                                                || a == "true"
+                                                || a == "false"
+                                                || a.parse::<i64>().is_ok()
+                                        });
+                                        if all_literals {
+                                            is_const_command = true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if is_const_command {
+                            continue;
+                        }
                     }
 
                     for ((t_var, t_scope), info) in &tainted_table {

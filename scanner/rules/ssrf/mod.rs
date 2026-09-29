@@ -174,6 +174,7 @@ impl<'a> SsrfRuleEngine<'a> {
                         data_flow: Some(vec![format!("{}: {}", line, expr.to_source_string())]),
                         cwe: Some("CWE-918".to_string()),
                         fingerprint: Some(format!("VG-SSRF-001:{}:{}:{}", self.file_node.file_path, line, callee_str)),
+                        ..Default::default()
                     });
                 }
             }

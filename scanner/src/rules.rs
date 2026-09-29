@@ -63,7 +63,7 @@ pub fn get_sast_rules() -> Vec<Rule> {
             &["request.args", "request.form", "req.query", "r.URL.Query", "user_input"],
             &["db.execute", "cursor.execute", "sql.Query", "SELECT", "INSERT", "UPDATE", "DELETE"],
             &["int", "float", "strconv.Atoi", "parameterized binding"],
-            Regex::new(r#"(?i)(f["'].*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM|DROP\s+TABLE|UNION\s+(?:ALL\s+)?SELECT)\b.*\{|["'].*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM)\b.*["']\s*\+|query.*\+.*request|execute\(["'].*%\s*|execute\(["'].*\{\}.*\.format|execute\(f["']|\bfmt\.Sprintf\(["'].*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM)\b|`.*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM)\b.*\$\{)"#).unwrap(),
+            Regex::new(r#"(?i)(f["'].*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM|DROP\s+TABLE|UNION\s+(?:ALL\s+)?SELECT)\b.*\{|["'].*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM)\b.*["']\s*\+|query.*\+.*request|execute\(["'].*?["']\s*%\s*|execute\(["'].*\{\}.*\.format|execute\(f["']|\bfmt\.Sprintf\(["'].*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM)\b|`.*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM)\b.*\$\{)"#).unwrap(),
             "Potential SQL injection vulnerability detected via dynamic query construction.",
             "Use parameterized queries, prepared statements, or ORM parameter binding.",
         ),
@@ -164,6 +164,20 @@ pub fn get_sast_rules() -> Vec<Rule> {
             Regex::new(r#"(?i)\b(shell\s*=\s*True|shell\s*=\s*1)\b"#).unwrap(),
             "Subprocess invocation with shell=True detected. If untrusted input reaches this command, it enables arbitrary shell execution.",
             "Set shell=False and pass command arguments as an array/list of strings.",
+        ),
+        Rule::new(
+            "VG-SAST-009",
+            "Insecure Deserialization",
+            Category::SourceCode,
+            Severity::CRITICAL,
+            "HIGH",
+            "CWE-502",
+            &["user_input", "serialized_payload"],
+            &["pickle.loads", "pickle.load", "_pickle.loads", "yaml.unsafe_load", "marshal.loads"],
+            &["json.loads", "yaml.safe_load"],
+            Regex::new(r#"(?i)\b(pickle\.loads?|_pickle\.loads?|yaml\.unsafe_load|marshal\.loads?|shelve\.open)\b"#).unwrap(),
+            "Insecure deserialization detected. Deserializing untrusted object streams can lead to arbitrary remote code execution.",
+            "Use safer data interchange formats such as JSON or Protocol Buffers, or yaml.safe_load instead of unsafe object deserializers.",
         ),
         Rule::new(
             "VG-AUTH-001",
@@ -335,6 +349,7 @@ pub fn rule_cwe(rule_id: &str) -> Option<&'static str> {
         "VG-SAST-004" => Some("CWE-295"),
         "VG-SAST-005" => Some("CWE-327"),
         "VG-SAST-006" => Some("CWE-319"),
+        "VG-SAST-009" => Some("CWE-502"),
         "VG-SAST-007" | "VG-AUTH-003" | "VG-SEC-001" | "VG-SEC-002" | "VG-SEC-003"
         | "VG-SEC-004" | "VG-SEC-005" | "VG-SEC-006" | "VG-SEC-007" | "VG-SEC-008"
         | "VG-SECRET-001" | "VG-SECRET-002" | "VG-SECRET-003" | "VG-GIT-001" => Some("CWE-798"),
