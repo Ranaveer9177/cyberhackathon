@@ -317,11 +317,14 @@ jobs:
 - **[Language & Technology Rationale](docs/LANGUAGE.md)**: Technical rationale behind the Go + Rust architecture.
 - **[Installation & Global Setup Guide](docs/SETUP.md)**: Global Windows PATH installation and zero-config deployment.
 - **[Testing & Verification Guide](docs/TESTING.md)**: Test suites, control fixtures, and false-positive verification steps.
+- **[Terms & Conditions](TERMS.md)**: Acceptable use policy, liability disclaimers, and privacy guarantees.
 - **[Changelog & Release Notes](docs/CHANGELOG.md)**: Comprehensive release history from v0.1.0 to v7.2.0.
 
 ---
 
 ## 📄 License & Attribution
 
-VibeGuard is licensed under the **Apache License 2.0**.  
-Developed by the VibeGuard Core Security Engineering Team.
+VibeGuard is free, open-source software licensed under the **[Apache License 2.0](LICENSE)**.  
+Review the companion **[Terms & Conditions](TERMS.md)** for usage policies, privacy guarantees, and ethical security standards.  
+
+Developed with ❤️ by the VibeGuard Core Security Engineering Team.
