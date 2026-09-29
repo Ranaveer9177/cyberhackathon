@@ -36,6 +36,7 @@ fn accumulate_multiline(lines: &[&str], start_idx: usize) -> (usize, String) {
         || first.starts_with("if ")
         || first.starts_with("for ")
         || first.starts_with("while ")
+        || first.starts_with("with ")
         || first.starts_with("try:")
         || first.starts_with("except")
     {
@@ -350,6 +351,21 @@ fn parse_body(
                 finally_body,
                 line: line_num,
             }));
+            continue;
+        }
+
+        // Control flow: with statement
+        if trimmed.starts_with("with ") && trimmed.ends_with(':') {
+            let with_header = trimmed[5..trimmed.len() - 1].trim();
+            let expr_str = if let Some(as_idx) = with_header.find(" as ") {
+                with_header[..as_idx].trim()
+            } else {
+                with_header
+            };
+            body.push(StmtNode::Call(parse_expr(expr_str, line_num)));
+            let (with_end, with_body) = parse_body(lines, idx + 1, current_indent, line_num);
+            body.extend(with_body);
+            idx = with_end;
             continue;
         }
 

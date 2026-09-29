@@ -220,7 +220,10 @@ fn main() {
             .and_then(|e| e.to_str())
             .unwrap_or("");
 
-        if filename == "Dockerfile" || filename.ends_with(".dockerfile") {
+        if filename == "Dockerfile"
+            || filename.starts_with("Dockerfile.")
+            || filename.ends_with(".dockerfile")
+        {
             let mut docker_findings =
                 docker::scan_dockerfile(file_path, &content, &mut finding_counter);
             all_findings.append(&mut docker_findings);

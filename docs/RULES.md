@@ -1,5 +1,7 @@
 # VibeGuard — Security Rules Specification
 
+> **VibeGuard v7.2.0 Security Rules & Policy Reference**
+
 This document details the built-in security detection rules enforced by the VibeGuard scanner engine (Go and Rust).
 
 ---

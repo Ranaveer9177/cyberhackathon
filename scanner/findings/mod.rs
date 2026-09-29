@@ -81,6 +81,12 @@ pub fn classify_canonical_rule(
     // 2. Injections
     else if r.contains("SQL") || t.contains("sql injection") {
         ("VG-CANON-INJ-SQL", "SQL Injection", "CWE-89")
+    } else if r == "VG-CMD-LIST" || t.contains("argument injection") {
+        (
+            "VG-CANON-ARG-INJ",
+            "Subprocess Argument Injection",
+            "CWE-88",
+        )
     } else if r.contains("CMD")
         || r.contains("SAST-002")
         || r.contains("SAST-008")
@@ -137,7 +143,19 @@ pub fn classify_canonical_rule(
         )
     }
     // 4. Docker & Infrastructure
-    else if *category == Category::Docker || r.contains("DCK") {
+    else if r == "VG-DCK-004" || t.contains("healthcheck") {
+        (
+            "VG-CANON-DOCKER-HEALTH",
+            "Missing Container Healthcheck",
+            "CWE-250",
+        )
+    } else if r == "VG-DCK-001" || t.contains("running as root") {
+        (
+            "VG-CANON-DOCKER-ROOT",
+            "Container Running as Root",
+            "CWE-250",
+        )
+    } else if *category == Category::Docker || r.contains("DCK") {
         (
             "VG-CANON-DOCKER",
             "Container Security Misconfiguration",
@@ -145,7 +163,13 @@ pub fn classify_canonical_rule(
         )
     }
     // 5. Configuration
-    else if *category == Category::Configuration || r.contains("CFG") {
+    else if r == "VG-SAST-010" || r == "VG-CFG-001" || t.contains("debug mode") {
+        (
+            "VG-CANON-CONFIG-DEBUG",
+            "Debug Mode Enabled in Production",
+            "CWE-489",
+        )
+    } else if *category == Category::Configuration || r.contains("CFG") {
         (
             "VG-CANON-CONFIG",
             "Application Security Misconfiguration",

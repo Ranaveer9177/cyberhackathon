@@ -14,7 +14,7 @@ pub fn analyze_config_security(model: &ConfigModel, finding_counter: &mut usize)
     .unwrap();
     let aws_key_re = Regex::new(r#"AKIA[0-9A-Z]{16}"#).unwrap();
     let jwt_re = Regex::new(r#"eyJ[a-zA-Z0-9_-]+\.eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+"#).unwrap();
-    let db_conn_pass_re = Regex::new(r#"(?i)[a-z0-9_-]+://[^:]+:([^@]+)@"#).unwrap();
+    let db_conn_pass_re = Regex::new(r#"(?i)[a-z0-9_-]+://[^:]*:([^@]+)@"#).unwrap();
 
     for entry in &model.entries {
         let key_lower = entry.key.to_lowercase();

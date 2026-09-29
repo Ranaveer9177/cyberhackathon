@@ -1,6 +1,6 @@
 # VibeGuard — Testing & Verification Guide
 
-> **Test Suites, Automated Tests, and Manual Verification Procedures**
+> **VibeGuard v7.2.0 — Test Suites, Automated Tests, and Manual Verification Procedures**
 
 ---
 

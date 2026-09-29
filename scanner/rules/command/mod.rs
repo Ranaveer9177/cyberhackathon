@@ -288,7 +288,31 @@ impl<'a> CommandRuleEngine<'a> {
                 if all_constant {
                     return (CommandControl::Constant, shell_mode);
                 } else {
-                    return (CommandControl::Derived, shell_mode);
+                    let all_safe = !elements.is_empty()
+                        && elements.iter().all(|e| {
+                            if self.constants.eval_expr(e).is_constant() {
+                                return true;
+                            }
+                            let e_str = e.to_source_string();
+                            let (sanitized_kinds, is_sanitizer) = SanitizerModel::sanitized_kinds(&e_str);
+                            let is_var_sanitized = if let ExprNode::Identifier { name, .. } = e {
+                                self.sanitized_vars
+                                    .get(name)
+                                    .is_some_and(|kinds| kinds.contains(&crate::taint::types::TaintKind::Command))
+                            } else {
+                                false
+                            };
+                            is_sanitizer.is_some()
+                                || sanitized_kinds.contains(&crate::taint::types::TaintKind::Command)
+                                || is_var_sanitized
+                                || e_str.contains("shlex.quote")
+                        });
+
+                    if all_safe {
+                        return (CommandControl::Sanitized, shell_mode);
+                    } else {
+                        return (CommandControl::Derived, shell_mode);
+                    }
                 }
             }
 
@@ -300,7 +324,29 @@ impl<'a> CommandRuleEngine<'a> {
                 if all_constant {
                     return (CommandControl::Constant, shell_mode);
                 } else {
-                    return (CommandControl::Derived, shell_mode);
+                    let all_safe = positional_args.iter().all(|a| {
+                        if self.constants.eval_expr(a).is_constant() {
+                            return true;
+                        }
+                        let a_str = a.to_source_string();
+                        let (sanitized_kinds, is_sanitizer) = SanitizerModel::sanitized_kinds(&a_str);
+                        let is_var_sanitized = if let ExprNode::Identifier { name, .. } = a {
+                            self.sanitized_vars
+                                .get(name)
+                                .is_some_and(|kinds| kinds.contains(&crate::taint::types::TaintKind::Command))
+                        } else {
+                            false
+                        };
+                        is_sanitizer.is_some()
+                            || sanitized_kinds.contains(&crate::taint::types::TaintKind::Command)
+                            || is_var_sanitized
+                            || a_str.contains("shlex.quote")
+                    });
+                    if all_safe {
+                        return (CommandControl::Sanitized, shell_mode);
+                    } else {
+                        return (CommandControl::Derived, shell_mode);
+                    }
                 }
             }
 
