@@ -2,6 +2,35 @@
 
 All notable changes to the VibeGuard project are documented in this file.
 
+## [v7.1.0] — 2026-09-29 (Finding Engine Stabilization & Semantic Sinks)
+
+### Architecture & Engine Stabilization
+- **v7.1: Canonical Finding Engine & Multi-Level Semantic Deduplication** (`scanner/findings/mod.rs`):
+  - Unified canonical finding schema with `canonical_rule`, `detector_ids`, `related_findings`, `evidences`, and `cwe`.
+  - Level 1–5 deduplication hierarchy consolidating multi-detector overlaps into single canonical findings with merged provenance.
+  - Synchronized across Go engine (`internal/scanner/dedup.go`, `internal/scanner/runner.go`).
+- **v7.2: SQL Sink Context Engine & Receiver Analysis** (`scanner/taint/sinks.rs`, `scanner/semantic/project_model.rs`, `scanner/rules/sql/mod.rs`):
+  - Receiver context filtering across taint, semantic, and AST engines: non-database receivers (`tmpl`, `template`, `htmltemplate`, `cmd`, `task`, `runner`, `w`) are strictly excluded from `.execute` / `.exec` SQL sinks.
+  - Bare `.execute` / `.exec` sinks require explicit database receivers (`db`, `cursor`, `conn`, `session`, `orm`, `tx`, `repo`, etc.).
+  - Fixed false positive on Go `tmpl.Execute(w, r)`.
+  - Interprocedural semantic edge filter requires >= 2 call edges or cross-file traversal, preventing single-hop local function false positives.
+  - Tightened `VG-SAST-001` regex to only match Python `%` modulo formatting outside string literals, preventing false positives on parameterized DB-API queries (`%s`).
+- **v7.3: Command Injection Semantic Engine** (`scanner/rules/command/mod.rs`, `scanner/src/sast.rs`):
+  - Pre-tokenized constant argument arrays (`["ping", "127.0.0.1"]`) with `shell=False` classified as safe constants.
+  - Fixed array invocations in Go (`exec.Command`) and Python (`subprocess.run`) with literal arguments verified without false alerts.
+- **v7.4: Constant / Value Propagation for Commands** (`scanner/analysis/constants.rs`):
+  - `ConstantEnvironment` extended to evaluate `ExprNode::List` and bracketed array literals.
+  - Constant string variables evaluated across function and module scope (e.g. `CMD = "ls"; os.system(CMD)`).
+  - Lexical SAST tracks constant string variable assignments to avoid flagging safe constant system calls.
+- **v7.5: Insecure Deserialization Baseline Rule** (`VG-SAST-009`, CWE-502):
+  - Added AST/SAST detection for unsafe object stream deserialization (`pickle.loads`, `yaml.unsafe_load`, `marshal.loads`).
+  - Full CWE-502 metadata and canonical rule mapping in both Rust and Go.
+
+### Quality & Certification
+- **Self-Scan**: **100/100 PASSED** (0 false positives on VibeGuard repository self-scan).
+- **Ultimate Verification**: **100/100 PASSED** across all 8 verification phases in `ultimate_test.bat`.
+- **Clippy & Linter**: Zero warnings with `-D warnings` on Rust Clippy and Go vet.
+
 ## [v7.0.0] — 2026-09-29 (Deep Offline Security Engine)
 
 ### Architecture

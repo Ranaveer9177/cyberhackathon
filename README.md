@@ -1,6 +1,6 @@
-# VibeGuard v7.0.0 — Deep Offline Security Engine
+# VibeGuard v7.1.0 — Finding Engine Stabilization & Semantic Sinks
 
-[![Version](https://img.shields.io/badge/version-v7.0.0-blue.svg)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v7.1.0-blue.svg)](docs/CHANGELOG.md)
 [![Security Gate](https://img.shields.io/badge/security_gate-PASSED_100%2F100-brightgreen.svg)](ultimate_test.bat)
 [![Engines](https://img.shields.io/badge/engines-Go_1.21+_|_Rust_1.70+-orange.svg)](docs/LANGUAGE.md)
 [![SARIF](https://img.shields.io/badge/SARIF-2.1.0_Compliant-purple.svg)](internal/report/sarif.go)

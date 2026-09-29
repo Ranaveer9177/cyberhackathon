@@ -176,6 +176,7 @@ impl<'a> CommandRuleEngine<'a> {
                     data_flow: Some(vec![format!("{}: {}", line, expr.to_source_string())]),
                     cwe: Some("CWE-78".to_string()),
                     fingerprint: Some(format!("VG-CMD-001:{}:{}:{}", self.file_node.file_path, line, callee_str)),
+                    ..Default::default()
                 });
             }
 
@@ -224,8 +225,18 @@ impl<'a> CommandRuleEngine<'a> {
                 return (CommandControl::Sanitized, shell_mode);
             }
 
-            // 2. Constant Check: Compile-time constant string literal
+            // 2. Constant Check: Compile-time constant string literal or all-constant arguments
             if self.constants.eval_expr(cmd_arg).is_constant() {
+                return (CommandControl::Constant, shell_mode);
+            }
+
+            // For non-shell calls (e.g. exec.Command), if all arguments are constants, command is constant
+            if shell_mode == ShellMode::ShellFalse
+                && !args.is_empty()
+                && args
+                    .iter()
+                    .all(|a| self.constants.eval_expr(a).is_constant())
+            {
                 return (CommandControl::Constant, shell_mode);
             }
 

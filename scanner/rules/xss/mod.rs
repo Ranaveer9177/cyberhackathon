@@ -185,6 +185,7 @@ impl<'a> XssRuleEngine<'a> {
             data_flow: Some(vec![format!("{}: {}", line, val_expr.to_source_string())]),
             cwe: Some("CWE-79".to_string()),
             fingerprint: Some(format!("VG-XSS-001:{}:{}:{}", self.file_node.file_path, line, sink_name)),
+            ..Default::default()
         });
     }
 }

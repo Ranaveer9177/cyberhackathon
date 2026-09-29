@@ -63,10 +63,14 @@ type Finding struct {
 	Recommendation string   `json:"recommendation,omitempty"`
 	Confidence     string   `json:"confidence"`
 	Source         string   `json:"source,omitempty"`
-	Sink           string   `json:"sink,omitempty"`
-	DataFlow       []string `json:"data_flow,omitempty"`
-	CWE            string   `json:"cwe,omitempty"`
-	Fingerprint    string   `json:"fingerprint,omitempty"`
+	Sink            string   `json:"sink,omitempty"`
+	DataFlow        []string `json:"data_flow,omitempty"`
+	CWE             string   `json:"cwe,omitempty"`
+	Fingerprint     string   `json:"fingerprint,omitempty"`
+	CanonicalRule   string   `json:"canonical_rule,omitempty"`
+	DetectorIDs     []string `json:"detector_ids,omitempty"`
+	RelatedFindings []string `json:"related_findings,omitempty"`
+	Evidences       []string `json:"evidences,omitempty"`
 }
 
 func (f *Finding) ComputeFingerprint() string {
@@ -101,6 +105,8 @@ func RuleCWE(ruleID string) string {
 		return "CWE-327"
 	case "VG-SAST-006":
 		return "CWE-319"
+	case "VG-SAST-009":
+		return "CWE-502"
 	case "VG-SAST-007", "VG-AUTH-003", "VG-SEC-001", "VG-SEC-002", "VG-SEC-003", "VG-SEC-004", "VG-SEC-005", "VG-SEC-006", "VG-SEC-007", "VG-SEC-008", "VG-SECRET-001", "VG-SECRET-002", "VG-SECRET-003", "VG-GIT-001":
 		return "CWE-798"
 	case "VG-AUTH-001":
@@ -494,7 +500,7 @@ func getInternalRules() []internalRule {
 			sources:        []string{"request.args", "request.form", "req.query", "r.URL.Query", "user_input"},
 			sinks:          []string{"db.execute", "cursor.execute", "sql.Query", "SELECT", "INSERT", "UPDATE", "DELETE"},
 			sanitizers:     []string{"int", "float", "strconv.Atoi", "parameterized binding"},
-			pattern:        regexp.MustCompile(`(?i)(f["'].*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM|DROP\s+TABLE|UNION\s+(?:ALL\s+)?SELECT)\b.*\{|["'].*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM)\b.*["']\s*\+|query.*\+.*request|execute\(["'].*%\s*|execute\(["'].*\{\}.*\.format|execute\(f["']|\bfmt\.Sprintf\(["'].*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM)\b|` + "`" + `.*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM)\b.*\$\{)`),
+			pattern:        regexp.MustCompile(`(?i)(f["'].*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM|DROP\s+TABLE|UNION\s+(?:ALL\s+)?SELECT)\b.*\{|["'].*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM)\b.*["']\s*\+|query.*\+.*request|execute\(["'].*?["']\s*%\s*|execute\(["'].*\{\}.*\.format|execute\(f["']|\bfmt\.Sprintf\(["'].*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM)\b|` + "`" + `.*\b(SELECT\s+[\s\S]+?\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM)\b.*\$\{)`),
 			description:    "Potential SQL injection vulnerability detected via dynamic query construction.",
 			remediation:    "Use parameterized queries, prepared statements, or ORM parameter binding.",
 			recommendation: "Use parameterized queries or prepared statements.",
@@ -603,6 +609,21 @@ func getInternalRules() []internalRule {
 			description:    "Subprocess invocation with shell=True detected. If untrusted input reaches this command, it enables arbitrary shell execution.",
 			remediation:    "Set shell=False and pass command arguments as an array/list of strings.",
 			recommendation: "Set shell=False and pass command arguments as an array/slice of strings.",
+		},
+		{
+			id:             "VG-SAST-009",
+			name:           "Insecure Deserialization",
+			category:       "sourcecode",
+			severity:       "CRITICAL",
+			confidence:     "HIGH",
+			cwe:            "CWE-502",
+			sources:        []string{"user_input", "serialized_payload"},
+			sinks:          []string{"pickle.loads", "pickle.load", "_pickle.loads", "yaml.unsafe_load", "marshal.loads"},
+			sanitizers:     []string{"json.loads", "yaml.safe_load"},
+			pattern:        regexp.MustCompile(`(?i)\b(pickle\.loads?|_pickle\.loads?|yaml\.unsafe_load|marshal\.loads?|shelve\.open)\b`),
+			description:    "Insecure deserialization detected. Deserializing untrusted object streams can lead to arbitrary remote code execution.",
+			remediation:    "Use safer data interchange formats such as JSON or Protocol Buffers, or yaml.safe_load instead of unsafe object deserializers.",
+			recommendation: "Avoid deserializing untrusted data with pickle/marshal/yaml.unsafe_load. Use JSON or safe loaders.",
 		},
 		{
 			id:             "VG-AUTH-001",
@@ -1415,13 +1436,22 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 				findings = append(findings, credFindings...)
 			}
 
+			normPath := strings.ToLower(strings.ReplaceAll(relPath, "\\", "/"))
+			if strings.HasSuffix(normPath, "rules.rs") ||
+				strings.HasSuffix(normPath, "sinks.rs") ||
+				strings.HasSuffix(normPath, "findings/mod.rs") ||
+				strings.HasSuffix(normPath, "internal/scanner/runner.go") ||
+				strings.HasSuffix(normPath, "internal/scanner/dedup.go") {
+				continue
+			}
+
 			if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "/*") || strings.HasPrefix(trimmed, "*") || strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, "--") || strings.HasPrefix(trimmed, ";") {
 				continue
 			}
 			if strings.HasPrefix(trimmed, "description:") || strings.HasPrefix(trimmed, "recommendation:") || strings.HasPrefix(trimmed, "remediation:") || strings.HasPrefix(trimmed, "sources:") || strings.HasPrefix(trimmed, "sinks:") || strings.HasPrefix(trimmed, "sanitizers:") || strings.HasPrefix(trimmed, "confidence:") || strings.HasPrefix(trimmed, "cwe:") || strings.HasPrefix(trimmed, "name:") || strings.HasPrefix(trimmed, "id:") || strings.HasPrefix(trimmed, "category:") || strings.HasPrefix(trimmed, "severity:") || strings.HasPrefix(trimmed, "pattern:") || strings.HasPrefix(trimmed, "hasShellTrue :=") || strings.HasPrefix(trimmed, "let has_shell_true") {
 				continue
 			}
-			if strings.Contains(line, "regexp.MustCompile") || strings.Contains(line, "Regex::new") || strings.Contains(line, "Rule {") || strings.Contains(line, `strings.Contains(lineLower, "http`) || strings.Contains(line, `line_lower.contains("http`) || strings.Contains(line, `contains("shell`) || strings.Contains(line, `Contains(line, "shell`) {
+			if strings.Contains(line, "regexp.MustCompile") || strings.Contains(line, "Regex::new") || strings.Contains(line, "Rule {") || strings.Contains(line, `strings.Contains(lineLower, "http`) || strings.Contains(line, `line_lower.contains("http`) || strings.Contains(line, `contains("shell`) || strings.Contains(line, `Contains(line, "shell`) || strings.Contains(line, `contains("md5`) || strings.Contains(line, `contains("sha1`) || strings.Contains(line, `contains("pickle`) {
 				continue
 			}
 

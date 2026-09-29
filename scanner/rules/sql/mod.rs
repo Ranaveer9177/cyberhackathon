@@ -271,18 +271,71 @@ impl<'a> SqlRuleEngine<'a> {
         if let ExprNode::Call { callee, args, .. } = expr {
             let callee_str = callee.to_source_string();
 
-            // Sinks: raw execute, query, etc.
-            let is_sql_sink = callee_str.ends_with(".execute")
-                || callee_str.ends_with(".exec")
-                || callee_str.ends_with(".query")
-                || callee_str.ends_with(".Query")
-                || callee_str.ends_with(".QueryRow")
-                || callee_str.ends_with(".executeQuery")
-                || callee_str.ends_with(".executeUpdate")
-                || callee_str.ends_with(".raw")
-                || callee_str.ends_with(".Raw")
-                || callee_str.ends_with("$queryRaw")
-                || callee_str.ends_with("$executeRaw");
+            let lower = callee_str.to_lowercase();
+            let is_sql_sink = if let Some(dot_idx) = lower.rfind('.') {
+                let receiver = &lower[..dot_idx];
+                let method = &lower[dot_idx + 1..];
+
+                let is_non_sql = receiver == "tmpl"
+                    || receiver == "template"
+                    || receiver == "htmltemplate"
+                    || receiver == "texttemplate"
+                    || receiver == "t"
+                    || receiver == "w"
+                    || receiver == "writer"
+                    || receiver == "cmd"
+                    || receiver == "rootcmd"
+                    || receiver == "command"
+                    || receiver == "cobracommand"
+                    || receiver == "c"
+                    || receiver == "app"
+                    || receiver == "task"
+                    || receiver == "runner"
+                    || receiver == "workflow"
+                    || receiver == "future"
+                    || receiver == "promise"
+                    || receiver == "executor"
+                    || receiver == "batch";
+
+                if is_non_sql {
+                    false
+                } else if method == "execute" || method == "exec" {
+                    receiver == "db"
+                        || receiver == "cursor"
+                        || receiver == "cur"
+                        || receiver == "conn"
+                        || receiver == "connection"
+                        || receiver == "session"
+                        || receiver == "orm"
+                        || receiver == "tx"
+                        || receiver == "sql"
+                        || receiver == "repo"
+                        || receiver == "repository"
+                        || receiver == "client"
+                        || receiver == "engine"
+                        || receiver == "stmt"
+                        || receiver.ends_with("db")
+                        || receiver.ends_with("conn")
+                        || receiver.ends_with("cursor")
+                        || receiver.ends_with("session")
+                        || receiver.ends_with("repo")
+                } else {
+                    method == "query"
+                        || method == "queryrow"
+                        || method == "query_row"
+                        || method == "executequery"
+                        || method == "executeupdate"
+                        || method == "raw"
+                        || method == "$queryraw"
+                        || method == "$executeraw"
+                }
+            } else {
+                lower == "execute"
+                    || lower == "db.execute"
+                    || lower == "conn.execute"
+                    || lower == "cursor.execute"
+                    || lower == "session.execute"
+            };
 
             if is_sql_sink {
                 // Check if properly parameterized:
@@ -357,6 +410,7 @@ impl<'a> SqlRuleEngine<'a> {
                         data_flow: Some(vec![format!("{}: {}", line, expr.to_source_string())]),
                         cwe: Some("CWE-89".to_string()),
                         fingerprint: Some(format!("VG-SQL-001:{}:{}:{}", self.file_node.file_path, line, callee_str)),
+                        ..Default::default()
                     });
                 }
             }

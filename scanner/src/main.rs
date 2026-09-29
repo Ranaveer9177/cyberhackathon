@@ -8,6 +8,8 @@ pub mod analysis;
 pub mod config;
 #[path = "../docker/mod.rs"]
 pub mod docker;
+#[path = "../findings/mod.rs"]
+pub mod findings;
 #[path = "../frameworks/mod.rs"]
 pub mod frameworks;
 mod git;
@@ -287,7 +289,7 @@ fn main() {
     }
 
     let raw_count = all_findings.len();
-    let all_findings = deduplicate_findings(all_findings);
+    let all_findings = findings::canonicalize_and_deduplicate(all_findings);
     let dedup_count = all_findings.len();
     let suppressed = raw_count.saturating_sub(dedup_count);
 
@@ -336,26 +338,4 @@ fn main() {
             std::process::exit(2);
         }
     }
-}
-
-fn deduplicate_findings(findings: Vec<types::Finding>) -> Vec<types::Finding> {
-    let mut seen = std::collections::HashSet::new();
-    let mut deduped = Vec::with_capacity(findings.len());
-
-    for mut f in findings {
-        if f.column.is_none() {
-            f.column = Some(1);
-        }
-        if f.rule_id.is_none() {
-            f.rule_id = Some(f.id.clone());
-        }
-        let fp = f.compute_fingerprint();
-        f.fingerprint = Some(fp.clone());
-
-        if seen.insert(fp) {
-            deduped.push(f);
-        }
-    }
-
-    deduped
 }

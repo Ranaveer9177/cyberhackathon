@@ -13,12 +13,7 @@ pub fn analyze_project_semantic(model: &ProjectModel, finding_counter: &mut usiz
     let mut seen_fingerprints = HashSet::new();
 
     for chain in &chains {
-        // We are particularly interested in interprocedural chains (>= 2 edges or crossing file boundaries)
         if chain.edges.is_empty() {
-            continue;
-        }
-
-        if !seen_sinks.insert(chain.sink_id.clone()) {
             continue;
         }
 
@@ -29,6 +24,15 @@ pub fn analyze_project_semantic(model: &ProjectModel, finding_counter: &mut usiz
             .edges
             .iter()
             .any(|e| e.caller_file != first_edge.caller_file);
+
+        // Require genuine interprocedural chains (>= 2 edges or crossing file boundaries)
+        if chain.edges.len() < 2 && !crosses_files {
+            continue;
+        }
+
+        if !seen_sinks.insert(chain.sink_id.clone()) {
+            continue;
+        }
 
         let (rule_id, cwe, title, default_sev, default_desc, recommendation) = match chain.sink_kind.as_str() {
             "SQL_INJECTION" => (
@@ -112,6 +116,7 @@ pub fn analyze_project_semantic(model: &ProjectModel, finding_counter: &mut usiz
             data_flow: Some(data_flow),
             cwe: Some(cwe.to_string()),
             fingerprint: Some(fingerprint),
+            ..Default::default()
         });
     }
 
