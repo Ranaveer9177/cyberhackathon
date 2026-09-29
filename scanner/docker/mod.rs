@@ -165,4 +165,29 @@ services:
         assert!(findings.iter().any(|f| f.id == "VG-DCK-018"));
         assert!(findings.iter().any(|f| f.id == "VG-DCK-019"));
     }
+
+    #[test]
+    fn test_compose_shared_credentials() {
+        let mut counter = 0;
+        let compose_content = r#"version: '3.8'
+services:
+  api:
+    image: myapi:1.0
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/app
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_PASSWORD=postgres
+"#;
+        let compose_model = compose::parse_docker_compose("docker-compose.yml", compose_content);
+        let findings = relationships::scan_docker_relationships(
+            &["docker-compose.yml".to_string()],
+            ".",
+            &[],
+            &[compose_model],
+            &mut counter,
+        );
+        assert!(findings.iter().any(|f| f.id == "VG-DCK-020"));
+    }
 }

@@ -79,6 +79,28 @@ func severityColor(sev string) string {
 	}
 }
 
+// OwaspCategoryForCWE maps standard CWE identifiers to OWASP Top 10 (2021) risk categories.
+func OwaspCategoryForCWE(cwe string) string {
+	switch strings.TrimSpace(strings.ToUpper(cwe)) {
+	case "CWE-89", "CWE-78", "CWE-95", "CWE-79":
+		return "A03:2021-Injection"
+	case "CWE-295", "CWE-327", "CWE-319":
+		return "A02:2021-Cryptographic Failures"
+	case "CWE-798", "CWE-259", "CWE-330", "CWE-916":
+		return "A07:2021-Identification and Authentication Failures"
+	case "CWE-489", "CWE-942", "CWE-668", "CWE-614", "CWE-1188", "CWE-347":
+		return "A05:2021-Security Misconfiguration"
+	case "CWE-502":
+		return "A08:2021-Software and Data Integrity Failures"
+	case "CWE-918":
+		return "A10:2021-Server-Side Request Forgery"
+	case "CWE-250", "CWE-200", "CWE-552", "CWE-22":
+		return "A01:2021-Broken Access Control"
+	default:
+		return ""
+	}
+}
+
 func getBestFixedVersion(vulns []osv.Vulnerability) string {
 	// Priority 1: SEMVER ranges (e.g. "9.3.0") — most human-readable
 	// Priority 2: ECOSYSTEM ranges (e.g. "5.4") — package-manager specific versions
@@ -241,6 +263,9 @@ func PrintTerminalReport(r *Report) {
 			}
 			if f.CWE != "" {
 				fmt.Printf("    CWE:            %s\n", f.CWE)
+				if owasp := OwaspCategoryForCWE(f.CWE); owasp != "" {
+					fmt.Printf("    OWASP:          %s\n", owasp)
+				}
 			}
 			if f.Source != "" {
 				fmt.Printf("    Source:         %s\n", f.Source)

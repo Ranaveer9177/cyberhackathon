@@ -98,6 +98,9 @@ func GenerateSarif(r *Report) *SarifLog {
 			var helpURI string
 			if f.CWE != "" {
 				tags = append(tags, f.CWE)
+				if owasp := OwaspCategoryForCWE(f.CWE); owasp != "" {
+					tags = append(tags, owasp)
+				}
 				cweNum := strings.TrimPrefix(f.CWE, "CWE-")
 				helpURI = "https://cwe.mitre.org/data/definitions/" + cweNum + ".html"
 			}

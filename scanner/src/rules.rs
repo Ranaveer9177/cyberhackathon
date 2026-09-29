@@ -361,7 +361,7 @@ pub fn rule_cwe(rule_id: &str) -> Option<&'static str> {
         "VG-DCK-002" => Some("CWE-214"),
         "VG-DCK-006" | "VG-DCK-007" | "VG-DCK-016" | "VG-DCK-018" => Some("CWE-668"),
         "VG-DCK-009" => Some("CWE-552"),
-        "VG-DCK-010" => Some("CWE-259"),
+        "VG-DCK-010" | "VG-DCK-020" => Some("CWE-259"),
         "VG-DCK-017" => Some("CWE-798"),
         "VG-DCK-003" | "VG-DCK-014" | "VG-CFG-004" | "VG-SECRET-FILE" => Some("CWE-200"),
         "VG-CFG-001" => Some("CWE-489"),
@@ -372,6 +372,7 @@ pub fn rule_cwe(rule_id: &str) -> Option<&'static str> {
         "VG-CFG-007" => Some("CWE-295"),
         "VG-CFG-008" => Some("CWE-798"),
         "VG-CFG-009" => Some("CWE-1188"),
+        "VG-CFG-010" => Some("CWE-347"),
         _ => None,
     }
 }

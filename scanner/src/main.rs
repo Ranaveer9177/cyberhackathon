@@ -65,7 +65,7 @@ fn main() {
     }
 
     if args.iter().any(|a| a == "--version" || a == "-v") {
-        println!("vibeguard-scanner v7.0.0");
+        println!("vibeguard-scanner v{}", env!("CARGO_PKG_VERSION"));
         std::process::exit(0);
     }
 

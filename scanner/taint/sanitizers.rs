@@ -106,6 +106,64 @@ impl SanitizerModel {
             }
         }
 
+        // 8. UUID & GUID Sanitizers (fixed hex/hyphen format prevents injection)
+        if lower.contains("uuid.parse(")
+            || lower.contains("uuid.uuid(")
+            || lower.contains("uuid.uuid4(")
+            || lower.contains("uuid.uuid1(")
+            || lower.contains("uuid.fromstring(")
+            || lower.contains("uuid.mustparse(")
+            || lower.contains("uuid.new(")
+            || lower.contains("is_uuid(")
+        {
+            kinds.insert(TaintKind::Sql);
+            kinds.insert(TaintKind::Command);
+            kinds.insert(TaintKind::Path);
+            if used_name.is_none() {
+                used_name = Some("uuid_validator".to_string());
+            }
+        }
+
+        // 9. Boolean Sanitizers (true/false scalars cannot carry injection payloads)
+        if lower.contains("bool(")
+            || lower.contains("boolean(")
+            || lower.contains("strconv.parsebool(")
+            || lower.contains("parse_bool(")
+        {
+            kinds.insert(TaintKind::Sql);
+            kinds.insert(TaintKind::Command);
+            kinds.insert(TaintKind::Path);
+            kinds.insert(TaintKind::Xss);
+            kinds.insert(TaintKind::Ssrf);
+            if used_name.is_none() {
+                used_name = Some("boolean_typecast".to_string());
+            }
+        }
+
+        // 10. URL Encoding Sanitizers
+        if lower.contains("urllib.parse.quote(")
+            || lower.contains("url.queryescape(")
+            || lower.contains("url.pathescape(")
+        {
+            kinds.insert(TaintKind::Path);
+            kinds.insert(TaintKind::Command);
+            if used_name.is_none() {
+                used_name = Some("url_encoder".to_string());
+            }
+        }
+
+        // 11. Hex / Base64 Safe String Encoding
+        if lower.contains("hex.encodetostring(")
+            || lower.contains("base64.b64encode(")
+            || lower.contains("base64.stdencoding.encodetostring(")
+        {
+            kinds.insert(TaintKind::Sql);
+            kinds.insert(TaintKind::Command);
+            if used_name.is_none() {
+                used_name = Some("alphanumeric_encoder".to_string());
+            }
+        }
+
         (kinds, used_name)
     }
 
@@ -193,6 +251,50 @@ pub mod tests {
         assert!(!SanitizerModel::is_effective_for(
             TaintKind::Command,
             "html.escape(raw)"
+        ));
+    }
+
+    #[test]
+    fn test_uuid_sanitizer_precision() {
+        assert!(SanitizerModel::is_effective_for(
+            TaintKind::Sql,
+            "uuid.UUID(param)"
+        ));
+        assert!(SanitizerModel::is_effective_for(
+            TaintKind::Command,
+            "uuid.parse(param)"
+        ));
+        assert!(SanitizerModel::is_effective_for(
+            TaintKind::Path,
+            "uuid.fromString(param)"
+        ));
+    }
+
+    #[test]
+    fn test_boolean_sanitizer_precision() {
+        assert!(SanitizerModel::is_effective_for(
+            TaintKind::Sql,
+            "bool(flag)"
+        ));
+        assert!(SanitizerModel::is_effective_for(
+            TaintKind::Command,
+            "strconv.ParseBool(flag)"
+        ));
+        assert!(SanitizerModel::is_effective_for(
+            TaintKind::Xss,
+            "Boolean(flag)"
+        ));
+    }
+
+    #[test]
+    fn test_encoding_sanitizers_precision() {
+        assert!(SanitizerModel::is_effective_for(
+            TaintKind::Command,
+            "url.QueryEscape(input)"
+        ));
+        assert!(SanitizerModel::is_effective_for(
+            TaintKind::Sql,
+            "hex.EncodeToString(bytes)"
         ));
     }
 }

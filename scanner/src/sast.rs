@@ -460,6 +460,22 @@ pub fn scan_source_code(
                     continue;
                 }
 
+                // Dangerous Eval refinement: database executions (db.Exec, tx.Exec) and regex executions are not code eval
+                if rule.id == "VG-SAST-003" {
+                    let line_lower = line.to_lowercase();
+                    if line_lower.contains("db.exec(")
+                        || line_lower.contains("tx.exec(")
+                        || line_lower.contains("conn.exec(")
+                        || line_lower.contains("stmt.exec(")
+                        || line_lower.contains("re.exec(")
+                        || line_lower.contains("regex.exec(")
+                        || line.contains(r#"contains("db.exec"#)
+                        || line.contains(r#"contains("tx.exec"#)
+                    {
+                        continue;
+                    }
+                }
+
                 // Insecure HTTP URL refinement
                 if rule.id == "VG-SAST-006" {
                     let line_lower = line.to_lowercase();

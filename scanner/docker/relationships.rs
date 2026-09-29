@@ -182,6 +182,59 @@ pub fn scan_docker_relationships(
                     }
                 }
             }
+
+            // Relationship: Cross-Service Default Database Credentials (VG-DCK-020)
+            if is_backend_db {
+                let default_passwords = [
+                    "postgres",
+                    "root",
+                    "password",
+                    "password123",
+                    "admin",
+                    "secret",
+                ];
+                for (db_env_key, db_env_val, line) in &svc.environment {
+                    let k_lower = db_env_key.to_lowercase();
+                    let v_lower = db_env_val.to_lowercase();
+                    if (k_lower.contains("password") || k_lower.contains("pwd"))
+                        && default_passwords.contains(&v_lower.as_str())
+                    {
+                        // Check if another service references this password or connects with it
+                        let referenced_by_app = compose.services.iter().any(|other| {
+                            other.name != svc.name
+                                && other.environment.iter().any(|(_, other_val, _)| {
+                                    other_val.to_lowercase().contains(&v_lower)
+                                })
+                        });
+
+                        if referenced_by_app {
+                            *finding_counter += 1;
+                            findings.push(Finding {
+                                id: "VG-DCK-020".to_string(),
+                                rule_id: Some("VG-DCK-020".to_string()),
+                                category: Category::Docker,
+                                severity: Severity::HIGH,
+                                title: "Cross-Service Shared Insecure Default Database Password".to_string(),
+                                description: format!(
+                                    "Database service '{}' sets default password '{}={}', which is also shared across other application container environments in the composition.",
+                                    svc.name, db_env_key, db_env_val
+                                ),
+                                file: compose.file_path.clone(),
+                                line: *line,
+                                column: Some(1),
+                                evidence: Some(format!("service: {}, env: {}={}", svc.name, db_env_key, db_env_val)),
+                                recommendation: Some("Generate strong, random credentials for databases and distribute via Docker secrets or secure .env files not committed to repository.".to_string()),
+                                confidence: "HIGH".to_string(),
+                                source: None,
+                                sink: None,
+                                data_flow: None,
+                                cwe: rule_cwe("VG-DCK-020").map(String::from),
+                                ..Default::default()
+                            });
+                        }
+                    }
+                }
+            }
         }
     }
 
