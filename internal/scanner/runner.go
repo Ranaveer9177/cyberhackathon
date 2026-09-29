@@ -618,9 +618,9 @@ func getInternalRules() []internalRule {
 			confidence:     "HIGH",
 			cwe:            "CWE-502",
 			sources:        []string{"user_input", "serialized_payload"},
-			sinks:          []string{"pickle.loads", "pickle.load", "_pickle.loads", "yaml.unsafe_load", "marshal.loads"},
+			sinks:          []string{"pickle.loads", "pickle.load", "_pickle.loads", "yaml.unsafe_load", "yaml.load", "marshal.loads", "marshal.load", "shelve.open"},
 			sanitizers:     []string{"json.loads", "yaml.safe_load"},
-			pattern:        regexp.MustCompile(`(?i)\b(pickle\.loads?|_pickle\.loads?|yaml\.unsafe_load|marshal\.loads?|shelve\.open)\b`),
+			pattern:        regexp.MustCompile(`(?i)\b(pickle\.loads?|_pickle\.loads?|yaml\.unsafe_load|yaml\.load|marshal\.loads?|shelve\.open)\b`),
 			description:    "Insecure deserialization detected. Deserializing untrusted object streams can lead to arbitrary remote code execution.",
 			remediation:    "Use safer data interchange formats such as JSON or Protocol Buffers, or yaml.safe_load instead of unsafe object deserializers.",
 			recommendation: "Avoid deserializing untrusted data with pickle/marshal/yaml.unsafe_load. Use JSON or safe loaders.",
@@ -1215,6 +1215,7 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 
 		var functionScopes []goFuncScope
 		taintedTable := make(map[string]goTaintData) // key: varName + "@" + strconv.Itoa(scopeStart)
+		constantVarTable := make(map[string]bool)    // key: varName + "@" + strconv.Itoa(scopeStart)
 
 		if sourceExts[ext] {
 			pyFuncRe := regexp.MustCompile(`^(?P<indent>\s*)def\s+(?P<name>[a-zA-Z_][a-zA-Z0-9_]*)\s*\((?P<params>[^)]*)\)\s*:`)
@@ -1323,7 +1324,8 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 			sourceAssignRe := regexp.MustCompile(`(?i)(?:^|[\s;])(?P<var>[a-zA-Z_][a-zA-Z0-9_]*)\s*[:=]\s*(?P<expr>(?:request\.(?:args|form|values|json|get_json|data|files)|req\.(?:query|body|params)|r\.(?:URL\.Query|FormValue))[^;\n]*)`)
 			assignRe := regexp.MustCompile(`(?i)(?:^|[\s;])(?P<var>[a-zA-Z_][a-zA-Z0-9_]*)\s*[:=]\s*(?P<rhs>[^;\n]+)`)
 
-			// Initial sources
+
+			// Initial sources and constants
 			for lineIdx, line := range lines {
 				lineNum := lineIdx + 1
 				t := strings.TrimSpace(line)
@@ -1341,6 +1343,23 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 						dataFlow: []string{
 							fmt.Sprintf("Line %d: %s = %s [SOURCE: Untrusted user input]", lineNum, varName, expr),
 						},
+					}
+				} else if m := assignRe.FindStringSubmatch(line); len(m) > 2 {
+					varName := m[1]
+					rhs := strings.TrimSpace(m[2])
+					scopeStart := getScopeStart(lineNum)
+					isStrLit := (strings.HasPrefix(rhs, "\"") && strings.HasSuffix(rhs, "\"") && !strings.Contains(rhs, "%s") && !strings.Contains(rhs, "{}")) ||
+						(strings.HasPrefix(rhs, "'") && strings.HasSuffix(rhs, "'") && !strings.Contains(rhs, "%s") && !strings.Contains(rhs, "{}")) ||
+						(strings.HasPrefix(rhs, "b\"") && strings.HasSuffix(rhs, "\"")) ||
+						(strings.HasPrefix(rhs, "b'") && strings.HasSuffix(rhs, "'"))
+					if !isStrLit {
+						if _, err := strconv.ParseInt(rhs, 10, 64); err == nil {
+							isStrLit = true
+						}
+					}
+					if isStrLit {
+						constantVarTable[varName+"@"+strconv.Itoa(scopeStart)] = true
+						constantVarTable[varName+"@0"] = true
 					}
 				}
 			}
@@ -1620,6 +1639,73 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 								description = fmt.Sprintf("Untrusted input from variable '%s' (source line %d) directly reaches command execution sink.", tVar, td.sourceLine)
 								break
 							}
+						}
+					}
+
+					if r.id == "VG-SAST-009" {
+						if strings.Contains(line, "SafeLoader") || strings.Contains(line, "yaml.safe_load") || strings.Contains(line, "CSafeLoader") {
+							continue
+						}
+						sinkField = "Object Deserialization Sink"
+						varName := ""
+						isConstantData := false
+						isAttackerControlled := false
+
+						scopeStart := 0
+						for _, sc := range functionScopes {
+							if lineNum >= sc.startLine && lineNum <= sc.endLine {
+								scopeStart = sc.startLine
+								break
+							}
+						}
+
+						openP := strings.Index(line, "(")
+						closeP := strings.LastIndex(line, ")")
+						if openP != -1 && closeP > openP {
+							argStr := strings.TrimSpace(line[openP+1 : closeP])
+							varName = argStr
+							if (strings.HasPrefix(argStr, "b\"") && strings.HasSuffix(argStr, "\"")) ||
+								(strings.HasPrefix(argStr, "b'") && strings.HasSuffix(argStr, "'")) ||
+								(strings.HasPrefix(argStr, "\"") && strings.HasSuffix(argStr, "\"")) ||
+								(strings.HasPrefix(argStr, "'") && strings.HasSuffix(argStr, "'")) {
+								isConstantData = true
+							} else if _, err := strconv.ParseInt(argStr, 10, 64); err == nil {
+								isConstantData = true
+							} else if constantVarTable[argStr+"@"+strconv.Itoa(scopeStart)] || constantVarTable[argStr+"@0"] {
+								isConstantData = true
+							}
+						}
+
+						for k, td := range taintedTable {
+							parts := strings.Split(k, "@")
+							tVar := parts[0]
+							tScope, _ := strconv.Atoi(parts[1])
+							if (tScope == scopeStart || tScope == 0) && containsVar(line, tVar) {
+								isAttackerControlled = true
+								sourceField = td.sourceExpr
+								trace := append([]string{}, td.dataFlow...)
+								trace = append(trace, fmt.Sprintf("Line %d: %s [SINK: Insecure Deserialization]", lineNum, trimmed))
+								dataFlowTrace = trace
+								break
+							}
+						}
+
+						if strings.Contains(line, "user_input") || strings.Contains(line, "request.") || strings.Contains(line, "req.") || strings.Contains(line, "untrusted_bytes") || strings.Contains(line, "payload") || strings.Contains(line, "body") {
+							isAttackerControlled = true
+						}
+
+						if isConstantData {
+							severity = "LOW"
+							confidence = "LOW"
+							description = "Deserialization API called with compile-time constant stream."
+						} else if isAttackerControlled {
+							severity = "CRITICAL"
+							confidence = "HIGH"
+							description = fmt.Sprintf("Insecure deserialization of confirmed attacker-controlled input in '%s'. Deserializing untrusted streams leads to arbitrary code execution.", trimmed)
+						} else {
+							severity = "HIGH"
+							confidence = "HIGH"
+							description = fmt.Sprintf("Invocation of dangerous deserialization API with variable '%s'. Deserializing untrusted streams leads to remote code execution.", varName)
 						}
 					}
 

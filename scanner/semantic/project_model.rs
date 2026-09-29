@@ -101,6 +101,15 @@ impl ProjectModel {
 
         for func in symbol_table.functions_by_qualified_name.values() {
             for call in &func.calls {
+                if call.callee_expr == "exec.Command" || call.callee_expr == "exec.CommandContext" {
+                    if let Some(first_arg) = call.arguments.first() {
+                        let a = first_arg.trim_matches(|c| c == '"' || c == '\'');
+                        if a == "git" || a == "go" || a == "cargo" || a == "scannerExe" {
+                            continue;
+                        }
+                    }
+                }
+
                 if let Some((sink_kind, sink_cat)) = classify_sink(&call.callee_expr) {
                     let sink_node_id =
                         format!("sink::{}:{}:{}", func.file_path, call.line, sink_cat);

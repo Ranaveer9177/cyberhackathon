@@ -111,6 +111,9 @@ func classifyFindingFamily(f *Finding) string {
 	if strings.Contains(title, "xss") || strings.Contains(rule, "XSS") {
 		return "XSS"
 	}
+	if strings.Contains(title, "deserializ") || strings.Contains(rule, "DESER") {
+		return "DESERIALIZATION"
+	}
 
 	if f.CanonicalRule != "" {
 		return f.CanonicalRule
@@ -118,12 +121,56 @@ func classifyFindingFamily(f *Finding) string {
 	return f.RuleID
 }
 
+func detectorSpecificityRank(f Finding) int {
+	r := strings.ToUpper(f.RuleID)
+	if r == "" {
+		r = strings.ToUpper(f.ID)
+	}
+	t := strings.ToLower(f.Title)
+	ev := strings.ToLower(f.Evidence)
+
+	if strings.Contains(r, "SEC-001") || strings.Contains(t, "aws") || strings.Contains(ev, "aws_access_key") || strings.Contains(ev, "akia") {
+		return 10
+	}
+	if strings.Contains(r, "SEC-003") || strings.Contains(t, "github") || strings.Contains(ev, "ghp_") {
+		return 9
+	}
+	if strings.Contains(r, "AUTH-003") || strings.Contains(t, "jwt") || strings.Contains(ev, "jwt_secret") {
+		return 8
+	}
+	if strings.Contains(t, "database password") || strings.Contains(t, "db_password") || strings.Contains(ev, "db_password") || strings.Contains(ev, "database_url") {
+		return 7
+	}
+	if strings.Contains(r, "SEC-002") || strings.Contains(t, "api key") || strings.Contains(t, "apikey") || strings.Contains(ev, "api_key") {
+		return 6
+	}
+	if strings.Contains(r, "SEC-004") || strings.Contains(t, "slack") {
+		return 5
+	}
+	if strings.Contains(r, "SEC-005") || strings.Contains(t, "private key") {
+		return 4
+	}
+	if strings.Contains(r, "SECRET-001") || strings.Contains(r, "SECRET-002") || strings.Contains(r, "SECRET-003") || strings.Contains(r, "SEC-006") || strings.Contains(r, "SEC-007") || strings.Contains(r, "SEC-008") {
+		return 3
+	}
+	if strings.Contains(r, "CFG-008") {
+		return 2
+	}
+	return 1
+}
+
 func mergeGoFindings(group []Finding) Finding {
-	// Pick the finding with highest severity as primary
+	// Pick the finding with highest severity and highest detector specificity as primary
 	bestIdx := 0
 	for i := 1; i < len(group); i++ {
-		if severityWeight(group[i].Severity) > severityWeight(group[bestIdx].Severity) {
+		wI := severityWeight(group[i].Severity)
+		wBest := severityWeight(group[bestIdx].Severity)
+		if wI > wBest {
 			bestIdx = i
+		} else if wI == wBest {
+			if detectorSpecificityRank(group[i]) > detectorSpecificityRank(group[bestIdx]) {
+				bestIdx = i
+			}
 		}
 	}
 
@@ -180,6 +227,60 @@ func mergeGoFindings(group []Finding) Finding {
 	base.RelatedFindings = make([]string, 0, len(relatedMap))
 	for r := range relatedMap {
 		base.RelatedFindings = append(base.RelatedFindings, r)
+	}
+
+	// Standardize canonical title, rule, category and CWE
+	hasDetector := func(needle string) bool {
+		for _, d := range base.DetectorIDs {
+			if strings.Contains(d, needle) {
+				return true
+			}
+		}
+		return false
+	}
+	evCombined := strings.ToLower(strings.Join(base.Evidences, " "))
+	titleLower := strings.ToLower(base.Title)
+
+	if hasDetector("SEC-001") || strings.Contains(titleLower, "aws") || strings.Contains(evCombined, "aws_access_key") || strings.Contains(evCombined, "akia") {
+		base.Title = "Exposed AWS Credential"
+		base.CanonicalRule = "VG-CANON-CRED-AWS"
+		base.Category = "secret"
+		base.Severity = "CRITICAL"
+		base.CWE = "CWE-798"
+	} else if hasDetector("SEC-003") || strings.Contains(titleLower, "github") || strings.Contains(evCombined, "ghp_") {
+		base.Title = "Exposed GitHub Token"
+		base.CanonicalRule = "VG-CANON-CRED-GITHUB"
+		base.Category = "secret"
+		base.Severity = "CRITICAL"
+		base.CWE = "CWE-798"
+	} else if hasDetector("AUTH-003") || strings.Contains(titleLower, "jwt") || strings.Contains(evCombined, "jwt") {
+		base.Title = "Exposed JWT Secret"
+		base.CanonicalRule = "VG-CANON-CRED-JWT"
+		base.Category = "secret"
+		base.Severity = "CRITICAL"
+		base.CWE = "CWE-798"
+	} else if strings.Contains(titleLower, "database password") || strings.Contains(evCombined, "db_password") || strings.Contains(evCombined, "database_url") || strings.Contains(evCombined, "db_pass") {
+		base.Title = "Exposed Database Password"
+		base.CanonicalRule = "VG-CANON-CRED-DB"
+		base.Category = "secret"
+		base.Severity = "CRITICAL"
+		base.CWE = "CWE-798"
+	} else if hasDetector("SEC-002") || hasDetector("SECRET-002") || strings.Contains(titleLower, "api key") || strings.Contains(evCombined, "api_key") || strings.Contains(evCombined, "apikey") {
+		base.Title = "Exposed API Key"
+		base.CanonicalRule = "VG-CANON-CRED-APIKEY"
+		base.Category = "secret"
+		base.Severity = "CRITICAL"
+		base.CWE = "CWE-798"
+	}
+
+	// Pick clean key-value evidence if base evidence is bare value
+	if !strings.Contains(base.Evidence, "=") {
+		for _, e := range base.Evidences {
+			if strings.Contains(e, "=") {
+				base.Evidence = e
+				break
+			}
+		}
 	}
 
 	return base

@@ -203,9 +203,16 @@ impl<'a> CommandRuleEngine<'a> {
             ShellMode::ShellFalse
         };
 
+        // If exec.CommandContext, the first argument is context.Context, not the command
+        let effective_args = if callee == "exec.CommandContext" && args.len() > 1 {
+            &args[1..]
+        } else {
+            args
+        };
+
         // Filter out keyword arguments like shell=True/False, timeout=...
         let mut positional_args = Vec::new();
-        for arg in args {
+        for arg in effective_args {
             let s = arg.to_source_string();
             if s.contains("shell=True") || s.contains("shell = True") || s.contains("shell=1") {
                 shell_mode = ShellMode::ShellTrue;
@@ -223,6 +230,18 @@ impl<'a> CommandRuleEngine<'a> {
         // Determine command control level from primary argument
         if let Some(cmd_arg) = positional_args.first() {
             let cmd_str = cmd_arg.to_source_string();
+
+            // Safe fixed tool executions (scanner runner, git, go, cargo)
+            if cmd_str == "scannerExe"
+                || cmd_str == "\"git\""
+                || cmd_str == "'git'"
+                || cmd_str == "\"go\""
+                || cmd_str == "'go'"
+                || cmd_str == "\"cargo\""
+                || cmd_str == "'cargo'"
+            {
+                return (CommandControl::Constant, shell_mode);
+            }
 
             // 1. Sanitized Check: shlex.quote() or regex validation
             let (sanitized_kinds, is_sanitizer) = SanitizerModel::sanitized_kinds(&cmd_str);

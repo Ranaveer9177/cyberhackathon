@@ -40,13 +40,18 @@ pub fn classify_canonical_rule(
 
     // 1. Secrets & Credentials
     if r.contains("SEC-001") || t.contains("aws") {
-        ("VG-CANON-CRED-AWS", "Exposed AWS Access Key", "CWE-798")
+        ("VG-CANON-CRED-AWS", "Exposed AWS Credential", "CWE-798")
     } else if r.contains("SEC-003") || t.contains("github") {
-        (
-            "VG-CANON-CRED-GITHUB",
-            "Exposed GitHub Personal Access Token",
-            "CWE-798",
-        )
+        ("VG-CANON-CRED-GITHUB", "Exposed GitHub Token", "CWE-798")
+    } else if r.contains("AUTH-003") || t.contains("jwt") {
+        ("VG-CANON-CRED-JWT", "Exposed JWT Secret", "CWE-798")
+    } else if t.contains("database password")
+        || t.contains("db_password")
+        || t.contains("database_url")
+    {
+        ("VG-CANON-CRED-DB", "Exposed Database Password", "CWE-798")
+    } else if r.contains("SEC-002") || t.contains("api key") || t.contains("apikey") {
+        ("VG-CANON-CRED-APIKEY", "Exposed API Key", "CWE-798")
     } else if r.contains("SEC-004") || t.contains("slack") {
         ("VG-CANON-CRED-SLACK", "Exposed Slack Token", "CWE-798")
     } else if r.contains("SEC-005") || t.contains("private key") {
@@ -63,7 +68,6 @@ pub fn classify_canonical_rule(
         )
     } else if *category == Category::Secret
         || r.contains("SECRET")
-        || r.contains("AUTH-003")
         || t.contains("password")
         || t.contains("secret")
         || t.contains("credential")
@@ -264,7 +268,8 @@ pub fn canonicalize_and_deduplicate(findings: Vec<Finding>) -> Vec<Finding> {
         let is_injection_or_taint = canon.contains("INJ")
             || canon.contains("SSRF")
             || canon.contains("PATH")
-            || canon.contains("XSS");
+            || canon.contains("XSS")
+            || canon.contains("DESER");
 
         if is_injection_or_taint && f.line > 0 {
             let norm_file = f.file.replace('\\', "/").to_lowercase();
@@ -296,12 +301,59 @@ pub fn canonicalize_and_deduplicate(findings: Vec<Finding>) -> Vec<Finding> {
     level4_merged
 }
 
+fn detector_specificity_rank(f: &Finding) -> u8 {
+    let r = f.rule_id.as_deref().unwrap_or(&f.id).to_uppercase();
+    let t = f.title.to_lowercase();
+    let ev = f.evidence.as_deref().unwrap_or("").to_lowercase();
+
+    if r.contains("SEC-001")
+        || t.contains("aws")
+        || ev.contains("aws_access_key")
+        || ev.contains("akia")
+    {
+        10
+    } else if r.contains("SEC-003") || t.contains("github") || ev.contains("ghp_") {
+        9
+    } else if r.contains("AUTH-003") || t.contains("jwt") || ev.contains("jwt_secret") {
+        8
+    } else if t.contains("database password")
+        || t.contains("db_password")
+        || ev.contains("db_password")
+        || ev.contains("database_url")
+    {
+        7
+    } else if r.contains("SEC-002")
+        || t.contains("api key")
+        || t.contains("apikey")
+        || ev.contains("api_key")
+    {
+        6
+    } else if r.contains("SEC-004") || t.contains("slack") {
+        5
+    } else if r.contains("SEC-005") || t.contains("private key") {
+        4
+    } else if r.contains("SECRET-001")
+        || r.contains("SECRET-002")
+        || r.contains("SECRET-003")
+        || r.contains("SEC-006")
+        || r.contains("SEC-007")
+        || r.contains("SEC-008")
+    {
+        3
+    } else if r.contains("CFG-008") {
+        2
+    } else {
+        1
+    }
+}
+
 /// Merges multiple overlapping detector findings into one canonical security finding.
 fn merge_findings(mut group: Vec<Finding>) -> Finding {
-    // Select the finding with the highest severity and richest data flow as base
+    // Select the finding with highest severity, highest detector specificity, and richest data flow as base
     group.sort_by(|a, b| {
         severity_rank(&b.severity)
             .cmp(&severity_rank(&a.severity))
+            .then_with(|| detector_specificity_rank(b).cmp(&detector_specificity_rank(a)))
             .then_with(|| {
                 b.data_flow
                     .as_ref()
@@ -356,6 +408,67 @@ fn merge_findings(mut group: Vec<Finding>) -> Finding {
     related.sort();
     related.dedup();
 
+    // Standardize canonical title, rule, and category if specific detectors or evidence match
+    let has_detector = |needle: &str| all_detectors.iter().any(|d| d.contains(needle));
+    let ev_combined = all_evidences.join(" ").to_lowercase();
+    let title_lower = base.title.to_lowercase();
+
+    if has_detector("SEC-001")
+        || title_lower.contains("aws")
+        || ev_combined.contains("aws_access_key")
+        || ev_combined.contains("akia")
+    {
+        base.title = "Exposed AWS Credential".to_string();
+        base.canonical_rule = Some("VG-CANON-CRED-AWS".to_string());
+        base.category = Category::Secret;
+        base.severity = Severity::CRITICAL;
+        base.cwe = Some("CWE-798".to_string());
+    } else if has_detector("SEC-003")
+        || title_lower.contains("github")
+        || ev_combined.contains("ghp_")
+    {
+        base.title = "Exposed GitHub Token".to_string();
+        base.canonical_rule = Some("VG-CANON-CRED-GITHUB".to_string());
+        base.category = Category::Secret;
+        base.severity = Severity::CRITICAL;
+        base.cwe = Some("CWE-798".to_string());
+    } else if has_detector("AUTH-003") || title_lower.contains("jwt") || ev_combined.contains("jwt")
+    {
+        base.title = "Exposed JWT Secret".to_string();
+        base.canonical_rule = Some("VG-CANON-CRED-JWT".to_string());
+        base.category = Category::Secret;
+        base.severity = Severity::CRITICAL;
+        base.cwe = Some("CWE-798".to_string());
+    } else if title_lower.contains("database password")
+        || ev_combined.contains("db_password")
+        || ev_combined.contains("database_url")
+        || ev_combined.contains("db_pass")
+    {
+        base.title = "Exposed Database Password".to_string();
+        base.canonical_rule = Some("VG-CANON-CRED-DB".to_string());
+        base.category = Category::Secret;
+        base.severity = Severity::CRITICAL;
+        base.cwe = Some("CWE-798".to_string());
+    } else if has_detector("SEC-002")
+        || has_detector("SECRET-002")
+        || title_lower.contains("api key")
+        || ev_combined.contains("api_key")
+        || ev_combined.contains("apikey")
+    {
+        base.title = "Exposed API Key".to_string();
+        base.canonical_rule = Some("VG-CANON-CRED-APIKEY".to_string());
+        base.category = Category::Secret;
+        base.severity = Severity::CRITICAL;
+        base.cwe = Some("CWE-798".to_string());
+    }
+
+    // Pick clean key-value evidence if base evidence is bare value
+    if !base.evidence.as_deref().unwrap_or("").contains('=') {
+        if let Some(clean_ev) = all_evidences.iter().find(|e| e.contains('=')) {
+            base.evidence = Some(clean_ev.clone());
+        }
+    }
+
     base.detector_ids = Some(all_detectors);
     base.evidences = Some(all_evidences);
     if !related.is_empty() {
@@ -372,5 +485,208 @@ fn severity_rank(s: &Severity) -> u8 {
         Severity::MEDIUM => 3,
         Severity::LOW => 2,
         Severity::INFO => 1,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_correlate_aws_key_multi_detector() {
+        let f1 = Finding {
+            id: "VG-SEC-001".to_string(),
+            rule_id: Some("VG-SEC-001".to_string()),
+            category: Category::Secret,
+            severity: Severity::CRITICAL,
+            title: "AWS Access Key".to_string(),
+            description: "AWS key detected".to_string(),
+            file: ".env".to_string(),
+            line: 14,
+            column: Some(1),
+            evidence: Some(format!("AKIA{}", "IOSFODNN7EXAMPLE")),
+            confidence: "HIGH".to_string(),
+            ..Default::default()
+        };
+        let f2 = Finding {
+            id: "VG-CFG-008".to_string(),
+            rule_id: Some("VG-CFG-008".to_string()),
+            category: Category::Configuration,
+            severity: Severity::CRITICAL,
+            title: "Hardcoded Secret in Configuration File".to_string(),
+            description: "High entropy secret".to_string(),
+            file: ".env".to_string(),
+            line: 14,
+            column: Some(1),
+            evidence: Some("AWS_ACCESS_KEY_ID=AKIAIOSF****".to_string()),
+            confidence: "HIGH".to_string(),
+            ..Default::default()
+        };
+
+        let deduped = canonicalize_and_deduplicate(vec![f1, f2]);
+        assert_eq!(
+            deduped.len(),
+            1,
+            "Expected exactly 1 canonical finding, got {}",
+            deduped.len()
+        );
+        let res = &deduped[0];
+        assert_eq!(res.title, "Exposed AWS Credential");
+        assert_eq!(res.line, 14);
+        assert_eq!(res.severity, Severity::CRITICAL);
+
+        let detectors = res.detector_ids.as_ref().expect("expected detector_ids");
+        assert!(detectors.iter().any(|d| d == "VG-SEC-001"));
+        assert!(detectors.iter().any(|d| d == "VG-CFG-008"));
+        assert_eq!(
+            res.evidence.as_deref(),
+            Some("AWS_ACCESS_KEY_ID=AKIAIOSF****")
+        );
+    }
+
+    #[test]
+    fn test_correlate_github_token_multi_detector() {
+        let f1 = Finding {
+            id: "VG-SEC-003".to_string(),
+            rule_id: Some("VG-SEC-003".to_string()),
+            category: Category::Secret,
+            severity: Severity::CRITICAL,
+            title: "GitHub Token".to_string(),
+            file: ".env".to_string(),
+            line: 20,
+            column: Some(1),
+            evidence: Some("ghp_1234567890abcdef1234567890abcdef12".to_string()),
+            confidence: "HIGH".to_string(),
+            ..Default::default()
+        };
+        let f2 = Finding {
+            id: "VG-CFG-008".to_string(),
+            rule_id: Some("VG-CFG-008".to_string()),
+            category: Category::Configuration,
+            severity: Severity::CRITICAL,
+            title: "Hardcoded Secret in Configuration File".to_string(),
+            file: ".env".to_string(),
+            line: 20,
+            column: Some(1),
+            evidence: Some("GITHUB_TOKEN=ghp_1234****".to_string()),
+            confidence: "HIGH".to_string(),
+            ..Default::default()
+        };
+
+        let deduped = canonicalize_and_deduplicate(vec![f1, f2]);
+        assert_eq!(deduped.len(), 1);
+        let res = &deduped[0];
+        assert_eq!(res.title, "Exposed GitHub Token");
+        let detectors = res.detector_ids.as_ref().unwrap();
+        assert!(detectors.iter().any(|d| d == "VG-SEC-003"));
+        assert!(detectors.iter().any(|d| d == "VG-CFG-008"));
+    }
+
+    #[test]
+    fn test_correlate_jwt_secret_multi_detector() {
+        let f1 = Finding {
+            id: "VG-AUTH-003".to_string(),
+            rule_id: Some("VG-AUTH-003".to_string()),
+            category: Category::Secret,
+            severity: Severity::HIGH,
+            title: "Hardcoded Authentication Token".to_string(),
+            file: ".env".to_string(),
+            line: 25,
+            evidence: Some("JWT_SECRET=super_secret_jwt_key_123456".to_string()),
+            confidence: "HIGH".to_string(),
+            ..Default::default()
+        };
+        let f2 = Finding {
+            id: "VG-CFG-008".to_string(),
+            rule_id: Some("VG-CFG-008".to_string()),
+            category: Category::Configuration,
+            severity: Severity::CRITICAL,
+            title: "Hardcoded Secret in Configuration File".to_string(),
+            file: ".env".to_string(),
+            line: 25,
+            evidence: Some("JWT_SECRET=super_se****".to_string()),
+            confidence: "HIGH".to_string(),
+            ..Default::default()
+        };
+
+        let deduped = canonicalize_and_deduplicate(vec![f1, f2]);
+        assert_eq!(deduped.len(), 1);
+        let res = &deduped[0];
+        assert_eq!(res.title, "Exposed JWT Secret");
+        let detectors = res.detector_ids.as_ref().unwrap();
+        assert!(detectors.iter().any(|d| d == "VG-AUTH-003"));
+        assert!(detectors.iter().any(|d| d == "VG-CFG-008"));
+    }
+
+    #[test]
+    fn test_correlate_database_password_multi_detector() {
+        let f1 = Finding {
+            id: "VG-SECRET-001".to_string(),
+            rule_id: Some("VG-SECRET-001".to_string()),
+            category: Category::Secret,
+            severity: Severity::HIGH,
+            title: "Hardcoded Password Detected".to_string(),
+            file: ".env".to_string(),
+            line: 6,
+            evidence: Some("db_password=SuperSecret123!".to_string()),
+            confidence: "HIGH".to_string(),
+            ..Default::default()
+        };
+        let f2 = Finding {
+            id: "VG-CFG-008".to_string(),
+            rule_id: Some("VG-CFG-008".to_string()),
+            category: Category::Configuration,
+            severity: Severity::CRITICAL,
+            title: "Hardcoded Secret in Configuration File".to_string(),
+            file: ".env".to_string(),
+            line: 6,
+            evidence: Some("DB_PASSWORD=SuperSec****".to_string()),
+            confidence: "HIGH".to_string(),
+            ..Default::default()
+        };
+
+        let deduped = canonicalize_and_deduplicate(vec![f1, f2]);
+        assert_eq!(deduped.len(), 1);
+        let res = &deduped[0];
+        assert_eq!(res.title, "Exposed Database Password");
+        let detectors = res.detector_ids.as_ref().unwrap();
+        assert!(detectors.iter().any(|d| d == "VG-SECRET-001"));
+        assert!(detectors.iter().any(|d| d == "VG-CFG-008"));
+    }
+
+    #[test]
+    fn test_correlate_api_key_multi_detector() {
+        let f1 = Finding {
+            id: "VG-SEC-002".to_string(),
+            rule_id: Some("VG-SEC-002".to_string()),
+            category: Category::Secret,
+            severity: Severity::CRITICAL,
+            title: "Generic API Key".to_string(),
+            file: ".env".to_string(),
+            line: 9,
+            evidence: Some("api_key=sk-demo-1234567890abcdef".to_string()),
+            confidence: "HIGH".to_string(),
+            ..Default::default()
+        };
+        let f2 = Finding {
+            id: "VG-CFG-008".to_string(),
+            rule_id: Some("VG-CFG-008".to_string()),
+            category: Category::Configuration,
+            severity: Severity::CRITICAL,
+            title: "Hardcoded Secret in Configuration File".to_string(),
+            file: ".env".to_string(),
+            line: 9,
+            evidence: Some("API_KEY=sk-demo-****".to_string()),
+            confidence: "HIGH".to_string(),
+            ..Default::default()
+        };
+
+        let deduped = canonicalize_and_deduplicate(vec![f1, f2]);
+        assert_eq!(deduped.len(), 1);
+        let res = &deduped[0];
+        assert_eq!(res.title, "Exposed API Key");
+        let detectors = res.detector_ids.as_ref().unwrap();
+        assert!(detectors.iter().any(|d| d == "VG-SEC-002"));
+        assert!(detectors.iter().any(|d| d == "VG-CFG-008"));
     }
 }

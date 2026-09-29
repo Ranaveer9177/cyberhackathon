@@ -62,8 +62,16 @@ pub fn generate_taint_findings(flows: &[TaintFlow], finding_counter: &mut usize)
             severity,
             title: meta.title.to_string(),
             description: desc,
-            file: flow.source_file.clone(),
-            line: flow.source_line,
+            file: if !flow.sink_file.is_empty() {
+                flow.sink_file.clone()
+            } else {
+                flow.source_file.clone()
+            },
+            line: if flow.sink_line > 0 {
+                flow.sink_line
+            } else {
+                flow.source_line
+            },
             column: Some(1),
             evidence: Some(evidence_diagram),
             recommendation: Some(meta.recommendation.to_string()),
