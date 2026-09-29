@@ -1,7 +1,9 @@
 pub mod go;
 pub mod java;
 pub mod javascript;
+pub mod php;
 pub mod python;
+pub mod ruby;
 pub mod security;
 pub mod types;
 pub mod typescript;
@@ -23,6 +25,8 @@ pub fn parse_file(file_path: &str, content: &str) -> Option<types::FileNode> {
         "ts" | "tsx" => Some(typescript::parse_typescript(file_path, content)),
         "go" => Some(go::parse_go(file_path, content)),
         "java" => Some(java::parse_java(file_path, content)),
+        "rb" => Some(ruby::parse_ruby(file_path, content)),
+        "php" => Some(php::parse_php(file_path, content)),
         _ => None,
     }
 }

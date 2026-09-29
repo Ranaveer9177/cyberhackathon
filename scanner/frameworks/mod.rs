@@ -4,6 +4,7 @@ pub mod django;
 pub mod express;
 pub mod fastapi;
 pub mod flask;
+pub mod gin;
 pub mod nestjs;
 pub mod spring;
 pub mod types;
@@ -12,6 +13,7 @@ pub use django::DjangoModel;
 pub use express::ExpressModel;
 pub use fastapi::FastApiModel;
 pub use flask::FlaskModel;
+pub use gin::GinModel;
 pub use nestjs::NestJsModel;
 pub use spring::SpringModel;
 pub use types::{FrameworkKind, FrameworkModel, RouteEndpoint};
@@ -39,6 +41,7 @@ impl FrameworkRegistry {
                 Box::new(ExpressModel),
                 Box::new(NestJsModel),
                 Box::new(SpringModel),
+                Box::new(GinModel),
             ],
         }
     }
@@ -308,5 +311,32 @@ mod tests {
         let route = registry.is_route_endpoint("getUsers", "UserController.java", code);
         assert!(route.is_some());
         assert!(route.unwrap().is_authenticated);
+    }
+
+    #[test]
+    fn test_gin_model() {
+        let registry = FrameworkRegistry::new();
+        // Sources
+        assert!(registry.is_request_source("c.Query(\"name\")"));
+        assert!(registry.is_request_source("c.PostForm(\"password\")"));
+        assert!(registry.is_request_source("c.Param(\"id\")"));
+
+        // Sinks
+        let xss = registry.classify_sink("c.String(http.StatusOK, input)");
+        assert!(xss.is_some());
+        assert_eq!(xss.unwrap().0, TaintKind::Xss);
+
+        let redirect = registry.classify_sink("c.Redirect(http.StatusFound, url)");
+        assert!(redirect.is_some());
+        assert_eq!(redirect.unwrap().0, TaintKind::Ssrf);
+
+        // Sanitizers
+        let (sanitized, _) = registry.sanitize_kinds("html.EscapeString(input)");
+        assert!(sanitized.contains(&TaintKind::Xss));
+
+        // Routing & Auth
+        let code = "func UserHandler(c *gin.Context) {\n    // CheckAuth middleware\n    c.JSON(200, gin.H{})\n}";
+        let route = registry.is_route_endpoint("UserHandler", "routes.go", code);
+        assert!(route.is_some());
     }
 }

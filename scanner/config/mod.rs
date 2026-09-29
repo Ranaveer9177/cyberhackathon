@@ -75,4 +75,13 @@ security:
         assert!(findings.iter().any(|f| f.id == "VG-CFG-009"));
         assert!(findings.iter().any(|f| f.id == "VG-CFG-005"));
     }
+
+    #[test]
+    fn test_scan_config_jwt_and_csrf() {
+        let mut counter = 0;
+        let content = "jwt_algorithm=none\ndisable_csrf=true\n";
+        let findings = scan_config("security.ini", content, &mut counter);
+        assert!(findings.iter().any(|f| f.id == "VG-CFG-010"));
+        assert!(findings.iter().any(|f| f.id == "VG-CFG-006"));
+    }
 }

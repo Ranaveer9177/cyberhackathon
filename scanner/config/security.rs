@@ -157,9 +157,12 @@ pub fn analyze_config_security(model: &ConfigModel, finding_counter: &mut usize)
             || (key_lower.contains("session_cookie_secure") && val_lower == "false")
             || (key_lower.contains("cookie_httponly") && val_lower == "false")
             || (key_lower.contains("csrf_enabled") && (val_lower == "false" || val_lower == "0"))
+            || (key_lower.contains("csrf_protection") && (val_lower == "false" || val_lower == "0"))
+            || (key_lower.contains("disable_csrf") && (val_lower == "true" || val_lower == "1"))
             || (key_lower.contains("wtf_csrf_enabled")
                 && (val_lower == "false" || val_lower == "0"))
             || (key_lower.contains("strict_transport_security") && val_lower == "false")
+            || (key_lower.contains("samesite") && val_lower == "none")
         {
             *finding_counter += 1;
             findings.push(Finding {
@@ -305,6 +308,41 @@ pub fn analyze_config_security(model: &ConfigModel, finding_counter: &mut usize)
                 sink: None,
                 data_flow: None,
                 cwe: rule_cwe("VG-CFG-009").map(String::from),
+                ..Default::default()
+            });
+        }
+
+        // 9. JWT Verification Disabled / None Algorithm in Config (VG-CFG-010)
+        let is_jwt_key = key_lower.contains("jwt") || key_lower.contains("token");
+        let is_none_alg = key_lower.contains("algorithm") && val_lower == "none";
+        let is_unverified = (key_lower.contains("verify_signature")
+            && (val_lower == "false" || val_lower == "0"))
+            || (key_lower.contains("allow_unverified")
+                && (val_lower == "true" || val_lower == "1"))
+            || (key_lower.contains("allow_none") && (val_lower == "true" || val_lower == "1"));
+
+        if (is_jwt_key && (is_none_alg || is_unverified)) || is_none_alg {
+            *finding_counter += 1;
+            findings.push(Finding {
+                id: "VG-CFG-010".to_string(),
+                rule_id: Some("VG-CFG-010".to_string()),
+                category: Category::Configuration,
+                severity: Severity::HIGH,
+                title: "JWT Signature Verification Disabled in Configuration".to_string(),
+                description: format!(
+                    "JWT authentication configuration disables cryptographic verification via '{}={}'. Tokens can be forged by unauthenticated attackers.",
+                    entry.key, entry.value
+                ),
+                file: model.file_path.clone(),
+                line: entry.line,
+                column: Some(1),
+                evidence: Some(entry.raw_line.trim().to_string()),
+                recommendation: Some("Always enforce strong cryptographic signature verification (e.g. HS256, RS256) and reject the 'none' algorithm.".to_string()),
+                confidence: "HIGH".to_string(),
+                source: None,
+                sink: None,
+                data_flow: None,
+                cwe: rule_cwe("VG-CFG-010").map(String::from),
                 ..Default::default()
             });
         }

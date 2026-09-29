@@ -130,3 +130,51 @@ fn test_ast_complex_assignment() {
         panic!("Expected assignment");
     }
 }
+
+#[test]
+fn test_ast_ruby_parsing() {
+    let code = r#"
+require 'digest'
+
+class UserService < BaseService
+  def authenticate(username, password)
+    hashed = Digest::SHA256.hexdigest(password)
+    return hashed
+  end
+end
+"#;
+    let node = parse_file("service.rb", code).expect("Failed to parse Ruby code");
+    assert_eq!(node.language, "ruby");
+    assert_eq!(node.imports.len(), 1);
+    assert_eq!(node.imports[0].module, "digest");
+    assert_eq!(node.classes.len(), 1);
+    assert_eq!(node.classes[0].name, "UserService");
+    assert_eq!(node.classes[0].base_classes, vec!["BaseService"]);
+    assert_eq!(node.functions.len(), 1);
+    assert_eq!(node.functions[0].name, "authenticate");
+    assert_eq!(node.functions[0].params, vec!["username", "password"]);
+}
+
+#[test]
+fn test_ast_php_parsing() {
+    let code = r#"<?php
+use App\Models\User;
+
+class UserController extends Controller {
+    public function show($id, $format) {
+        $user = User::find($id);
+        return $user;
+    }
+}
+"#;
+    let node = parse_file("UserController.php", code).expect("Failed to parse PHP code");
+    assert_eq!(node.language, "php");
+    assert_eq!(node.imports.len(), 1);
+    assert_eq!(node.imports[0].module, "App\\Models\\User");
+    assert_eq!(node.classes.len(), 1);
+    assert_eq!(node.classes[0].name, "UserController");
+    assert_eq!(node.classes[0].base_classes, vec!["Controller"]);
+    assert_eq!(node.functions.len(), 1);
+    assert_eq!(node.functions[0].name, "show");
+    assert_eq!(node.functions[0].params, vec!["$id", "$format"]);
+}

@@ -12,6 +12,7 @@ pub enum FrameworkKind {
     Express,
     NestJs,
     Spring,
+    Gin,
 }
 
 impl FrameworkKind {
@@ -23,6 +24,7 @@ impl FrameworkKind {
             FrameworkKind::Express => "Express",
             FrameworkKind::NestJs => "NestJS",
             FrameworkKind::Spring => "Spring",
+            FrameworkKind::Gin => "Gin",
         }
     }
 }
