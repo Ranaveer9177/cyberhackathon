@@ -517,14 +517,29 @@ pub fn scan_source_code(
 
                     // If it is a list with constant arguments without shell=True, safe!
                     if is_list_invocation && rule.id == "VG-SAST-002" {
-                        let has_dynamic = line.contains("request.")
-                            || line.contains("req.")
-                            || line.contains("user_")
-                            || line.contains("input")
-                            || line.contains("host")
-                            || line.contains("param");
-                        if !has_dynamic {
-                            continue;
+                        if let Some(open_b) = line.find('[') {
+                            if let Some(close_b) = line.rfind(']') {
+                                if close_b > open_b {
+                                    let inner = &line[open_b + 1..close_b];
+                                    let all_const = inner.split(',').all(|item| {
+                                        let it = item.trim();
+                                        (it.starts_with('"') && it.ends_with('"'))
+                                            || (it.starts_with('\'') && it.ends_with('\''))
+                                            || it.parse::<i64>().is_ok()
+                                            || it == "True"
+                                            || it == "False"
+                                            || it == "true"
+                                            || it == "false"
+                                            || constant_var_table.keys().any(|(c_var, c_scope)| {
+                                                (*c_scope == scope_start || *c_scope == 0)
+                                                    && it == c_var
+                                            })
+                                    });
+                                    if all_const {
+                                        continue;
+                                    }
+                                }
+                            }
                         }
                     }
 

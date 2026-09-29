@@ -421,7 +421,19 @@ impl<'a> DeepTaintPropagator<'a> {
 
                 // 1. Check if callee is a known vulnerability sink
                 if let Some((sink_kind, _)) = SinkModel::classify_sink(&callee_str) {
-                    for arg in args {
+                    // For SQL sinks, only the primary query argument (args[0]) is the query sink.
+                    // Subsequent arguments (args[1..]) are safe bind parameters.
+                    let sink_args: Vec<&ExprNode> = if sink_kind == TaintKind::Sql {
+                        if let Some(first) = args.first() {
+                            vec![first]
+                        } else {
+                            Vec::new()
+                        }
+                    } else {
+                        args.iter().collect()
+                    };
+
+                    for arg in sink_args {
                         // 1.1 Constant Analysis: If argument is compile-time constant, safe!
                         if env.const_env.is_constant_sink_argument(arg) {
                             continue;

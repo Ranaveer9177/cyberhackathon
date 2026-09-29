@@ -33,7 +33,7 @@ pub fn parse_javascript(file_path: &str, content: &str) -> FileNode {
         r#"(?:const|let|var)\s+(?:(?P<name>[a-zA-Z_$][a-zA-Z0-9_$]*)|(?:\{\s*(?P<destruct>[^}]+)\s*\}))\s*=\s*require\(['"](?P<module>[^'"]+)['"]\)"#,
     ).unwrap();
     let assign_re = Regex::new(
-        r#"^(?:\s*(?:const|let|var)\s+)?(?P<target>[a-zA-Z_$][a-zA-Z0-9_$.]*(?:\[[^\]]+\])?)\s*=\s*(?P<val>[^;]+);?$"#,
+        r#"^\s*(?:(?:const|let|var)\s+)?(?P<target>[a-zA-Z_$][a-zA-Z0-9_$.]*(?:\[[^\]]+\])?)\s*=\s*(?P<val>[^;]+);?$"#,
     ).unwrap();
     let return_re = Regex::new(r#"^\s*return(?:\s+(?P<val>[^;]+))?;?$"#).unwrap();
 
@@ -377,7 +377,116 @@ pub fn parse_js_expr(raw: &str, line: usize) -> ExprNode {
         };
     }
 
-    // 6. Binary op (+)
+    pub fn split_arg_list(s: &str) -> Vec<String> {
+        let mut args = Vec::new();
+        let mut current = String::new();
+        let mut paren_depth = 0;
+        let mut bracket_depth = 0;
+        let mut brace_depth = 0;
+        let mut in_single_quote = false;
+        let mut in_double_quote = false;
+        let mut escape = false;
+
+        for c in s.chars() {
+            if escape {
+                current.push(c);
+                escape = false;
+                continue;
+            }
+            if c == '\\' {
+                current.push(c);
+                escape = true;
+                continue;
+            }
+
+            if in_single_quote {
+                current.push(c);
+                if c == '\'' {
+                    in_single_quote = false;
+                }
+                continue;
+            }
+            if in_double_quote {
+                current.push(c);
+                if c == '"' {
+                    in_double_quote = false;
+                }
+                continue;
+            }
+
+            match c {
+                '\'' => {
+                    in_single_quote = true;
+                    current.push(c);
+                }
+                '"' => {
+                    in_double_quote = true;
+                    current.push(c);
+                }
+                '(' => {
+                    paren_depth += 1;
+                    current.push(c);
+                }
+                ')' => {
+                    if paren_depth > 0 {
+                        paren_depth -= 1;
+                    }
+                    current.push(c);
+                }
+                '[' => {
+                    bracket_depth += 1;
+                    current.push(c);
+                }
+                ']' => {
+                    if bracket_depth > 0 {
+                        bracket_depth -= 1;
+                    }
+                    current.push(c);
+                }
+                '{' => {
+                    brace_depth += 1;
+                    current.push(c);
+                }
+                '}' => {
+                    if brace_depth > 0 {
+                        brace_depth -= 1;
+                    }
+                    current.push(c);
+                }
+                ',' if paren_depth == 0 && bracket_depth == 0 && brace_depth == 0 => {
+                    let trimmed = current.trim();
+                    if !trimmed.is_empty() {
+                        args.push(trimmed.to_string());
+                    }
+                    current.clear();
+                }
+                _ => {
+                    current.push(c);
+                }
+            }
+        }
+
+        let trimmed = current.trim();
+        if !trimmed.is_empty() {
+            args.push(trimmed.to_string());
+        }
+
+        args
+    }
+
+    // 6. List literal: [elem1, elem2, ...]
+    if trimmed.starts_with('[') && trimmed.ends_with(']') {
+        let inner = &trimmed[1..trimmed.len() - 1].trim();
+        let mut elements = Vec::new();
+        if !inner.is_empty() {
+            for item in split_arg_list(inner) {
+                elements.push(parse_js_expr(&item, line));
+            }
+        }
+        return ExprNode::List { elements, line };
+    }
+
+    // 7. Binary op (+)
     if trimmed.contains('+') {
         let parts: Vec<&str> = trimmed.splitn(2, '+').collect();
         if parts.len() == 2 {
@@ -390,7 +499,7 @@ pub fn parse_js_expr(raw: &str, line: usize) -> ExprNode {
         }
     }
 
-    // 7. Call
+    // 8. Call
     if let Some(open_paren) = trimmed.find('(') {
         if trimmed.ends_with(')') {
             let callee_str = &trimmed[..open_paren].trim();
@@ -398,7 +507,7 @@ pub fn parse_js_expr(raw: &str, line: usize) -> ExprNode {
             let callee = Box::new(parse_js_expr(callee_str, line));
             let mut args = Vec::new();
             if !args_str.is_empty() {
-                for a in args_str.split(',') {
+                for a in split_arg_list(args_str) {
                     args.push(parse_js_expr(a.trim(), line));
                 }
             }
@@ -406,9 +515,9 @@ pub fn parse_js_expr(raw: &str, line: usize) -> ExprNode {
         }
     }
 
-    // 8. Subscript
+    // 9. Subscript
     if let Some(open_bracket) = trimmed.find('[') {
-        if trimmed.ends_with(']') {
+        if open_bracket > 0 && trimmed.ends_with(']') {
             let val_str = &trimmed[..open_bracket].trim();
             let slice_str = &trimmed[open_bracket + 1..trimmed.len() - 1].trim();
             return ExprNode::Subscript {
@@ -419,7 +528,7 @@ pub fn parse_js_expr(raw: &str, line: usize) -> ExprNode {
         }
     }
 
-    // 9. Attribute
+    // 10. Attribute
     if let Some(dot_idx) = trimmed.rfind('.') {
         let obj_str = &trimmed[..dot_idx].trim();
         let attr_str = &trimmed[dot_idx + 1..].trim();

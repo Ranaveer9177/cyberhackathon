@@ -363,6 +363,19 @@ fn check_command_arg(
     findings: &mut Vec<Finding>,
 ) {
     match arg {
+        ExprNode::List { elements, line } => {
+            for elem in elements {
+                check_command_arg(
+                    elem,
+                    callee,
+                    *line,
+                    var_table,
+                    file_path,
+                    finding_counter,
+                    findings,
+                );
+            }
+        }
         ExprNode::Identifier { name, .. } => {
             if let Some(var_info) = var_table.get(name) {
                 if !var_info.is_constant {
@@ -470,11 +483,68 @@ fn check_command_arg(
 
 fn is_sql_sink(callee: &str) -> bool {
     let lower = callee.to_lowercase();
-    lower.ends_with(".execute")
-        || lower.ends_with(".executequery")
-        || lower.ends_with(".query")
-        || lower == "execute"
-        || lower == "query"
+    if let Some(dot_idx) = lower.rfind('.') {
+        let receiver = &lower[..dot_idx];
+        let method = &lower[dot_idx + 1..];
+
+        let is_non_sql = receiver == "tmpl"
+            || receiver == "template"
+            || receiver == "htmltemplate"
+            || receiver == "texttemplate"
+            || receiver == "t"
+            || receiver == "w"
+            || receiver == "writer"
+            || receiver == "cmd"
+            || receiver == "rootcmd"
+            || receiver == "command"
+            || receiver == "cobracommand"
+            || receiver == "c"
+            || receiver == "app"
+            || receiver == "task"
+            || receiver == "runner"
+            || receiver == "workflow"
+            || receiver == "future"
+            || receiver == "promise"
+            || receiver == "executor"
+            || receiver == "batch";
+
+        if is_non_sql {
+            false
+        } else if method == "execute" || method == "exec" {
+            receiver == "db"
+                || receiver == "cursor"
+                || receiver == "cur"
+                || receiver == "conn"
+                || receiver == "connection"
+                || receiver == "session"
+                || receiver == "orm"
+                || receiver == "tx"
+                || receiver == "sql"
+                || receiver == "repo"
+                || receiver == "repository"
+                || receiver == "client"
+                || receiver == "engine"
+                || receiver == "stmt"
+                || receiver.ends_with("db")
+                || receiver.ends_with("conn")
+                || receiver.ends_with("cursor")
+                || receiver.ends_with("session")
+                || receiver.ends_with("repo")
+        } else {
+            method == "executemany"
+                || method == "query"
+                || method == "queryrow"
+                || method == "query_row"
+                || method == "raw"
+                || method == "executequery"
+                || method == "executeupdate"
+        }
+    } else {
+        lower == "db.execute"
+            || lower == "conn.execute"
+            || lower == "cursor.execute"
+            || lower == "session.execute"
+    }
 }
 
 fn is_command_sink(callee: &str) -> bool {
