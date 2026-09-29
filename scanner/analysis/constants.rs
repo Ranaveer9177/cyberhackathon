@@ -86,6 +86,12 @@ impl ConstantEnvironment {
                     ("*", ConstantValue::Integer(l), ConstantValue::Integer(r)) => {
                         ConstantValue::Integer(l * r)
                     }
+                    ("+", ConstantValue::String(l), ConstantValue::Integer(r)) => {
+                        ConstantValue::String(format!("{}{}", l, r))
+                    }
+                    ("+", ConstantValue::Integer(l), ConstantValue::String(r)) => {
+                        ConstantValue::String(format!("{}{}", l, r))
+                    }
                     _ => ConstantValue::NonConstant,
                 }
             }
@@ -130,6 +136,23 @@ impl ConstantEnvironment {
     /// Evaluates raw code text to determine if it is a constant literal or constant expression.
     pub fn eval_raw(&self, raw: &str) -> ConstantValue {
         let trimmed = raw.trim();
+
+        // Concatenation: "ls -la " + "/tmp"
+        if trimmed.contains('+') {
+            let parts: Vec<&str> = trimmed.split('+').map(|s| s.trim()).collect();
+            if !parts.is_empty() && parts.iter().all(|p| self.eval_raw(p).is_constant()) {
+                let mut combined = String::new();
+                for p in parts {
+                    match self.eval_raw(p) {
+                        ConstantValue::String(s) => combined.push_str(&s),
+                        ConstantValue::Integer(i) => combined.push_str(&i.to_string()),
+                        ConstantValue::Boolean(b) => combined.push_str(&b.to_string()),
+                        _ => return ConstantValue::NonConstant,
+                    }
+                }
+                return ConstantValue::String(combined);
+            }
+        }
 
         // Array / List literals: ["ping", "127.0.0.1"]
         if trimmed.starts_with('[') && trimmed.ends_with(']') {

@@ -6,6 +6,63 @@ use crate::ast::types::{
 };
 use regex::Regex;
 
+fn count_delimiters(s: &str) -> (i32, i32, i32) {
+    let mut paren = 0;
+    let mut bracket = 0;
+    let mut brace = 0;
+    let mut in_single = false;
+    let mut in_double = false;
+
+    for c in s.chars() {
+        match c {
+            '\'' if !in_double => in_single = !in_single,
+            '"' if !in_single => in_double = !in_double,
+            '(' if !in_single && !in_double => paren += 1,
+            ')' if !in_single && !in_double => paren -= 1,
+            '[' if !in_single && !in_double => bracket += 1,
+            ']' if !in_single && !in_double => bracket -= 1,
+            '{' if !in_single && !in_double => brace += 1,
+            '}' if !in_single && !in_double => brace -= 1,
+            _ => {}
+        }
+    }
+    (paren, bracket, brace)
+}
+
+fn accumulate_multiline(lines: &[&str], start_idx: usize) -> (usize, String) {
+    let first = lines[start_idx].trim();
+    if first.starts_with("def ")
+        || first.starts_with("class ")
+        || first.starts_with("if ")
+        || first.starts_with("for ")
+        || first.starts_with("while ")
+        || first.starts_with("try:")
+        || first.starts_with("except")
+    {
+        return (start_idx, lines[start_idx].to_string());
+    }
+
+    let mut merged = lines[start_idx].to_string();
+    let (mut paren, mut bracket, mut brace) = count_delimiters(&merged);
+    let mut curr = start_idx;
+
+    while (paren > 0 || bracket > 0 || brace > 0) && curr + 1 < lines.len() {
+        curr += 1;
+        let next_line = lines[curr].trim();
+        if next_line.is_empty() || next_line.starts_with('#') {
+            continue;
+        }
+        merged.push(' ');
+        merged.push_str(next_line);
+        let (p, b, br) = count_delimiters(next_line);
+        paren += p;
+        bracket += b;
+        brace += br;
+    }
+
+    (curr, merged)
+}
+
 pub fn parse_python(file_path: &str, content: &str) -> FileNode {
     let mut file_node = FileNode {
         file_path: file_path.to_string(),
@@ -127,7 +184,15 @@ pub fn parse_python(file_path: &str, content: &str) -> FileNode {
         }
 
         // Top-level statements
-        if let Some(caps) = assign_re.captures(line) {
+        let (merged_idx, merged_line) = accumulate_multiline(&lines, idx);
+        let effective_line = if merged_idx > idx {
+            merged_line.as_str()
+        } else {
+            line
+        };
+        let effective_trimmed = effective_line.trim();
+
+        if let Some(caps) = assign_re.captures(effective_line) {
             let target_str = caps.name("target").map_or("", |m| m.as_str());
             let val_str = caps.name("val").map_or("", |m| m.as_str());
             let target = parse_expr(target_str, line_num);
@@ -139,18 +204,20 @@ pub fn parse_python(file_path: &str, content: &str) -> FileNode {
                     value,
                     line: line_num,
                 }));
-        } else if let Some(caps) = return_re.captures(line) {
+        } else if let Some(caps) = return_re.captures(effective_line) {
             let val_opt = caps.name("val").map(|m| parse_expr(m.as_str(), line_num));
             file_node.statements.push(StmtNode::Return(ReturnNode {
                 value: val_opt,
                 line: line_num,
             }));
-        } else if call_stmt_re.is_match(line) {
-            let expr = parse_expr(trimmed, line_num);
+        } else if call_stmt_re.is_match(effective_line)
+            || (effective_trimmed.contains('(') && effective_trimmed.ends_with(')'))
+        {
+            let expr = parse_expr(effective_trimmed, line_num);
             file_node.statements.push(StmtNode::Call(expr));
         }
 
-        idx += 1;
+        idx = merged_idx + 1;
     }
 
     file_node
@@ -286,7 +353,15 @@ fn parse_body(
             continue;
         }
 
-        if let Some(caps) = assign_re.captures(line) {
+        let (merged_idx, merged_line) = accumulate_multiline(lines, idx);
+        let effective_line = if merged_idx > idx {
+            merged_line.as_str()
+        } else {
+            line
+        };
+        let effective_trimmed = effective_line.trim();
+
+        if let Some(caps) = assign_re.captures(effective_line) {
             let target_str = caps.name("target").map_or("", |m| m.as_str());
             let val_str = caps.name("val").map_or("", |m| m.as_str());
             body.push(StmtNode::Assignment(AssignmentNode {
@@ -294,19 +369,22 @@ fn parse_body(
                 value: parse_expr(val_str, line_num),
                 line: line_num,
             }));
-        } else if let Some(caps) = return_re.captures(line) {
+        } else if let Some(caps) = return_re.captures(effective_line) {
             let val_opt = caps.name("val").map(|m| parse_expr(m.as_str(), line_num));
             body.push(StmtNode::Return(ReturnNode {
                 value: val_opt,
                 line: line_num,
             }));
-        } else if trimmed.contains('(') && trimmed.ends_with(')') {
-            body.push(StmtNode::Call(parse_expr(trimmed, line_num)));
+        } else if effective_trimmed.contains('(') && effective_trimmed.ends_with(')') {
+            body.push(StmtNode::Call(parse_expr(effective_trimmed, line_num)));
         } else {
-            body.push(StmtNode::Expression(parse_expr(trimmed, line_num)));
+            body.push(StmtNode::Expression(parse_expr(
+                effective_trimmed,
+                line_num,
+            )));
         }
 
-        idx += 1;
+        idx = merged_idx + 1;
     }
 
     (idx, body)
@@ -552,14 +630,58 @@ pub fn parse_expr(raw: &str, line: usize) -> ExprNode {
         return ExprNode::List { elements, line };
     }
 
-    // 7. Binary operation (+)
-    if trimmed.contains('+') {
-        let parts: Vec<&str> = trimmed.splitn(2, '+').collect();
-        if parts.len() == 2 {
+    fn find_top_level_binop(s: &str) -> Option<(usize, &str)> {
+        let mut paren_depth = 0;
+        let mut bracket_depth = 0;
+        let mut brace_depth = 0;
+        let mut in_single = false;
+        let mut in_double = false;
+
+        for (i, c) in s.char_indices() {
+            match c {
+                '\'' if !in_double => in_single = !in_single,
+                '"' if !in_single => in_double = !in_double,
+                '(' if !in_single && !in_double => paren_depth += 1,
+                ')' if !in_single && !in_double => {
+                    if paren_depth > 0 {
+                        paren_depth -= 1;
+                    }
+                }
+                '[' if !in_single && !in_double => bracket_depth += 1,
+                ']' if !in_single && !in_double => {
+                    if bracket_depth > 0 {
+                        bracket_depth -= 1;
+                    }
+                }
+                '{' if !in_single && !in_double => brace_depth += 1,
+                '}' if !in_single && !in_double => {
+                    if brace_depth > 0 {
+                        brace_depth -= 1;
+                    }
+                }
+                '+' if !in_single
+                    && !in_double
+                    && paren_depth == 0
+                    && bracket_depth == 0
+                    && brace_depth == 0 =>
+                {
+                    return Some((i, "+"));
+                }
+                _ => {}
+            }
+        }
+        None
+    }
+
+    // 7. Top-level Binary operation (+)
+    if let Some((idx, op)) = find_top_level_binop(trimmed) {
+        let left_part = trimmed[..idx].trim();
+        let right_part = trimmed[idx + op.len()..].trim();
+        if !left_part.is_empty() && !right_part.is_empty() {
             return ExprNode::BinaryOp {
-                op: "+".to_string(),
-                left: Box::new(parse_expr(parts[0], line)),
-                right: Box::new(parse_expr(parts[1], line)),
+                op: op.to_string(),
+                left: Box::new(parse_expr(left_part, line)),
+                right: Box::new(parse_expr(right_part, line)),
                 line,
             };
         }

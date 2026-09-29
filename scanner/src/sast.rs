@@ -230,8 +230,16 @@ pub fn scan_source_code(
                 && !rhs.contains("input")
                 && !rhs.contains("user_")
                 && !rhs.contains("host");
+            let is_concat_const = rhs.contains('+')
+                && rhs.split('+').all(|part| {
+                    let p = part.trim();
+                    (p.starts_with('"') && p.ends_with('"'))
+                        || (p.starts_with('\'') && p.ends_with('\''))
+                        || p.parse::<i64>().is_ok()
+                        || constant_var_table.keys().any(|(c, _)| c == p)
+                });
 
-            if is_str_literal || is_const_list {
+            if is_str_literal || is_const_list || is_concat_const {
                 constant_var_table.insert((var_name.clone(), scope_start), rhs.to_string());
                 constant_var_table.insert((var_name, 0), rhs.to_string());
             }
@@ -556,8 +564,30 @@ pub fn scan_source_code(
                                 let is_tainted = tainted_table.keys().any(|(t_var, t_scope)| {
                                     (*t_scope == scope_start || *t_scope == 0) && t_var == c_var
                                 });
+                                let is_safe_concat = if line.contains('+') {
+                                    if let Some(open) = line.find('(') {
+                                        if let Some(close) = line.rfind(')') {
+                                            let inner = line[open + 1..close].trim();
+                                            inner.split('+').all(|part| {
+                                                let p = part.trim();
+                                                (p.starts_with('"') && p.ends_with('"'))
+                                                    || (p.starts_with('\'') && p.ends_with('\''))
+                                                    || constant_var_table
+                                                        .keys()
+                                                        .any(|(c, _)| c == p)
+                                            })
+                                        } else {
+                                            false
+                                        }
+                                    } else {
+                                        false
+                                    }
+                                } else {
+                                    true
+                                };
+
                                 if !is_tainted
-                                    && !line.contains('+')
+                                    && is_safe_concat
                                     && !line.contains('%')
                                     && !line.contains("format(")
                                     && !line.contains("f\"")

@@ -6,6 +6,9 @@ pub mod security;
 pub mod types;
 pub mod typescript;
 
+#[cfg(test)]
+mod tests;
+
 use crate::types::Finding;
 use std::path::Path;
 
