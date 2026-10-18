@@ -421,11 +421,9 @@ cyberhackathon/
 │   ├── TESTING.md
 │   └── CHANGELOG.md
 │
-├── .vibeguard/                ← Per-repo config (auto-created by vibeguard init)
-│   ├── config.json
-│   └── database/security.db  ← Local offline vulnerability database
-│
-└── VibeGuard Document/        ← Academic submission documents (PDF)
+└── .vibeguard/                ← Per-repo config (auto-created by vibeguard init)
+    ├── config.json
+    └── database/security.db  ← Local offline vulnerability database
 ```
 
 ---

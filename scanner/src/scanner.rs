@@ -1,5 +1,22 @@
+use std::fs::File;
+use std::io::Read;
 use std::path::Path;
 use walkdir::WalkDir;
+
+/// Checks if a file contains binary content by inspecting the first 1KB for NUL bytes.
+/// Follows the Git/Ripgrep gold standard for binary detection without reading the entire file.
+pub fn is_binary_file(path: &Path) -> bool {
+    let mut file = match File::open(path) {
+        Ok(f) => f,
+        Err(_) => return false,
+    };
+    let mut buffer = [0u8; 1024];
+    match file.read(&mut buffer) {
+        Ok(0) => false,
+        Ok(n) => buffer[..n].contains(&0),
+        Err(_) => false,
+    }
+}
 
 #[allow(dead_code)]
 pub fn scan_directory(path: &str) -> Vec<String> {
@@ -44,6 +61,60 @@ pub fn scan_directory_ext(
         "opus", "m4a", "aac", "wma", "mid", "midi", "ttf", "otf", "woff", "woff2", "ico", "wasm",
         "class", "jar", "7z", "rar", "avif", "webp", "webm", "mkv", "mov", "avi", "wmv", "flv",
         "bmp", "tiff", "tif", "psd", "save", "bak", "qcow2", "vmdk",
+    ];
+
+    let known_text_exts = [
+        "go",
+        "js",
+        "ts",
+        "jsx",
+        "tsx",
+        "py",
+        "pyw",
+        "java",
+        "rs",
+        "rb",
+        "php",
+        "c",
+        "cpp",
+        "h",
+        "hpp",
+        "cs",
+        "json",
+        "yaml",
+        "yml",
+        "toml",
+        "xml",
+        "html",
+        "htm",
+        "md",
+        "markdown",
+        "rst",
+        "txt",
+        "env",
+        "sql",
+        "sh",
+        "bat",
+        "cmd",
+        "ps1",
+        "dockerfile",
+        "rpy",
+        "rpym",
+        "ini",
+        "conf",
+        "cfg",
+        "lock",
+        "properties",
+        "gradle",
+        "svg",
+        "css",
+        "scss",
+        "less",
+        "vue",
+        "svelte",
+        "mod",
+        "sum",
+        "cargo",
     ];
 
     let mut config_excludes: Vec<String> = Vec::new();
@@ -187,6 +258,26 @@ pub fn scan_directory_ext(
             if let Some(ext) = file_path.extension().and_then(|s| s.to_str()) {
                 let ext_lower = ext.to_lowercase();
                 if skipped_exts.contains(&ext_lower.as_str()) {
+                    skip = true;
+                    binary_skipped += 1;
+                } else if !known_text_exts.contains(&ext_lower.as_str())
+                    && is_binary_file(file_path)
+                {
+                    skip = true;
+                    binary_skipped += 1;
+                }
+            } else {
+                let fname = file_path.file_name().and_then(|s| s.to_str()).unwrap_or("");
+                let is_common_text = fname.eq_ignore_ascii_case("dockerfile")
+                    || fname.starts_with("dockerfile.")
+                    || fname.eq_ignore_ascii_case(".env")
+                    || fname.eq_ignore_ascii_case(".gitignore")
+                    || fname.eq_ignore_ascii_case("license")
+                    || fname.eq_ignore_ascii_case("readme")
+                    || fname.eq_ignore_ascii_case("go.mod")
+                    || fname.eq_ignore_ascii_case("go.sum")
+                    || fname.eq_ignore_ascii_case("cargo.lock");
+                if !is_common_text && is_binary_file(file_path) {
                     skip = true;
                     binary_skipped += 1;
                 }

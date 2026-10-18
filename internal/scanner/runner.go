@@ -180,6 +180,23 @@ func countFilesInDir(dir string) int {
 	return count
 }
 
+// isBinaryFile checks if a file contains binary content by inspecting the first 1KB for NUL bytes.
+// Follows the Git/Ripgrep gold standard for fast, non-blocking binary sniffing.
+func isBinaryFile(path string) bool {
+	f, err := os.Open(path)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+
+	buf := make([]byte, 1024)
+	n, err := f.Read(buf)
+	if err != nil || n == 0 {
+		return false
+	}
+	return bytes.IndexByte(buf[:n], 0) != -1
+}
+
 // FindScannerExecutable attempts to locate the Rust scanner binary across multiple candidate paths.
 // It prioritizes the running executable's directory and %LOCALAPPDATA%\VibeGuard so that
 // the scanner is always found regardless of what directory the user runs VibeGuard from.
@@ -792,6 +809,20 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 		".adoc": true, ".html": true, ".htm": true,
 	}
 
+	knownTextExts := map[string]bool{
+		".go": true, ".js": true, ".ts": true, ".jsx": true, ".tsx": true,
+		".py": true, ".pyw": true, ".java": true, ".rs": true, ".rb": true,
+		".php": true, ".c": true, ".cpp": true, ".h": true, ".hpp": true,
+		".cs": true, ".json": true, ".yaml": true, ".yml": true, ".toml": true,
+		".xml": true, ".html": true, ".htm": true, ".md": true, ".markdown": true,
+		".rst": true, ".txt": true, ".env": true, ".sql": true, ".sh": true,
+		".bat": true, ".cmd": true, ".ps1": true, ".dockerfile": true,
+		".rpy": true, ".rpym": true, ".ini": true, ".conf": true, ".cfg": true,
+		".lock": true, ".properties": true, ".gradle": true, ".svg": true,
+		".css": true, ".scss": true, ".less": true, ".vue": true, ".svelte": true,
+		".mod": true, ".sum": true,
+	}
+
 	var gitignorePatterns []string
 	if gitignoreBytes, err := os.ReadFile(filepath.Join(projectPath, ".gitignore")); err == nil {
 		lines := strings.Split(string(gitignoreBytes), "\n")
@@ -887,6 +918,18 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 			filesSkipped++
 			scanWarnings = append(scanWarnings, ScanWarning{File: relPath, Reason: "binary file"})
 			return nil
+		}
+
+		if !knownTextExts[ext] {
+			fname := strings.ToLower(d.Name())
+			isCommonText := fname == "dockerfile" || strings.HasPrefix(fname, "dockerfile.") ||
+				fname == ".env" || fname == ".gitignore" || fname == "license" || fname == "readme" ||
+				fname == "go.mod" || fname == "go.sum" || fname == "cargo.lock"
+			if !isCommonText && isBinaryFile(path) {
+				filesSkipped++
+				scanWarnings = append(scanWarnings, ScanWarning{File: relPath, Reason: "binary content probe"})
+				return nil
+			}
 		}
 
 		files = append(files, candidateFile{

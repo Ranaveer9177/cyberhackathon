@@ -284,14 +284,15 @@
 ### 9.2 Zero Dynamic Regex Compilation (OnceLock Caching)
 - Precompiles all call-matching and taint-parsing regular expression patterns using `std::sync::OnceLock<Regex>`, ensuring zero allocations and zero recompilations during multi-pass taint analysis.
 
-### 9.3 Multi-Tiered Binary Safety & Filtering
-- **WalkDir Entry Pruning**: Early subtree pruning skips ignored directories (`__pycache__`, `.venv`, `vendor`, `node_modules`) at traversal entry.
-- **Expanded Extension Filter**: Case-insensitive filtering for compiled bytecode (`.pyc`, `.pyo`, `.pyd`, `.rpyc`, `.rpa`), audio formats (`.ogg`, `.wav`, `.mp3`), font binaries (`.ttf`, `.otf`), and virtual disks (`.qcow2`, `.vmdk`).
-- **1KB NUL-Byte Heuristic**: Inspects the first 1KB of every file for NUL (`\0`) bytes, skipping unrecognized binary files before text decoding.
-- **8MB File Size Ceiling**: Safeguards the scanner from runaway memory allocations on giant assets or SQLite databases.
-- **Windows Extended-Path Handling**: Adds `\\?\` UNC prefix handling for paths exceeding Windows `MAX_PATH` (260 characters).
+### 9.3 Permanent Content-Based Binary Sniffing & Subtree Pruning
+- **Traversal-Time 1KB NUL Probe**: Unknown or uncataloged file extensions are evaluated at directory walk time using a 1,024-byte header probe. If `\0` is detected, the file is immediately skipped and never added to the scanning workload or UI progress count.
+- **Inverted Text Allowlisting**: Source code (`.go`, `.js`, `.py`, `.rs`, `.java`, `.ts`, `.c`, `.cpp`, `.cs`, `.rb`, `.php`), configurations (`.json`, `.yaml`, `.toml`), and documentation (`.md`, `.txt`) bypass the probe directly.
+- **Root-Level Subtree Pruning**: Early `WalkDir::filter_entry` skips ignored directories (`__pycache__`, `.venv`, `vendor`, `node_modules`) before traversing child directories.
+- **Warning Memory Caps**: Capped `scan_warnings` at 500 entries, eliminating multi-megabyte JSON bloat when tens of thousands of binary files are present in massive game engines.
+- **8MB File Size Ceiling & Extended UNC Paths**: Safeguards memory against monolithic blobs while supporting Windows extended-length paths (`\\?\`).
 
-### 9.4 Adaptive Execution Window & OSV Deduplication
-- **Dynamic Timeout**: Evaluates estimated project file count dynamically ($5\text{s} \text{ per } 100 \text{ files}$, min 300s, max 600s), enabling complete scans on 2,000+ file projects without timeout interruptions.
+### 9.4 Adaptive Execution Window & Transparent Fallback
+- **Dynamic Timeout**: Adaptive timeout formula ($\text{files}/15 + 300\text{s}$, up to 1,200s), fully supporting codebases with 35,000+ files.
+- **Transparent Notifications**: Emits explicit stderr notifications if a scanner timeout occurs, completely eliminating silent engine fallback confusion.
 - **Package Deduplication**: Unifies package queries by `name@version#ecosystem` before sending requests to OSV, reducing redundant network latency.
 

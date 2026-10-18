@@ -53,9 +53,9 @@
 - [x] **v7.2.1 — Massive Codebase Performance & Algorithmic Scaling**:
   - $O(L + C \cdot P)$ Call-site occurrence indexing replacing $O(L \times F \times P)$ dynamic regex loops, delivering 54x–190x speedup on complex AST files.
   - Precompiled static `OnceLock<Regex>` patterns completely eliminating runtime regex compilation overhead.
-  - Multi-tiered binary safety filtering: early `WalkDir::filter_entry` subtree pruning, case-insensitive binary extension skipping, 1KB NUL-byte inspection, 8MB file ceiling, and extended-length path fallback.
+  - Permanent content-based binary sniffing: early `WalkDir::filter_entry` subtree pruning, 1KB NUL-byte header probe during traversal, inverted text allowlist, 8MB file ceiling, and extended-length path fallback.
   - $O(1)$ interprocedural symbol lookups and module candidate caching.
-  - Adaptive execution timeout (up to 600s) and package deduplication for reliable scanning of 2,000+ file projects.
+  - Adaptive execution timeout (up to 1,200s) and package deduplication for reliable scanning of 35,000+ file projects.
   - Live progress file feedback in CLI.
 
 ---

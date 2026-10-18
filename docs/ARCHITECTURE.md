@@ -67,7 +67,7 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
 - **Primary Rust Scanner Engine (`scanner/src/`)**:
   - Traverses the filesystem using `walkdir` with `filter_entry` early subtree pruning.
   - **Early Directory Pruning (Chaos-Resistant)**: Immediately skips ignored directories at the root (`node_modules`, `vendor`, `.git`, `target`, `__pycache__`, `.venv`, `dist`, `build`, `.vibeguard`, `reports`) without descending into subtrees, delivering >30,000 files/sec pruning rates.
-  - **Multi-Tiered Binary Safety & Filtering**: Early exclusion of compiled bytecode (`.pyc`, `.pyo`, `.rpyc`, `.rpa`), audio/media, and virtual disks; 1KB NUL-byte inspection for unrecognized binary formats; 8MB file size boundary; and Windows extended-path (`\\?\`) UNC resilience.
+  - **Permanent Content-Based Binary Sniffing Architecture**: Evaluates unknown files via a fast 1,024-byte NUL (`\0`) byte probe at directory traversal time (following Git's `buffer_is_binary` standard). Known text and code extensions bypass the probe, while unrecognized binary assets (images, audio, game blobs, compiled bytecode, virtual disks) are pruned immediately in microseconds without memory allocation or disk thrashing. Includes an 8MB file ceiling and Windows extended-path (`\\?\`) UNC resilience.
   - Automatically parses and respects `.gitignore` rules in the scanned repository.
   - Accepts `--progress` flag and streams live file scan progress (`PROGRESS:<cur>:<tot>:<file>`) on `stderr` while delivering pure JSON results on `stdout`.
   - **Call-Site Occurrence Indexing & SAST Engine (v7.2.1)**:
