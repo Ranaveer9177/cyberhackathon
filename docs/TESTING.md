@@ -59,7 +59,7 @@ Ensures zero suspicious constructs, correct printf formatting, and code standard
 
 ### 3.2 Intentionally Vulnerable Target Scan (External Workspace)
 ```powershell
-vibeguard scan C:\dev\test-fixtures\test-project
+vibeguard scan ..\test-fixtures\test-project
 ```
 - **Expected Result**: `Deployment Status: BLOCKED`
 - **Exit Code**: `1`
@@ -201,7 +201,7 @@ To guarantee enterprise robustness against bypass attempts, resource exhaustion,
 #### Domain 6: Massive Codebase Scalability & Algorithmic Taint Propagation (2,000+ Files)
 - **Objective**: Stress test the interprocedural taint engine, regex cache, and file scanner against monolithic, multi-thousand file projects containing complex AST structures and mixed binary/source payloads.
 - **Vectors**:
-  - Full scan on `monolithic-app-suite` (2,091 files, containing Ren'Py game engine, nested Python bytecode, audio assets, and deeply nested logic).
+  - Full scan on monolithic multi-asset benchmark suite (2,091 files, containing scripting engines, nested bytecode, audio assets, and deeply nested logic).
   - Target analysis of heavy AST files: `renpy/atl.py` (2,343 lines, 131 functions, 3 taint passes) and `renpy/audio/audio.py`.
 - **Results**:
   - Pre-indexed call-site argument caching eliminated 920,000+ dynamic regex compilations per file.

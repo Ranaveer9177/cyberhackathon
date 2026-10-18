@@ -31,7 +31,7 @@ All notable changes to the VibeGuard project are documented in this file.
   - Increased per-query HTTP context timeout to 15s to withstand network congestion.
 
 ### Verification & Benchmarks
-- **Large Project Stress Test**: Scanned `monolithic-app-suite` (2,091 files) from start to finish in **5.32s** (previously stalled at 44% for over 15 minutes).
+- **Large Project Stress Test**: Scanned monolithic project benchmark (2,091 files) from start to finish in **5.32s** (previously stalled at 44% for over 15 minutes).
 - **Parity Verification**: 100% finding parity preserved against baseline across all rules.
 - **Clean Self-Scan & Full Suite**: VibeGuard self-scan completed in **0.96s** with a perfect **100/100 PASSED** score (0 findings); `ultimate_test.bat` scored **100/100** across all 8 stages.
 
@@ -478,7 +478,7 @@ VibeGuard v7.0 measures detection quality by Precision / Recall / F1, not by rul
 ### Changed
 - **Strict Repository & Workspace Separation**:
   - Removed all vulnerable test projects, fake credentials, and generated test outputs from the primary codebase.
-  - Relocated test fixtures and test projects to external workspace `C:\dev\test-fixtures`.
+  - Relocated test fixtures and test projects to external isolated test workspace.
   - Inlined mock responses into unit tests (`internal/osv/client_test.go`) and dynamically constructed mock tokens to guarantee 100/100 zero false-alarm self-scan scores.
 
 ## [v4.0.0] — 2026-09-20

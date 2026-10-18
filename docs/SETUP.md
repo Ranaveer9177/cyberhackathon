@@ -7,7 +7,7 @@ VibeGuard v7.2.1 installs as a native, self-locating global CLI utility on Windo
 Once installed:
 - `vibeguard` runs from **ANY** CMD or PowerShell directory without typing `.\` or running from the repository root.
 - Scans can target any project folder independently: `vibeguard scan C:\path\to\project`.
-- No developer usernames or absolute user directories (such as `C:\Users\Developer` or `C:\Users\Developer`) are hardcoded.
+- No developer usernames or absolute user directories are hardcoded; all configuration dynamically uses `%LOCALAPPDATA%` and `%USERPROFILE%`.
 - The Git pre-push hook autonomously locates the trusted global installation.
 - Prebuilt release packages require **zero compilers** (no Go, no Rust, no Visual Studio Build Tools).
 
@@ -71,7 +71,7 @@ This guarantees that:
 ```cmd
 C:\Users\Developer\Desktop> vibeguard scan C:\Users\Developer\Projects\backend
 ```
-correctly executes the scanner from `C:\Users\Developer\AppData\Local\VibeGuard\scanner.exe` while analyzing the target project at `C:\Users\Developer\Projects\backend`.
+correctly executes the scanner from `%LOCALAPPDATA%\VibeGuard\vibeguard-scanner.exe` while analyzing the target project at `C:\Users\Developer\Projects\backend`.
 
 ---
 
@@ -104,7 +104,7 @@ To prevent untrusted repositories from spoofing the security scanner (Section 19
 ## 6. Acceptance Checklist
 
 - [x] `setup.bat` works from any directory using dynamic `%~dp0`.
-- [x] Zero hardcoded usernames (`ranua`, `pooji`, etc.).
+- [x] Zero hardcoded usernames or machine-specific user profiles.
 - [x] VibeGuard installs to `%LOCALAPPDATA%\VibeGuard`.
 - [x] Directory added to User `PATH` idempotently.
 - [x] New terminal sessions recognize `vibeguard` globally.

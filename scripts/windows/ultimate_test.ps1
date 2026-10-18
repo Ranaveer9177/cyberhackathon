@@ -265,7 +265,7 @@ $verCheck = if ($verStr -match 'v\d+\.\d+\.\d+') { "PASS" } else { "FAIL" }
 
 $testProj = "..\test-fixtures\test-project"
 if (-not (Test-Path $testProj)) {
-    $testProj = Join-Path $env:USERPROFILE "Music\test-fixtures\test-project"
+    $testProj = Join-Path $env:TEMP "vibeguard-test\test-project"
 }
 
 $scanCheck = "PASS"
