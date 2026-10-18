@@ -184,10 +184,12 @@ fn main() {
         if let Ok(meta) = fs::metadata(file_path) {
             if meta.len() > 8 * 1024 * 1024 {
                 files_skipped_count += 1;
-                scan_warnings.push(types::ScanWarning {
-                    file: file_path.clone(),
-                    reason: format!("File exceeds 8MB analysis limit ({} bytes)", meta.len()),
-                });
+                if scan_warnings.len() < 500 {
+                    scan_warnings.push(types::ScanWarning {
+                        file: file_path.clone(),
+                        reason: format!("File exceeds 8MB analysis limit ({} bytes)", meta.len()),
+                    });
+                }
                 continue;
             }
         }
@@ -202,20 +204,24 @@ fn main() {
                     Ok(c) => c,
                     Err(e) => {
                         files_skipped_count += 1;
-                        scan_warnings.push(types::ScanWarning {
-                            file: file_path.clone(),
-                            reason: format!("Unable to read file as text: {}", e),
-                        });
+                        if scan_warnings.len() < 500 {
+                            scan_warnings.push(types::ScanWarning {
+                                file: file_path.clone(),
+                                reason: format!("Unable to read file as text: {}", e),
+                            });
+                        }
                         continue;
                     }
                 }
             }
             Err(e) => {
                 files_skipped_count += 1;
-                scan_warnings.push(types::ScanWarning {
-                    file: file_path.clone(),
-                    reason: format!("Unable to read file as text: {}", e),
-                });
+                if scan_warnings.len() < 500 {
+                    scan_warnings.push(types::ScanWarning {
+                        file: file_path.clone(),
+                        reason: format!("Unable to read file as text: {}", e),
+                    });
+                }
                 continue;
             }
         };
@@ -223,10 +229,12 @@ fn main() {
         // Binary content detection: check for NUL bytes in the first 1KB
         if content.as_bytes().iter().take(1024).any(|&b| b == 0) {
             files_skipped_count += 1;
-            scan_warnings.push(types::ScanWarning {
-                file: file_path.clone(),
-                reason: "Binary content detected (contains NUL bytes)".to_string(),
-            });
+            if scan_warnings.len() < 500 {
+                scan_warnings.push(types::ScanWarning {
+                    file: file_path.clone(),
+                    reason: "Binary content detected (contains NUL bytes)".to_string(),
+                });
+            }
             continue;
         }
 

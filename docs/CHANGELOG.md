@@ -11,17 +11,19 @@ All notable changes to the VibeGuard project are documented in this file.
   - Achieved a **54x speedup** on complex AST files (e.g. `renpy/atl.py` dropped from 29.63s to 0.547s; `renpy/audio/audio.py` dropped from 26.87s to 0.138s).
 - **Static OnceLock Regex Compilation** (`scanner/src/sast.rs`, `scanner/src/secrets.rs`):
   - Precompiled call argument parsing patterns using `std::sync::OnceLock<Regex>` to completely eliminate runtime regex compilation overhead in tight file scanning loops.
-- **Multi-Tiered Binary Safety & Subtree Pruning** (`scanner/src/scanner.rs`, `scanner/src/main.rs`):
+- **Multi-Tiered Binary Safety & Subtree Pruning** (`scanner/src/scanner.rs`, `scanner/src/main.rs`, `internal/scanner/runner.go`):
   - Added early traversal directory pruning via `WalkDir::filter_entry`, skipping ignored directories (`__pycache__`, `.git`, `node_modules`, `vendor`, etc.) before descending into subdirectories.
-  - Expanded skipped binary extensions with case-insensitive matching: `.pyc`, `.pyo`, `.pyd`, `.rpyc`, `.rpa`, audio (`.ogg`, `.wav`, `.mp3`), fonts (`.ttf`, `.otf`), and virtual disks (`.qcow2`, `.vmdk`).
+  - Expanded skipped binary extensions across both Rust and Go engines: modern raster/compressed images (`.avif`, `.webp`, `.bmp`, `.tiff`, `.tif`, `.psd`), audio formats (`.opus`, `.m4a`, `.aac`, `.wma`, `.ogg`, `.wav`, `.mp3`, `.flac`, `.mid`), video formats (`.webm`, `.mkv`, `.mov`, `.avi`, `.wmv`, `.flv`), compiled bytecode (`.pyc`, `.pyo`, `.pyd`, `.rpyc`, `.rpa`, `.rpymc`), fonts (`.ttf`, `.otf`, `.woff`, `.woff2`), game assets (`.save`, `.bak`), and virtual disks (`.qcow2`, `.vmdk`).
   - Added 1KB NUL-byte binary heuristic: inspects the first 1,024 bytes of any candidate file for NUL (`\0`) bytes, skipping compiled/unrecognized binary formats safely without parsing.
   - Implemented 8MB file size ceiling to prevent memory exhaustion on giant data dumps or monolithic binaries.
+  - Capped `scan_warnings` memory allocations at 500 entries to prevent memory and JSON serialization bloat on massive codebases with thousands of skipped binaries.
   - Added Windows extended-length path fallback (`\\?\` UNC prefix) to seamlessly handle deeply nested filepaths exceeding MAX_PATH (260 characters).
 - **$O(1)$ Interprocedural Call Resolution & Module Resolver** (`scanner/semantic/module_resolver.rs`, `scanner/taint/propagator.rs`):
   - Replaced $O(N^2)$ candidate file array scans with $O(1)$ normalized HashMap lookups in the semantic module resolver.
   - Pre-indexed file node lookups (`HashMap<&str, &FileNode>`) in the interprocedural taint propagator to avoid repeated linear vector iterations across call graph hops.
-- **Adaptive Execution Timeout** (`internal/scanner/runner.go`):
-  - Replaced fixed 60s hard timeout with an adaptive, directory-size-aware execution window ($5\text{s} \text{ per } 100 \text{ files}$, minimum 300s, maximum 600s), fully supporting scans across 2,000+ file codebases without premature timeout aborts.
+- **Adaptive Execution Timeout & Fallback Notice** (`internal/scanner/runner.go`):
+  - Replaced fixed hard timeouts with an adaptive, directory-size-aware execution window ($5\text{s} \text{ per } 100 \text{ files}$, minimum 300s, maximum 1200s), fully supporting scans across 35,000+ file codebases without premature timeout aborts.
+  - Added explicit timeout warnings on stderr to eliminate silent fallback confusion.
 - **Live Scanning Feedback** (`internal/report/progress.go`, `cmd/vibeguard/main.go`):
   - Enriched the interactive terminal progress bar to display the active file being scanned in real time (`PROGRESS:<cur>:<tot>:<file>`), preventing perceived freezes during deep AST analysis.
 - **OSV Intelligence Deduplication** (`internal/osv/client.go`):

@@ -289,11 +289,11 @@ func RunScannerWithProgressAndFlags(projectPath string, progress ScanProgressFun
 
 	scannerExe, found := FindScannerExecutable()
 	if found {
-		// Dynamic timeout: allow 5 seconds per 100 files, minimum 300s, max 600s
+		// Dynamic timeout: allow 5 seconds per 100 files, minimum 300s, max 1200s
 		estimatedFiles := countFilesInDir(projectPath)
-		timeoutSecs := estimatedFiles/20 + 300
-		if timeoutSecs > 600 {
-			timeoutSecs = 600
+		timeoutSecs := estimatedFiles/15 + 300
+		if timeoutSecs > 1200 {
+			timeoutSecs = 1200
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutSecs)*time.Second)
 		defer cancel()
@@ -359,6 +359,9 @@ func RunScannerWithProgressAndFlags(projectPath string, progress ScanProgressFun
 
 		// If execution failed, check if Windows Defender or security software blocked the binary
 		if execErr != nil {
+			if ctx.Err() == context.DeadlineExceeded {
+				fmt.Fprintf(os.Stderr, "\n[!] Scanner timeout exceeded (%ds); engaging internal engine...\n", timeoutSecs)
+			}
 			if blockRep, isBlocked := defender.IsBlockedByDefenderOrAV(execErr, scannerExe); isBlocked {
 				defender.ShowBlockPopup(blockRep)
 			}
@@ -763,8 +766,19 @@ func RunInternalScannerWithProgress(projectPath string, progress ScanProgressFun
 	skipExts := map[string]bool{
 		".exe": true, ".dll": true, ".so": true, ".dylib": true,
 		".bin": true, ".dat": true, ".zip": true, ".tar": true,
-		".gz": true, ".png": true, ".jpg": true, ".gif": true,
-		".mp4": true, ".pdf": true,
+		".gz": true, ".png": true, ".jpg": true, ".jpeg": true,
+		".gif": true, ".mp4": true, ".pdf": true, ".pyc": true,
+		".pyo": true, ".pyd": true, ".rpyc": true, ".rpa": true,
+		".rpymc": true, ".wav": true, ".ogg": true, ".mp3": true,
+		".flac": true, ".opus": true, ".m4a": true, ".aac": true,
+		".wma": true, ".mid": true, ".midi": true, ".ttf": true,
+		".otf": true, ".woff": true, ".woff2": true, ".ico": true,
+		".wasm": true, ".class": true, ".jar": true, ".7z": true,
+		".rar": true, ".avif": true, ".webp": true, ".webm": true,
+		".mkv": true, ".mov": true, ".avi": true, ".wmv": true,
+		".flv": true, ".bmp": true, ".tiff": true, ".tif": true,
+		".psd": true, ".save": true, ".bak": true, ".qcow2": true,
+		".vmdk": true,
 	}
 
 	sourceExts := map[string]bool{

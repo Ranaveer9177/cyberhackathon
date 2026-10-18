@@ -39,9 +39,11 @@ pub fn scan_directory_ext(
     ];
 
     let skipped_exts = [
-        "exe", "dll", "so", "dylib", "bin", "dat", "zip", "tar", "gz", "png", "jpg", "gif", "mp4",
-        "pdf", "pyc", "pyo", "pyd", "rpyc", "rpa", "rpymc", "wav", "ogg", "mp3", "flac", "ttf",
-        "otf", "woff", "woff2", "ico", "wasm", "class", "jar", "7z", "rar",
+        "exe", "dll", "so", "dylib", "bin", "dat", "zip", "tar", "gz", "png", "jpg", "jpeg", "gif",
+        "mp4", "pdf", "pyc", "pyo", "pyd", "rpyc", "rpa", "rpymc", "wav", "ogg", "mp3", "flac",
+        "opus", "m4a", "aac", "wma", "mid", "midi", "ttf", "otf", "woff", "woff2", "ico", "wasm",
+        "class", "jar", "7z", "rar", "avif", "webp", "webm", "mkv", "mov", "avi", "wmv", "flv",
+        "bmp", "tiff", "tif", "psd", "save", "bak", "qcow2", "vmdk",
     ];
 
     let mut config_excludes: Vec<String> = Vec::new();
