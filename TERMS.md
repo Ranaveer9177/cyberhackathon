@@ -1,7 +1,7 @@
 # VibeGuard — Terms and Conditions of Use
 
 **Effective Date:** September 30, 2026  
-**Product Version:** v7.2.0  
+**Product Version:** v7.2.1  
 **Project:** VibeGuard Autonomous Pre-Push Security Firewall & Deep Static Analyzer  
 
 ---

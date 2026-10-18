@@ -1,6 +1,6 @@
 # VibeGuard — Testing & Verification Guide
 
-> **VibeGuard v7.2.0 — Test Suites, Automated Tests, and Manual Verification Procedures**
+> **VibeGuard v7.2.1 — Test Suites, Automated Tests, and Manual Verification Procedures**
 
 ---
 
@@ -13,7 +13,7 @@ go test -v ./...
 ```
 
 ### Passing Packages:
-- `cmd/vibeguard`: CLI input validation, version (`v7.2.0`), format parsing, and exit codes.
+- `cmd/vibeguard`: CLI input validation, version (`v7.2.1`), format parsing, and exit codes.
 - `internal/baseline`: Baseline loading, suppression matching, expiration, and corrupt file fail-closed logic.
 - `internal/config`: Default configuration loading, JSON validation, and exclusion path matching.
 - `internal/defender`: Windows Defender & AV detection, WMI product queries, Win32 error analysis, and pop-up modal logic.

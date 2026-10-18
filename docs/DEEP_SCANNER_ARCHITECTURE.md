@@ -1,16 +1,16 @@
 # VibeGuard Deep Offline Scanner Architecture Specification
 
-> **Version:** 7.2.0 Architecture Blueprint  
+> **Version:** 7.2.1 Architecture Blueprint  
 > **Status:** Active Implementation  
-> **Focus:** Offline-First Semantic Project Modeling, Cross-File Inter-procedural Data-Flow & Vulnerability-Specific Taint Analysis
+> **Focus:** Offline-First Semantic Project Modeling, Cross-File Inter-procedural Data-Flow, Call-Site Occurrence Indexing & Content-Based Binary Sniffing
 
 ---
 
 ## 1. Overview & Layered Architecture
 
 VibeGuard evolves from a fast pre-push lexical gate into a **two-tier hybrid engine**:
-1. **Tier 1 (Fast-Pass Lexical & Heuristic Filter)**: Multi-threaded directory traversal, regex secret entropy analysis, Docker/Compose syntax checks, and rapid file filtering.
-2. **Tier 2 (Deep Offline Semantic & Taint Engine)**: AST extraction, project-wide symbol resolution, call graph construction, framework modeling, and vulnerability-specific inter-procedural data-flow tracking.
+1. **Tier 1 (Fast-Pass Lexical, Probe & Heuristic Filter)**: Multi-threaded directory traversal, 1KB NUL-byte binary content probing (`buffer_is_binary`), inverted text allowlisting, regex secret entropy analysis, Docker/Compose syntax checks, and rapid file filtering.
+2. **Tier 2 (Deep Offline Semantic & Taint Engine)**: AST extraction, pre-indexed call-site argument caching, project-wide symbol resolution, call graph construction, framework modeling, and vulnerability-specific inter-procedural data-flow tracking.
 
 ```text
 +-----------------------------------------------------------------------------------+
@@ -21,7 +21,7 @@ VibeGuard evolves from a fast pre-push lexical gate into a **two-tier hybrid eng
 +-----------------------------------------------------------------------------------+
 |                        TIER 1: FAST FIRST-PASS LEXICAL LAYER                      |
 |                                                                                   |
-|  - File Discovery & Ignore Filters (.gitignore, .vibeguardignore)                 |
+|  - File Discovery, Subtree Pruning & 1KB Content-Based Binary Sniffing Probe      |
 |  - Language & Config Classification (.py, .js, .go, .java, .dockerfile, .yaml)   |
 |  - Entropy-based & Context-Aware Secret Detection                                 |
 |  - Docker & Docker Compose Static Infrastructure Analysis                         |

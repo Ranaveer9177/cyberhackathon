@@ -1,6 +1,6 @@
 # VibeGuard — Language & Technology Decisions
 
-> **Architecture Rationale & Technology Evaluation for VibeGuard v7.2.0**
+> **Architecture Rationale & Technology Evaluation for VibeGuard v7.2.1**
 
 ---
 
@@ -12,8 +12,8 @@ VibeGuard intentionally pairs **Go** and **Rust** to optimize developer ergonomi
 | :--- | :---: | :--- |
 | **CLI & User Experience** | **Go** | Rich ecosystem for command-line tooling, cross-platform compilation, fast startup time, robust standard library (`os/exec`, `net/http`, `archive/tar`), and direct shell interop. |
 | **Live Progress Engine** | **Go** | Real-time terminal progress reporting with dynamic percentage and ETA calculation, ANSI cursor positioning (`\033[%dA\r`, `\033[K`), and non-TTY stream awareness. |
-| **Scanner Engine** | **Rust** | Zero-cost abstractions, fearless memory safety without garbage collection pauses, blazing-fast file traversal with `walkdir`, early root pruning of ignored trees (>30k files/sec), and high-performance regex matching. |
-| **Fallback Engine** | **Go** | Native Go scanner implementation maintaining 100% rule parity, ensuring VibeGuard functions out-of-the-box on developer systems where `cargo` is not installed. |
+| **Scanner Engine** | **Rust** | Zero-cost abstractions, fearless memory safety without garbage collection pauses, blazing-fast file traversal with `walkdir`, early root pruning of ignored trees (>30k files/sec), 1,024-byte permanent content-based binary sniffing, and high-performance regex matching. |
+| **Fallback Engine** | **Go** | Native Go scanner implementation maintaining 100% rule parity and content-based binary sniffing, ensuring VibeGuard functions out-of-the-box on developer systems where `cargo` is not installed. |
 | **Vulnerability Data** | **Google OSV** | Distributed open-source vulnerability database providing machine-readable CVEs and advisories with zero hallucinations. |
 | **Environment Provisioning** | **Batch / winget** | Automated Windows setup script (`setup.bat`) integrating Windows Package Manager (`winget`) with intelligent pre-checks to eliminate redundant re-downloads. |
 | **Data Protocol** | **JSON** | Universal, lightweight serialization format for inter-process communication and report persistence. |
