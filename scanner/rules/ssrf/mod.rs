@@ -31,7 +31,12 @@ impl<'a> SsrfRuleEngine<'a> {
             self.analyze_stmts(&func.body, false, finding_counter, &mut findings);
         }
 
-        self.analyze_stmts(&self.file_node.statements, false, finding_counter, &mut findings);
+        self.analyze_stmts(
+            &self.file_node.statements,
+            false,
+            finding_counter,
+            &mut findings,
+        );
 
         findings
     }
@@ -50,7 +55,13 @@ impl<'a> SsrfRuleEngine<'a> {
             }
             match stmt {
                 StmtNode::Assignment(assign) => {
-                    self.inspect_expr(&assign.value, assign.line, is_guarded, finding_counter, findings);
+                    self.inspect_expr(
+                        &assign.value,
+                        assign.line,
+                        is_guarded,
+                        finding_counter,
+                        findings,
+                    );
                 }
                 StmtNode::Call(expr) => {
                     self.inspect_expr(expr, expr.line(), is_guarded, finding_counter, findings);

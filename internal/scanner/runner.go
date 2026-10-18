@@ -162,6 +162,24 @@ func isAlphaNumUnderscore(b byte) bool {
 	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_'
 }
 
+// countFilesInDir returns a rough estimate of files in a directory tree (capped at 5000).
+func countFilesInDir(dir string) int {
+	count := 0
+	_ = filepath.Walk(dir, func(_ string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		if !info.IsDir() {
+			count++
+			if count >= 5000 {
+				return filepath.SkipAll
+			}
+		}
+		return nil
+	})
+	return count
+}
+
 // FindScannerExecutable attempts to locate the Rust scanner binary across multiple candidate paths.
 // It prioritizes the running executable's directory and %LOCALAPPDATA%\VibeGuard so that
 // the scanner is always found regardless of what directory the user runs VibeGuard from.
@@ -271,7 +289,13 @@ func RunScannerWithProgressAndFlags(projectPath string, progress ScanProgressFun
 
 	scannerExe, found := FindScannerExecutable()
 	if found {
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		// Dynamic timeout: allow 5 seconds per 100 files, minimum 300s, max 600s
+		estimatedFiles := countFilesInDir(projectPath)
+		timeoutSecs := estimatedFiles/20 + 300
+		if timeoutSecs > 600 {
+			timeoutSecs = 600
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutSecs)*time.Second)
 		defer cancel()
 
 		args := []string{projectPath}
@@ -489,7 +513,7 @@ func getInternalRules() []internalRule {
 			remediation:    "Remove private keys from the repository.",
 			recommendation: "Remove private keys from the repository.",
 		},
-		// SAST & Security Rules (v6.0 Canonical IDs)
+		// SAST & Security Rules (v7.2.0 Canonical IDs)
 		{
 			id:             "VG-SAST-001",
 			name:           "Potential SQL Injection",

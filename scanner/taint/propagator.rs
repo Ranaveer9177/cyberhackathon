@@ -146,6 +146,9 @@ impl<'a> DeepTaintPropagator<'a> {
         }
 
         // 2. Interprocedural Propagation Pass (traverse queued cross-function calls)
+        // Pre-build O(1) file-path index to avoid O(N) scan inside the hot loop
+        let file_node_map: HashMap<&str, &FileNode> =
+            self.parsed_files.iter().map(|(p, n)| (*p, *n)).collect();
         let max_hops = 12;
         let mut hops = 0;
 
@@ -174,7 +177,9 @@ impl<'a> DeepTaintPropagator<'a> {
                 .symbol_table
                 .lookup_function(&ctx.target_func_qname)
             {
-                if let Some(target_file_node) = self.find_file_node(&func_sym.file_path) {
+                if let Some(target_file_node) =
+                    file_node_map.get(func_sym.file_path.as_str()).copied()
+                {
                     if let Some(target_func) = target_file_node
                         .functions
                         .iter()
@@ -403,7 +408,13 @@ impl<'a> DeepTaintPropagator<'a> {
                             var.taints.remove(&TaintKind::Ssrf);
                             var.sanitized_for.insert(TaintKind::Ssrf);
                         }
-                        self.analyze_statement_block(&c.then_body, ctx, &mut guarded_env, queue, flows);
+                        self.analyze_statement_block(
+                            &c.then_body,
+                            ctx,
+                            &mut guarded_env,
+                            queue,
+                            flows,
+                        );
                         self.analyze_statement_block(&c.else_body, ctx, env, queue, flows);
                     } else {
                         self.analyze_statement_block(&c.then_body, ctx, env, queue, flows);

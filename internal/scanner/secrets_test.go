@@ -142,4 +142,41 @@ func TestNegativeCases_NotBlocking(t *testing.T) {
 	if len(cleanFindings) != 0 {
 		t.Errorf("expected clean document to have 0 findings, got %+v", cleanFindings)
 	}
+
+	// 5. False positive candidates
+	negativeCases := []string{
+		"keyLower = strings.ToLower(key)",
+		"key_lower = key.to_lowercase()",
+		`keyName = "password"`,
+		`keyValue = "example"`,
+		`secretName = "token"`,
+		`tokenName = "bearer"`,
+		`key == "password"`,
+		`apiKeyName = "API_KEY"`,
+		`api_key = os.getenv("API_KEY")`,
+		`secret_token = process.env.TOKEN`,
+	}
+	for _, code := range negativeCases {
+		res := ScanCredentialAssignments("scanner.go", code, 1, false, &counter)
+		if len(res) != 0 {
+			t.Errorf("expected 0 findings for negative case %q, got %+v", code, res)
+		}
+	}
+}
+
+func TestComparisonCredentialDetected(t *testing.T) {
+	counter := 0
+	findings := ScanCredentialAssignments("auth.go", `if password == "SuperSecretAdminPass123" {`, 1, false, &counter)
+	if len(findings) == 0 {
+		t.Fatalf("expected finding for password comparison, got 0")
+	}
+	if findings[0].ID != "VG-SECRET-001" {
+		t.Errorf("expected ID VG-SECRET-001, got %s", findings[0].ID)
+	}
+	if findings[0].Title != "Hardcoded Password in Comparison" {
+		t.Errorf("expected title 'Hardcoded Password in Comparison', got %s", findings[0].Title)
+	}
+	if findings[0].Evidence != "password==********" {
+		t.Errorf("expected evidence 'password==********', got %s", findings[0].Evidence)
+	}
 }

@@ -1,9 +1,9 @@
-# VibeGuard v7.2.0
+# VibeGuard v7.2.1
 
 > **Autonomous Pre-Push Security Firewall & Deep Static Analyzer**  
 > *Intercept secrets, vulnerabilities, and unsafe code before they leave your workstation — automatically.*
 
-[![Version](https://img.shields.io/badge/version-v7.2.0-blue.svg)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v7.2.1-blue.svg)](docs/CHANGELOG.md)
 [![Security Gate](https://img.shields.io/badge/security_gate-PASSED_100%2F100-brightgreen.svg)](ultimate_test.bat)
 [![Engines](https://img.shields.io/badge/engines-Go_1.21+_|_Rust_1.70+-orange.svg)](docs/LANGUAGE.md)
 [![Benchmark](https://img.shields.io/badge/benchmark-100%25_Recall_|_100%25_Specificity-success.svg)](docs/TESTING.md)
@@ -19,6 +19,7 @@
 
 - 🔍 Scans for **hardcoded secrets, API keys, and credentials**
 - 🛡️ Performs **deep static analysis** (SQLi, CMDi, SSRF, XSS, path traversal, deserialization, weak crypto)
+- ⚡ **High-Throughput Algorithmic Scaling** ($O(L + C \cdot P)$ call-site indexing, 54x–194x speedup on monolithic 2,000+ file projects)
 - 📦 Audits **open-source dependencies** for known CVEs (offline-capable)
 - 🐳 Validates **Docker/Compose** security configuration
 - 📊 Generates **terminal, HTML, JSON, and SARIF 2.1.0** reports
@@ -446,6 +447,7 @@ cyberhackathon/
 
 | Document | Description |
 |:--|:--|
+| [VIBEGUARD_SHOWCASE.md](VIBEGUARD_SHOWCASE.md) | **Visual Showcase & Screenshots Guide**: Step-by-step CLI walkthrough & academic document index |
 | [SETUP.md](docs/SETUP.md) | Global installation, PATH config, setup details |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture, IPC, engine boundaries |
 | [DEEP_SCANNER_ARCHITECTURE.md](docs/DEEP_SCANNER_ARCHITECTURE.md) | 20-stage pipeline, AST modeling, taint propagation |

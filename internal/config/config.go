@@ -34,18 +34,12 @@ func DefaultConfig() *Config {
 			".git",
 			".vibeguard",
 			"reports",
-			"md files",
 			"tests",
-			"code.md",
-			"finalreport.md",
-			"output.md",
-			"output2.md",
-			"test output.md",
-			"test3.md",
-			"test4.md",
-			"test5.md",
-			"NEW_LAPTOP_SETUP.md",
 			"rules",
+			"*.md",
+			"*.markdown",
+			"*.rst",
+			"*.adoc",
 		},
 	}
 }
@@ -60,6 +54,8 @@ func (c *Config) IsExcluded(relPath string) bool {
 	cleanPath = strings.TrimPrefix(cleanPath, "./")
 	cleanPath = strings.TrimPrefix(cleanPath, "/")
 
+	baseName := filepath.Base(cleanPath)
+
 	for _, pattern := range c.Exclude {
 		pattern = strings.TrimSpace(pattern)
 		if pattern == "" {
@@ -69,6 +65,14 @@ func (c *Config) IsExcluded(relPath string) bool {
 		cleanPattern := filepath.ToSlash(filepath.Clean(pattern))
 		cleanPattern = strings.TrimPrefix(cleanPattern, "./")
 		cleanPattern = strings.TrimPrefix(cleanPattern, "/")
+
+		// Wildcard extension match (e.g. "*.md" matches "README.md", "docs/ARCH.md")
+		if strings.HasPrefix(pattern, "*.") {
+			extPattern := strings.ToLower(pattern[1:]) // e.g. ".md"
+			if strings.HasSuffix(strings.ToLower(cleanPath), extPattern) {
+				return true
+			}
+		}
 
 		// 1. Exact match
 		if cleanPath == cleanPattern {
@@ -81,7 +85,7 @@ func (c *Config) IsExcluded(relPath string) bool {
 		}
 
 		// 3. Basename match for exact filenames (e.g. "code.md" matches "code.md")
-		if filepath.Base(cleanPath) == cleanPattern {
+		if baseName == cleanPattern {
 			return true
 		}
 	}

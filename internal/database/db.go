@@ -274,7 +274,7 @@ func (db *DB) syncMultiDir(dir string) error {
 	// 4. Write rules index
 	rulesMeta := map[string]interface{}{
 		"semver_matching": "enabled",
-		"offline_engine":  "v6.9.0",
+		"offline_engine":  "v7.2.0",
 		"rule_types":      []string{"range", "semver", "ecosystem", "cve", "ghsa"},
 	}
 	ruleBytes, _ := json.MarshalIndent(rulesMeta, "", "  ")

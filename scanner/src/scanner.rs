@@ -40,7 +40,8 @@ pub fn scan_directory_ext(
 
     let skipped_exts = [
         "exe", "dll", "so", "dylib", "bin", "dat", "zip", "tar", "gz", "png", "jpg", "gif", "mp4",
-        "pdf",
+        "pdf", "pyc", "pyo", "pyd", "rpyc", "rpa", "rpymc", "wav", "ogg", "mp3", "flac", "ttf",
+        "otf", "woff", "woff2", "ico", "wasm", "class", "jar", "7z", "rar",
     ];
 
     let mut config_excludes: Vec<String> = Vec::new();
@@ -58,7 +59,10 @@ pub fn scan_directory_ext(
                             if include_docs
                                 && (s_norm.to_lowercase().contains("doc")
                                     || s_norm.to_lowercase().contains("report")
-                                    || s_norm.to_lowercase().ends_with(".md"))
+                                    || s_norm.to_lowercase().ends_with(".md")
+                                    || s_norm.to_lowercase().ends_with(".markdown")
+                                    || s_norm.to_lowercase().ends_with(".rst")
+                                    || s_norm.to_lowercase().ends_with(".adoc"))
                             {
                                 continue;
                             }
@@ -89,14 +93,24 @@ pub fn scan_directory_ext(
         }
     }
 
+    // Use filter_entry to prune skipped directories BEFORE descending into them
     for entry in WalkDir::new(path)
         .into_iter()
+        .filter_entry(|e| {
+            if e.file_type().is_dir() {
+                if let Some(name) = e.file_name().to_str() {
+                    return !skipped_dirs.contains(&name);
+                }
+            }
+            true
+        })
         .filter_map(|e| e.ok())
         .filter(|e| e.file_type().is_file())
     {
         let file_path = entry.path();
 
         let mut skip = false;
+        // Secondary check: catch any remaining skipped-dir components (e.g. the root itself)
         for component in file_path.components() {
             if let Some(comp_str) = component.as_os_str().to_str() {
                 if skipped_dirs.contains(&comp_str) {
@@ -169,7 +183,8 @@ pub fn scan_directory_ext(
 
         if !skip {
             if let Some(ext) = file_path.extension().and_then(|s| s.to_str()) {
-                if skipped_exts.contains(&ext) {
+                let ext_lower = ext.to_lowercase();
+                if skipped_exts.contains(&ext_lower.as_str()) {
                     skip = true;
                     binary_skipped += 1;
                 }

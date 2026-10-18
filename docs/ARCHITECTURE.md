@@ -65,19 +65,22 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
 
 ### 2.2 Dual-Engine Security Scanner (`scanner/` & `internal/scanner/`)
 - **Primary Rust Scanner Engine (`scanner/src/`)**:
-  - Traverses the filesystem using `walkdir`.
+  - Traverses the filesystem using `walkdir` with `filter_entry` early subtree pruning.
   - **Early Directory Pruning (Chaos-Resistant)**: Immediately skips ignored directories at the root (`node_modules`, `vendor`, `.git`, `target`, `__pycache__`, `.venv`, `dist`, `build`, `.vibeguard`, `reports`) without descending into subtrees, delivering >30,000 files/sec pruning rates.
+  - **Multi-Tiered Binary Safety & Filtering**: Early exclusion of compiled bytecode (`.pyc`, `.pyo`, `.rpyc`, `.rpa`), audio/media, and virtual disks; 1KB NUL-byte inspection for unrecognized binary formats; 8MB file size boundary; and Windows extended-path (`\\?\`) UNC resilience.
   - Automatically parses and respects `.gitignore` rules in the scanned repository.
   - Accepts `--progress` flag and streams live file scan progress (`PROGRESS:<cur>:<tot>:<file>`) on `stderr` while delivering pure JSON results on `stdout`.
-  - **Scope-Aware Data-Flow SAST Engine (v6.0)**:
+  - **Call-Site Occurrence Indexing & SAST Engine (v7.2.1)**:
+    - Pre-indexes call-site occurrences once per file ($O(L + C \cdot P)$ complexity), eliminating dynamic regular expression compilation in hot loops ($O(L \times F \times P)$).
+    - Uses precompiled `std::sync::OnceLock<Regex>` patterns, accelerating deep multi-pass taint propagation by 54x–190x on complex files.
     - Tracks user-controlled input sources (Flask `request.args`, Express `req.query`, Go `r.URL.Query`) to downstream sinks.
     - Escalates SQL injection confidence when user-tainted variables flow into dynamic query statements (`f"SELECT ... {param}"`, `%`, `.format()`, concatenation).
     - Detects OS command execution with `shell=True` escalation (`VG-SAST-008`).
-  - **Authentication & API Security Engine (v6.0)**:
+  - **Authentication & API Security Engine (v7.2.0)**:
     - Differentiates weak password hashing (`VG-AUTH-001`) from data checksums.
     - Identifies predictable tokens (`VG-AUTH-002`) and hardcoded Bearer/JWT tokens (`VG-AUTH-003`).
     - Enforces cryptographic webhook signature verification (`VG-WEBHOOK-001`).
-  - **Dedicated Docker Compose Security Engine (v6.0)**:
+  - **Dedicated Docker Compose Security Engine (v7.2.0)**:
     - Dedicated scanner for `docker-compose.yml`, `compose.yml`, etc., flagging exposed database ports (`VG-DCK-006`, `VG-DCK-007`), root user (`VG-DCK-008`), host mounts (`VG-DCK-009`), weak passwords (`VG-DCK-010`), privileged execution (`VG-DCK-011`), dangerous capabilities (`VG-DCK-012`), and `/var/run/docker.sock` mounts (`VG-DCK-013`).
   - **Cross-File Build Secret Correlation (`VG-DCK-014`)**:
     - Flags `.env` or credential presence when `COPY . .` is used in Dockerfiles without `.dockerignore`.
@@ -115,7 +118,7 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
   - `3`: CONFIG ERROR
   - `4`: OSV DATABASE UNAVAILABLE (with fail_closed enabled)
 
-### 2.5 Live Scan Progress Subsystem (v3.0, `internal/report/progress.go`)
+### 2.5 Live Scan Progress Subsystem (v7.2.0, `internal/report/progress.go`)
 - **Interactive Visual Bar**: Renders unicode progress indicators (`[██████████████░░░░░░] 70%`) with active metadata across 4 distinct scanning stages:
   1. Files scanned and current file path.
   2. Dependencies checked and active package name/version.

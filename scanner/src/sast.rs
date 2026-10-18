@@ -3,6 +3,15 @@ use crate::types::{Category, Finding, Severity};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
+use std::sync::OnceLock;
+
+static PY_FUNC_RE: OnceLock<Regex> = OnceLock::new();
+static C_FUNC_RE: OnceLock<Regex> = OnceLock::new();
+static SOURCE_ASSIGN_RE: OnceLock<Regex> = OnceLock::new();
+static ASSIGN_RE: OnceLock<Regex> = OnceLock::new();
+static WEBHOOK_ROUTE_RE: OnceLock<Regex> = OnceLock::new();
+static BODY_CONSUMPTION_RE: OnceLock<Regex> = OnceLock::new();
+static SIGNATURE_CHECK_RE: OnceLock<Regex> = OnceLock::new();
 
 #[derive(Debug, Clone)]
 struct FunctionScope {
@@ -48,12 +57,16 @@ pub fn scan_source_code(
     let mut function_scopes: Vec<FunctionScope> = Vec::new();
 
     // Python function def: def foo(a, b, c):
-    let py_func_re = Regex::new(
-        r#"^(?P<indent>\s*)def\s+(?P<name>[a-zA-Z_][a-zA-Z0-9_]*)\s*\((?P<params>[^)]*)\)\s*:"#,
-    )
-    .unwrap();
+    let py_func_re = PY_FUNC_RE.get_or_init(|| {
+        Regex::new(
+            r#"^(?P<indent>\s*)def\s+(?P<name>[a-zA-Z_][a-zA-Z0-9_]*)\s*\((?P<params>[^)]*)\)\s*:"#,
+        )
+        .unwrap()
+    });
     // Go/JS/TS/Java function def: func foo(a int, b string) or function foo(a, b)
-    let c_func_re = Regex::new(r#"(?:func(?:\s*\([^)]*\))?|function|\bdef)\s+(?P<name>[a-zA-Z_][a-zA-Z0-9_]*)\s*\((?P<params>[^)]*)\)"#).unwrap();
+    let c_func_re = C_FUNC_RE.get_or_init(|| {
+        Regex::new(r#"(?:func(?:\s*\([^)]*\))?|function|\bdef)\s+(?P<name>[a-zA-Z_][a-zA-Z0-9_]*)\s*\((?P<params>[^)]*)\)"#).unwrap()
+    });
 
     if ext == "py" {
         for (i, line) in lines.iter().enumerate() {
@@ -157,12 +170,15 @@ pub fn scan_source_code(
     // -------------------------------------------------------------
     // 2. Data-Flow & Taint Tracking Analysis
     // -------------------------------------------------------------
-    let source_assign_re = Regex::new(
-        r#"(?i)(?:^|[\s;])(?P<var>[a-zA-Z_][a-zA-Z0-9_]*)\s*[:=]\s*(?P<expr>(?:(?:int|float|str|shlex\.quote)\s*\(\s*)?(?:request\.(?:args|form|values|json|get_json|data|files)|req\.(?:query|body|params)|r\.(?:URL\.Query|FormValue))[^;\n]*)"#,
-    ).unwrap();
-    let assign_re =
+    let source_assign_re = SOURCE_ASSIGN_RE.get_or_init(|| {
+        Regex::new(
+            r#"(?i)(?:^|[\s;])(?P<var>[a-zA-Z_][a-zA-Z0-9_]*)\s*[:=]\s*(?P<expr>(?:(?:int|float|str|shlex\.quote)\s*\(\s*)?(?:request\.(?:args|form|values|json|get_json|data|files)|req\.(?:query|body|params)|r\.(?:URL\.Query|FormValue))[^;\n]*)"#,
+        ).unwrap()
+    });
+    let assign_re = ASSIGN_RE.get_or_init(|| {
         Regex::new(r#"(?i)(?:^|[\s;])(?P<var>[a-zA-Z_][a-zA-Z0-9_]*)\s*[:=]\s*(?P<rhs>[^;\n]+)"#)
-            .unwrap();
+            .unwrap()
+    });
 
     // Map: (var_name, scope_start_line) -> TaintInfo
     let mut tainted_table: HashMap<(String, usize), TaintInfo> = HashMap::new();
@@ -273,9 +289,67 @@ pub fn scan_source_code(
         false
     }
 
+    struct CallSiteOccurrence {
+        line_num: usize,
+        scope_index: usize,
+        scope_start: usize,
+        args: Vec<String>,
+    }
+
+    // Pre-index call sites once per file to avoid repeated O(L * F * P) regex compilations
+    let mut call_sites: Vec<CallSiteOccurrence> = Vec::new();
+    let compiled_call_patterns: Vec<Option<Regex>> = function_scopes
+        .iter()
+        .map(|scope| {
+            let call_pattern = format!(r#"{}\s*\((?P<args>[^)]*)\)"#, regex::escape(&scope.name));
+            Regex::new(&call_pattern).ok()
+        })
+        .collect();
+
+    for (line_idx, line) in lines.iter().enumerate() {
+        let line_num = line_idx + 1;
+        let trimmed = line.trim();
+        if trimmed.starts_with("//")
+            || trimmed.starts_with('#')
+            || trimmed.starts_with("/*")
+            || !line.contains('(')
+        {
+            continue;
+        }
+
+        let scope_start = get_scope_start(line_num);
+
+        for (scope_idx, scope) in function_scopes.iter().enumerate() {
+            if !line.contains(&scope.name) {
+                continue;
+            }
+
+            if let Some(ref call_re) = compiled_call_patterns[scope_idx] {
+                if let Some(caps) = call_re.captures(line) {
+                    let raw_args = caps["args"].to_string();
+                    let args: Vec<String> = raw_args
+                        .split(',')
+                        .map(|a| a.split('=').next_back().unwrap_or(a).trim().to_string())
+                        .collect();
+
+                    call_sites.push(CallSiteOccurrence {
+                        line_num,
+                        scope_index: scope_idx,
+                        scope_start,
+                        args,
+                    });
+                }
+            }
+        }
+    }
+
     // Second pass: iteratively track assignments, sanitizers, and call-site propagation until stable
     for _ in 0..3 {
         let prev_size = tainted_table.len();
+        if tainted_table.is_empty() {
+            break;
+        }
+
         for (line_idx, line) in lines.iter().enumerate() {
             let line_num = line_idx + 1;
             let trimmed = line.trim();
@@ -338,40 +412,28 @@ pub fn scan_source_code(
                     tainted_table.insert((lhs, scope_start), info);
                 }
             }
+        }
 
-            // Call-site argument-to-parameter propagation:
-            // e.g. execute_command(host) -> function execute_command(val)
-            for scope in &function_scopes {
-                let call_pattern =
-                    format!(r#"{}\s*\((?P<args>[^)]*)\)"#, regex::escape(&scope.name));
-                if let Ok(call_re) = Regex::new(&call_pattern) {
-                    if let Some(caps) = call_re.captures(line) {
-                        let raw_args = caps["args"].to_string();
-                        let args: Vec<&str> = raw_args.split(',').map(|a| a.trim()).collect();
-
-                        for (arg_idx, arg) in args.iter().enumerate() {
-                            let arg_cleaned = arg.split('=').next_back().unwrap_or(arg).trim();
-                            for ((t_var, t_scope), info) in tainted_table.clone() {
-                                if (t_scope == scope_start || t_scope == 0) && arg_cleaned == t_var
-                                {
-                                    if let Some(param_name) = scope.params.get(arg_idx) {
-                                        let mut param_info = info.clone();
-                                        param_info.data_flow.push(format!(
-                                            "Line {}: Call to '{}(...)' passes tainted argument '{}' to parameter '{}'",
-                                            line_num, scope.name, t_var, param_name
-                                        ));
-                                        tainted_table.insert(
-                                            (param_name.clone(), scope.start_line),
-                                            param_info,
-                                        );
-                                    }
-                                }
-                            }
+        // Propagate across pre-indexed call sites directly:
+        for call_site in &call_sites {
+            let scope = &function_scopes[call_site.scope_index];
+            for (arg_idx, arg_cleaned) in call_site.args.iter().enumerate() {
+                for ((t_var, t_scope), info) in tainted_table.clone() {
+                    if (t_scope == call_site.scope_start || t_scope == 0) && arg_cleaned == &t_var {
+                        if let Some(param_name) = scope.params.get(arg_idx) {
+                            let mut param_info = info.clone();
+                            param_info.data_flow.push(format!(
+                                "Line {}: Call to '{}(...)' passes tainted argument '{}' to parameter '{}'",
+                                call_site.line_num, scope.name, t_var, param_name
+                            ));
+                            tainted_table
+                                .insert((param_name.clone(), scope.start_line), param_info);
                         }
                     }
                 }
             }
         }
+
         if tainted_table.len() == prev_size {
             break;
         }
@@ -561,49 +623,57 @@ pub fn scan_source_code(
                     // Extract the list contents between [ and ]
                     let list_start = line.find('[');
                     let list_end = line.rfind(']');
-                    let (is_all_const, has_tainted_arg, has_unsanitized) = if let (Some(ls), Some(le)) = (list_start, list_end) {
-                        if le > ls {
-                            let inner = &line[ls + 1..le];
-                            let all_const = inner.split(',').all(|item| {
-                                let it = item.trim();
-                                (it.starts_with('"') && it.ends_with('"'))
-                                    || (it.starts_with('\'') && it.ends_with('\''))
-                                    || it.parse::<i64>().is_ok()
-                                    || constant_var_table.keys().any(|(c_var, c_scope)| {
-                                        (*c_scope == scope_start || *c_scope == 0) && it == c_var
-                                    })
-                                    || tainted_table.iter().any(|((t_var, t_scope), info)| {
-                                        (*t_scope == scope_start || *t_scope == 0) && it == t_var && info.sanitized_cmd
-                                    })
-                                    || it.contains("shlex.quote")
-                            });
-                            let is_tainted = tainted_table.iter().any(|((t_var, t_scope), info)| {
-                                (*t_scope == scope_start || *t_scope == 0)
-                                    && contains_var(inner, t_var)
-                                    && !info.sanitized_cmd
-                                    && !inner.contains("shlex.quote")
-                            });
-                            let unsanitized = inner.split(',').any(|item| {
-                                let it = item.trim();
-                                let is_c = (it.starts_with('"') && it.ends_with('"'))
-                                    || (it.starts_with('\'') && it.ends_with('\''))
-                                    || it.parse::<i64>().is_ok()
-                                    || constant_var_table.keys().any(|(c_var, c_scope)| {
-                                        (*c_scope == scope_start || *c_scope == 0) && it == c_var
+                    let (is_all_const, has_tainted_arg, has_unsanitized) =
+                        if let (Some(ls), Some(le)) = (list_start, list_end) {
+                            if le > ls {
+                                let inner = &line[ls + 1..le];
+                                let all_const = inner.split(',').all(|item| {
+                                    let it = item.trim();
+                                    (it.starts_with('"') && it.ends_with('"'))
+                                        || (it.starts_with('\'') && it.ends_with('\''))
+                                        || it.parse::<i64>().is_ok()
+                                        || constant_var_table.keys().any(|(c_var, c_scope)| {
+                                            (*c_scope == scope_start || *c_scope == 0)
+                                                && it == c_var
+                                        })
+                                        || tainted_table.iter().any(|((t_var, t_scope), info)| {
+                                            (*t_scope == scope_start || *t_scope == 0)
+                                                && it == t_var
+                                                && info.sanitized_cmd
+                                        })
+                                        || it.contains("shlex.quote")
+                                });
+                                let is_tainted =
+                                    tainted_table.iter().any(|((t_var, t_scope), info)| {
+                                        (*t_scope == scope_start || *t_scope == 0)
+                                            && contains_var(inner, t_var)
+                                            && !info.sanitized_cmd
+                                            && !inner.contains("shlex.quote")
                                     });
-                                let is_s = it.contains("shlex.quote")
-                                    || tainted_table.iter().any(|((t_var, t_scope), info)| {
-                                        (*t_scope == scope_start || *t_scope == 0) && it == t_var && info.sanitized_cmd
-                                    });
-                                !is_c && !is_s
-                            });
-                            (all_const, is_tainted, unsanitized)
+                                let unsanitized = inner.split(',').any(|item| {
+                                    let it = item.trim();
+                                    let is_c = (it.starts_with('"') && it.ends_with('"'))
+                                        || (it.starts_with('\'') && it.ends_with('\''))
+                                        || it.parse::<i64>().is_ok()
+                                        || constant_var_table.keys().any(|(c_var, c_scope)| {
+                                            (*c_scope == scope_start || *c_scope == 0)
+                                                && it == c_var
+                                        });
+                                    let is_s = it.contains("shlex.quote")
+                                        || tainted_table.iter().any(|((t_var, t_scope), info)| {
+                                            (*t_scope == scope_start || *t_scope == 0)
+                                                && it == t_var
+                                                && info.sanitized_cmd
+                                        });
+                                    !is_c && !is_s
+                                });
+                                (all_const, is_tainted, unsanitized)
+                            } else {
+                                (true, false, false) // empty/unknown list — treat as constant
+                            }
                         } else {
-                            (true, false, false) // empty/unknown list — treat as constant
-                        }
-                    } else {
-                        (true, false, false) // no list found — skip
-                    };
+                            (true, false, false) // no list found — skip
+                        };
 
                     // Constant-only list or fully sanitized list → clean
                     if (is_all_const && !has_tainted_arg) || !has_unsanitized {
@@ -887,15 +957,21 @@ pub fn scan_source_code(
     // -------------------------------------------------------------
     // 4. Webhook Signature Verification Analysis (VG-WEBHOOK-001)
     // -------------------------------------------------------------
-    let webhook_route_re = Regex::new(
-        r#"(?i)(@app\.(route|post)\(.*(?:webhook|stripe|payment|github|callback).*|def\s+[a-zA-Z0-9_]*(?:webhook|stripe|callback)[a-zA-Z0-9_]*\s*\(|func\s+[a-zA-Z0-9_]*(?:Webhook|Callback))"#,
-    ).unwrap();
-    let body_consumption_re = Regex::new(
-        r#"(?i)(request\.get_json|request\.json|request\.data|request\.body|json\.loads\(request\.data\))"#,
-    ).unwrap();
-    let signature_check_re = Regex::new(
-        r#"(?i)(X-Hub-Signature|X-Signature|Stripe-Signature|hmac\.(compare_digest|new)|verify_signature|signature_valid|verify_webhook)"#,
-    ).unwrap();
+    let webhook_route_re = WEBHOOK_ROUTE_RE.get_or_init(|| {
+        Regex::new(
+            r#"(?i)(@app\.(route|post)\(.*(?:webhook|stripe|payment|github|callback).*|def\s+[a-zA-Z0-9_]*(?:webhook|stripe|callback)[a-zA-Z0-9_]*\s*\(|func\s+[a-zA-Z0-9_]*(?:Webhook|Callback))"#,
+        ).unwrap()
+    });
+    let body_consumption_re = BODY_CONSUMPTION_RE.get_or_init(|| {
+        Regex::new(
+            r#"(?i)(request\.get_json|request\.json|request\.data|request\.body|json\.loads\(request\.data\))"#,
+        ).unwrap()
+    });
+    let signature_check_re = SIGNATURE_CHECK_RE.get_or_init(|| {
+        Regex::new(
+            r#"(?i)(X-Hub-Signature|X-Signature|Stripe-Signature|hmac\.(compare_digest|new)|verify_signature|signature_valid|verify_webhook)"#,
+        ).unwrap()
+    });
 
     let has_signature_check = signature_check_re.is_match(content);
 

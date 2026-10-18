@@ -54,7 +54,7 @@ if not defined VER_OUT (
 )
 echo [PASS] Version command
 
-:: Check 4: Test project scan (located in external test workspace per v4.1 rules)
+:: Check 4: Test project scan (located in external test workspace per workspace isolation rules)
 set "TEST_PROJ=%ROOT%..\test-fixtures\test-project"
 if not exist "%TEST_PROJ%" (
     set "TEST_PROJ=%USERPROFILE%\Music\test-fixtures\test-project"

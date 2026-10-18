@@ -61,6 +61,7 @@ func DeduplicateFindings(findings []Finding) []Finding {
 		family string
 	}
 
+	var order []lineKey
 	groups := make(map[lineKey][]Finding)
 	var standalone []Finding
 
@@ -69,6 +70,9 @@ func DeduplicateFindings(findings []Finding) []Finding {
 			normFile := strings.ToLower(strings.ReplaceAll(f.File, "\\", "/"))
 			family := classifyFindingFamily(&f)
 			key := lineKey{file: normFile, line: f.Line, family: family}
+			if len(groups[key]) == 0 {
+				order = append(order, key)
+			}
 			groups[key] = append(groups[key], f)
 		} else {
 			standalone = append(standalone, f)
@@ -76,7 +80,8 @@ func DeduplicateFindings(findings []Finding) []Finding {
 	}
 
 	deduped := make([]Finding, 0, len(level1))
-	for _, group := range groups {
+	for _, key := range order {
+		group := groups[key]
 		if len(group) == 1 {
 			deduped = append(deduped, group[0])
 		} else {

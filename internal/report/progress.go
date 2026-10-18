@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -225,6 +226,73 @@ func (lp *LiveProgress) FormatProgress(current, total int) (string, int) {
 
 	line := fmt.Sprintf("   %s: %d%% (%d/%d) | Est. time remaining: %s", lp.prefix, pct, current, total, etaStr)
 	return line, pct
+}
+
+// FormatProgressWithFile formats percentage, filename, and ETA.
+func (lp *LiveProgress) FormatProgressWithFile(current, total int, currentFile string) (string, int) {
+	if total <= 0 {
+		total = 1
+	}
+	if current < 0 {
+		current = 0
+	}
+	if current > total {
+		current = total
+	}
+
+	pct := (current * 100) / total
+	elapsed := time.Since(lp.startTime)
+
+	var etaStr string
+	if current > 0 && current < total {
+		rate := float64(current) / elapsed.Seconds()
+		if rate > 0 {
+			remaining := float64(total-current) / rate
+			if remaining < 0.1 {
+				etaStr = "< 0.1s"
+			} else if remaining < 60 {
+				etaStr = fmt.Sprintf("%.1fs", remaining)
+			} else {
+				etaStr = fmt.Sprintf("%dm %ds", int(remaining)/60, int(remaining)%60)
+			}
+		} else {
+			etaStr = "calculating..."
+		}
+	} else if current >= total {
+		etaStr = "finishing..."
+	} else {
+		etaStr = "calculating..."
+	}
+
+	displayFile := filepath.Base(currentFile)
+	if len(displayFile) > 28 {
+		displayFile = displayFile[:25] + "..."
+	}
+	if displayFile != "" && displayFile != "." {
+		displayFile = " [" + displayFile + "]"
+	} else {
+		displayFile = ""
+	}
+
+	line := fmt.Sprintf("   %s: %d%% (%d/%d)%s | Est. time remaining: %s", lp.prefix, pct, current, total, displayFile, etaStr)
+	return line, pct
+}
+
+// UpdateWithFile renders the live percentage, current filename, and estimated time remaining.
+func (lp *LiveProgress) UpdateWithFile(current, total int, currentFile string) {
+	lp.mu.Lock()
+	defer lp.mu.Unlock()
+
+	line, _ := lp.FormatProgressWithFile(current, total, currentFile)
+
+	if lp.isTTY {
+		pad := ""
+		if len(line) < lp.lastLen {
+			pad = strings.Repeat(" ", lp.lastLen-len(line))
+		}
+		lp.lastLen = len(line)
+		fmt.Fprintf(lp.out, "\r%s%s", line, pad)
+	}
 }
 
 // Update renders the live percentage and estimated time remaining without a progress bar.

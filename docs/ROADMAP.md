@@ -39,6 +39,24 @@
   - Authentication and API Security Rules (`VG-AUTH-001` to `003`, `VG-WEBHOOK-001`).
   - Standardized canonical rule IDs with 100% Rust and Go engine parity.
   - FastNote benchmark test suite in `tests/fixtures/fastnote/` with 100/100 ultimate test score.
+- [x] **v7.0 — Deep Offline Security Engine & 20-Stage Analysis Pipeline**:
+  - Semantic project graph, multi-language AST extraction (Python, Go, JS/TS), and interprocedural taint analysis.
+  - Offline vulnerability intelligence engine (`security.db`) enabling hermetic pre-push gates without external API dependency.
+- [x] **v7.1 — Canonical Finding Engine & Multi-Level Deduplication**:
+  - Unified finding model (`scanner/findings/mod.rs`), AST semantic sinks, and multi-stage deduplication.
+- [x] **v7.2 — Benchmark Hardening, Context Managers & Sanitizer Precision**:
+  - Python `with` statement AST support (`scanner/ast/python/mod.rs`) for accurate file and context sink detection.
+  - Subprocess list argument sanitizer precision (`shlex.quote`, `escapeshellarg`) with zero false positives.
+  - SSRF allowlist conditional guard propagation (`ALLOWED_HOSTS`, `.is_safe_host`).
+  - Multi-Dockerfile pattern matching (`Dockerfile.*`) and empty-username connection strings (`redis://:password@host`).
+  - FastNote benchmark validation suite: 100% recall, 100% specificity (0 false positives).
+- [x] **v7.2.1 — Massive Codebase Performance & Algorithmic Scaling**:
+  - $O(L + C \cdot P)$ Call-site occurrence indexing replacing $O(L \times F \times P)$ dynamic regex loops, delivering 54x–190x speedup on complex AST files.
+  - Precompiled static `OnceLock<Regex>` patterns completely eliminating runtime regex compilation overhead.
+  - Multi-tiered binary safety filtering: early `WalkDir::filter_entry` subtree pruning, case-insensitive binary extension skipping, 1KB NUL-byte inspection, 8MB file ceiling, and extended-length path fallback.
+  - $O(1)$ interprocedural symbol lookups and module candidate caching.
+  - Adaptive execution timeout (up to 600s) and package deduplication for reliable scanning of 2,000+ file projects.
+  - Live progress file feedback in CLI.
 
 ---
 

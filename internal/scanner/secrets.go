@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-var assignRegex = regexp.MustCompile(`(?i)(?:^|[\s,;{(])(?P<key>[a-zA-Z0-9_-]*(?:password|passwd|pwd|api[_-]?key|apikey|secret|token)[a-zA-Z0-9_-]*)\s*[:=]\s*(?P<val>['"]?[^\s'";,]{3,}['"]?)`)
+var assignRegex = regexp.MustCompile(`(?i)(?:^|[\s,;{(])(?P<key>[a-zA-Z0-9_-]*(?:password|passwd|pwd|api[_-]?key|apikey|jwt[_-]?secret|auth[_-]?token|access[_-]?token|client[_-]?secret|private[_-]?key)[a-zA-Z0-9_-]*|(?:db|admin|root|app|master)[_-]?(?:secret|token)|(?:\b(?:secret|token)\b))\s*[:=]\s*(?P<val>['"]?[^\s'";,]{3,}['"]?)`)
 
 // IsSensitiveFilename identifies filenames that typically contain sensitive credentials.
 func IsSensitiveFilename(fileName, ext string) (bool, string) {
@@ -72,8 +72,14 @@ func ComputeSecretConfidence(filePath, line, key, val string, isSensitiveFile bo
 	// In source code files, hardcoded credentials are string literals ("..." or '...')
 	isQuoted := (strings.HasPrefix(val, `"`) && strings.HasSuffix(val, `"`)) ||
 		(strings.HasPrefix(val, `'`) && strings.HasSuffix(val, `'`))
-	if isSource && (!isQuoted || strings.Contains(line, "==") || strings.Contains(line, "!=")) {
+	if isSource && (!isQuoted || strings.Contains(line, "!=")) {
 		return 0, "", "", false
+	}
+	if isSource && strings.Contains(line, "==") {
+		// Only flag equality comparison if compared value is a long/sensitive string token (len >= 8, not pure digits)
+		if len(valClean) < 8 || hasOnlyDigits(valClean) {
+			return 0, "", "", false
+		}
 	}
 
 	codeTokens := map[string]bool{
@@ -87,6 +93,27 @@ func ComputeSecretConfidence(filePath, line, key, val string, isSensitiveFile bo
 		return 0, "", "", false
 	}
 
+	// Candidate Key Name Filtering:
+	// Reject variable names that describe keys/names/types rather than credentials themselves.
+	keyLower := strings.ToLower(key)
+	nonCredentialKeys := map[string]bool{
+		"key": true, "keylower": true, "key_lower": true, "lowerkey": true, "lower_key": true,
+		"keyname": true, "key_name": true, "keyvalue": true, "key_value": true,
+		"secretname": true, "secret_name": true, "tokenname": true, "token_name": true,
+		"apikeyname": true, "api_key_name": true,
+	}
+	if nonCredentialKeys[keyLower] {
+		return 0, "", "", false
+	}
+
+	// Reject environment variable reference calls: os.getenv, os.environ, process.env, $env:, etc.
+	if strings.Contains(valLower, "os.getenv") || strings.Contains(valLower, "os.environ") ||
+		strings.Contains(valLower, "process.env") || strings.Contains(valLower, "$env:") ||
+		strings.Contains(lineLower, "os.getenv") || strings.Contains(lineLower, "os.environ") ||
+		strings.Contains(lineLower, "process.env") || strings.Contains(lineLower, "$env:") {
+		return 0, "", "", false
+	}
+
 	score := 0
 
 	// 1. Filename signal (+30)
@@ -95,7 +122,6 @@ func ComputeSecretConfidence(filePath, line, key, val string, isSensitiveFile bo
 	}
 
 	// 2. Key name signal (+25)
-	keyLower := strings.ToLower(key)
 	if strings.Contains(keyLower, "password") || strings.Contains(keyLower, "passwd") || strings.Contains(keyLower, "pwd") ||
 		strings.Contains(keyLower, "api_key") || strings.Contains(keyLower, "apikey") ||
 		strings.Contains(keyLower, "secret") || strings.Contains(keyLower, "token") {
@@ -221,11 +247,24 @@ func hasAlpha(s string) bool {
 	return false
 }
 
-// ScanCredentialAssignments analyzes a single line for credential assignments using context + confidence.
+func hasOnlyDigits(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+var compRegex = regexp.MustCompile(`(?i)(?:^|[\s,;{(])(?P<key>[a-zA-Z0-9_-]*(?:password|passwd|pwd|api[_-]?key|apikey|jwt[_-]?secret|auth[_-]?token|access[_-]?token|client[_-]?secret)[a-zA-Z0-9_-]*)\s*==\s*(?P<val>['"][^\s'";,]{8,}['"])`)
+
+// ScanCredentialAssignments analyzes a single line for credential assignments and comparisons using context + confidence.
 func ScanCredentialAssignments(filePath, line string, lineNum int, isSensitiveFile bool, counter *int) []Finding {
 	var findings []Finding
-	matches := assignRegex.FindStringSubmatch(line)
-	if len(matches) > 2 {
+	if matches := assignRegex.FindStringSubmatch(line); len(matches) > 2 {
 		key := matches[1]
 		val := matches[2]
 		if _, confStr, sevStr, ok := ComputeSecretConfidence(filePath, line, key, val, isSensitiveFile); ok {
@@ -248,6 +287,36 @@ func ScanCredentialAssignments(filePath, line string, lineNum int, isSensitiveFi
 				Severity:       sevStr,
 				Title:          title,
 				Description:    fmt.Sprintf("Hardcoded credential assignment detected for key '%s'.", key),
+				File:           filePath,
+				Line:           lineNum,
+				Evidence:       maskedEvidence,
+				Recommendation: "Store credentials in environment variables or a secure secrets vault.",
+				Confidence:     confStr,
+			})
+		}
+	} else if compMatches := compRegex.FindStringSubmatch(line); len(compMatches) > 2 {
+		key := compMatches[1]
+		val := compMatches[2]
+		if _, confStr, sevStr, ok := ComputeSecretConfidence(filePath, line, key, val, isSensitiveFile); ok {
+			*counter++
+			maskedEvidence := fmt.Sprintf("%s==********", key)
+			title := "Hardcoded Secret in Comparison"
+			ruleID := "VG-SECRET-003"
+			keyLower := strings.ToLower(key)
+			if strings.Contains(keyLower, "password") || strings.Contains(keyLower, "passwd") || strings.Contains(keyLower, "pwd") {
+				title = "Hardcoded Password in Comparison"
+				ruleID = "VG-SECRET-001"
+			} else if strings.Contains(keyLower, "api") {
+				title = "Hardcoded API Key in Comparison"
+				ruleID = "VG-SECRET-002"
+			}
+
+			findings = append(findings, Finding{
+				ID:             ruleID,
+				Category:       "secret",
+				Severity:       sevStr,
+				Title:          title,
+				Description:    fmt.Sprintf("Hardcoded credential comparison check detected for key '%s'.", key),
 				File:           filePath,
 				Line:           lineNum,
 				Evidence:       maskedEvidence,

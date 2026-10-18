@@ -294,16 +294,18 @@ impl<'a> CommandRuleEngine<'a> {
                                 return true;
                             }
                             let e_str = e.to_source_string();
-                            let (sanitized_kinds, is_sanitizer) = SanitizerModel::sanitized_kinds(&e_str);
+                            let (sanitized_kinds, is_sanitizer) =
+                                SanitizerModel::sanitized_kinds(&e_str);
                             let is_var_sanitized = if let ExprNode::Identifier { name, .. } = e {
-                                self.sanitized_vars
-                                    .get(name)
-                                    .is_some_and(|kinds| kinds.contains(&crate::taint::types::TaintKind::Command))
+                                self.sanitized_vars.get(name).is_some_and(|kinds| {
+                                    kinds.contains(&crate::taint::types::TaintKind::Command)
+                                })
                             } else {
                                 false
                             };
                             is_sanitizer.is_some()
-                                || sanitized_kinds.contains(&crate::taint::types::TaintKind::Command)
+                                || sanitized_kinds
+                                    .contains(&crate::taint::types::TaintKind::Command)
                                 || is_var_sanitized
                                 || e_str.contains("shlex.quote")
                         });
@@ -329,11 +331,12 @@ impl<'a> CommandRuleEngine<'a> {
                             return true;
                         }
                         let a_str = a.to_source_string();
-                        let (sanitized_kinds, is_sanitizer) = SanitizerModel::sanitized_kinds(&a_str);
+                        let (sanitized_kinds, is_sanitizer) =
+                            SanitizerModel::sanitized_kinds(&a_str);
                         let is_var_sanitized = if let ExprNode::Identifier { name, .. } = a {
-                            self.sanitized_vars
-                                .get(name)
-                                .is_some_and(|kinds| kinds.contains(&crate::taint::types::TaintKind::Command))
+                            self.sanitized_vars.get(name).is_some_and(|kinds| {
+                                kinds.contains(&crate::taint::types::TaintKind::Command)
+                            })
                         } else {
                             false
                         };

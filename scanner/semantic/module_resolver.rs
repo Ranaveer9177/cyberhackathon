@@ -173,13 +173,21 @@ impl ModuleResolver {
         for ext in &extensions {
             let candidate = format!("{}{}", norm_str, ext);
             let cleaned = candidate.trim_start_matches('/').to_string();
-
-            for known in &self.known_files {
-                if known.eq_ignore_ascii_case(&cleaned)
-                    || known.ends_with(&format!("/{}", cleaned))
-                    || cleaned.ends_with(known)
-                {
-                    return Some(known.clone());
+            // O(1) HashMap lookup instead of O(N) linear scan
+            if let Some(found) = self.normalized_lookup.get(&cleaned.to_lowercase()) {
+                return Some(found.clone());
+            }
+            // Also try without directory prefix (stem-only lookup)
+            if let Some(slash_pos) = cleaned.rfind('/') {
+                let tail = &cleaned[slash_pos + 1..];
+                let tail_lower = Path::new(tail)
+                    .with_extension("")
+                    .to_string_lossy()
+                    .to_lowercase();
+                if !tail_lower.is_empty() {
+                    if let Some(found) = self.normalized_lookup.get(&tail_lower) {
+                        return Some(found.clone());
+                    }
                 }
             }
         }

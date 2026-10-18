@@ -377,6 +377,7 @@ fn check_sql_arg(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn check_command_arg(
     arg: &ExprNode,
     callee: &str,
@@ -573,7 +574,10 @@ fn check_command_arg(
                 confidence: "HIGH".to_string(),
                 source: Some("Dynamic string concatenation".to_string()),
                 sink: Some(format!("{}(...)", callee)),
-                data_flow: Some(vec![format!("Line {}: {}({} + {})", line, callee, left_str, right_str)]),
+                data_flow: Some(vec![format!(
+                    "Line {}: {}({} + {})",
+                    line, callee, left_str, right_str
+                )]),
                 cwe: Some(cwe.to_string()),
                 ..Default::default()
             });

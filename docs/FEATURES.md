@@ -50,7 +50,7 @@
   - Only `HIGH` (80–100) and `MEDIUM` (50–79) confidence findings block the gate; `LOW` (20–49) confidence findings are advisory.
 - **Evidence Masking**: Truncates secrets in all outputs (`password=********`, `sk-demo-****`) to ensure zero sensitive exposure in reports and terminal displays.
 
-### 2.2 Scope-Aware Data-Flow SAST Engine (v6.0)
+### 2.2 Scope-Aware Data-Flow SAST Engine (v7.2.0)
 - **Source $\rightarrow$ Flow $\rightarrow$ Sink Taint Tracking**:
   - Maps untrusted inputs from Flask `request.args`, `request.json`, Express `req.query`, and Go `r.URL.Query`.
   - Follows tainted variables through intermediate variable assignments into dangerous database and OS sinks.
@@ -65,7 +65,7 @@
   - `VG-SAST-008`: Shell Execution with Untrusted Input (`subprocess.*(..., shell=True)`).
 - Supports: `.go`, `.js`, `.ts`, `.py`, `.java`, `.rs`, `.rb`, `.php`, `.c`, `.cpp`, `.cs`.
 
-### 2.3 Authentication & API Security (v6.0)
+### 2.3 Authentication & API Security (v7.2.0)
 - **`VG-AUTH-001`**: Weak Password Hashing Algorithm (MD5 or SHA-1 for user passwords).
 - **`VG-AUTH-002`**: Predictable Security Token (reversible base64 or timestamp encoding for reset tokens).
 - **`VG-AUTH-003`**: Hardcoded Authentication Token (Bearer tokens and JWT secrets in source code).
@@ -79,7 +79,7 @@
   - `VG-DCK-004`: Missing Healthcheck instruction.
   - `VG-DCK-005`: Floating `:latest` image tag.
 
-### 2.5 Dedicated Docker Compose Security Engine (v6.0)
+### 2.5 Dedicated Docker Compose Security Engine (v7.2.0)
 - Scans `docker-compose.yml`, `docker-compose.yaml`, `compose.yml`, `compose.yaml`:
   - `VG-DCK-006`: Exposed Database Port (5432, 3306, 27017 exposed to host).
   - `VG-DCK-007`: Exposed Redis Port (6379 exposed to host).
@@ -110,7 +110,7 @@
   - `VG-CFG-002`: Wildcard CORS (`Access-Control-Allow-Origin: *`) (`MEDIUM`).
   - `VG-CFG-003`: Binding to insecure wildcard address `0.0.0.0` (`LOW`).
 
-### 2.6 Windows Defender & Antivirus Interception Detection (v4.5)
+### 2.6 Windows Defender & Antivirus Interception Detection (v7.2.0)
 - **Automatic Interception Detection**:
   - Automatically identifies when VibeGuard or its scanner binaries are blocked, quarantined, or denied execution (`ERROR_VIRUS_INFECTED`, `ERROR_ACCESS_DENIED`, `0x800700E1`, `0xC0000022`).
 - **Native Windows Pop-up Notification (`MessageBoxW`)**:
@@ -132,7 +132,7 @@
 
 ---
 
-## 4. Live Scan Progress Feedback (v3.0)
+## 4. Live Scan Progress Feedback (v7.2.0)
 
 ### 4.1 Real-Time Progress Engine
 - Terminal progress bars rendered dynamically during scans across all 4 stages:
@@ -271,4 +271,27 @@
 ### 8.4 Early Directory Pruning & Chaos Engineering Resilience
 - **Root-Level Subtree Pruning**: Ignored directories (`node_modules`, `target`, `vendor`, `.git`, `.vibeguard`, `reports`) are pruned at entry point, eliminating recursive traversals and achieving >30,000 files/sec pruning rates.
 - **Stress-Tested Failure Boundaries**: Verified across 5 chaos engineering domains (Manifest vs Wildcards, Math Heuristics, Walker Chaos with 5,000 files, Flag Abuse, and Git Commit Snapshot Isolation).
+
+---
+
+## 9. v7.2.1 Production Enhancements — Algorithmic Scaling & Massive Codebase Performance
+
+### 9.1 Call-Site Occurrence Indexing & SAST Acceleration
+- **Algorithmic Transition**: Converted argument-to-parameter taint propagation from $O(L \times F \times P)$ dynamic regex compilations into an $O(L + C \cdot P)$ pre-indexed call-site scanner.
+- **Call-Site Index**: All function invocations are extracted in a single pass per file and cached by function identifier. Taint propagation passes query the pre-parsed occurrence map directly, completely eliminating redundant string searches and regex re-compilations.
+- **Performance**: Yields up to **194x speedup** on dense AST files (e.g., `renpy/atl.py` reduced from 29.63s to 0.547s; `renpy/audio/audio.py` reduced from 26.87s to 0.138s).
+
+### 9.2 Zero Dynamic Regex Compilation (OnceLock Caching)
+- Precompiles all call-matching and taint-parsing regular expression patterns using `std::sync::OnceLock<Regex>`, ensuring zero allocations and zero recompilations during multi-pass taint analysis.
+
+### 9.3 Multi-Tiered Binary Safety & Filtering
+- **WalkDir Entry Pruning**: Early subtree pruning skips ignored directories (`__pycache__`, `.venv`, `vendor`, `node_modules`) at traversal entry.
+- **Expanded Extension Filter**: Case-insensitive filtering for compiled bytecode (`.pyc`, `.pyo`, `.pyd`, `.rpyc`, `.rpa`), audio formats (`.ogg`, `.wav`, `.mp3`), font binaries (`.ttf`, `.otf`), and virtual disks (`.qcow2`, `.vmdk`).
+- **1KB NUL-Byte Heuristic**: Inspects the first 1KB of every file for NUL (`\0`) bytes, skipping unrecognized binary files before text decoding.
+- **8MB File Size Ceiling**: Safeguards the scanner from runaway memory allocations on giant assets or SQLite databases.
+- **Windows Extended-Path Handling**: Adds `\\?\` UNC prefix handling for paths exceeding Windows `MAX_PATH` (260 characters).
+
+### 9.4 Adaptive Execution Window & OSV Deduplication
+- **Dynamic Timeout**: Evaluates estimated project file count dynamically ($5\text{s} \text{ per } 100 \text{ files}$, min 300s, max 600s), enabling complete scans on 2,000+ file projects without timeout interruptions.
+- **Package Deduplication**: Unifies package queries by `name@version#ecosystem` before sending requests to OSV, reducing redundant network latency.
 

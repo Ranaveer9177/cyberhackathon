@@ -79,7 +79,7 @@ func QueryOSV(name, version, ecosystem string) ([]Vulnerability, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewBuffer(bodyBytes))
@@ -129,6 +129,17 @@ func CheckAllDependenciesWithStatus(deps []DependencyInfo) ([]VulnResult, error)
 
 // CheckAllDependenciesWithProgress queries OSV concurrently with pooled workers and live progress callbacks.
 func CheckAllDependenciesWithProgress(deps []DependencyInfo, progress OSVProgressFunc) ([]VulnResult, error) {
+	// Deduplicate packages by (name+version+ecosystem) to avoid redundant OSV queries
+	seen := make(map[string]bool)
+	uniqDeps := deps[:0:0]
+	for _, d := range deps {
+		key := d.Name + "@" + d.Version + "#" + d.Ecosystem
+		if !seen[key] {
+			seen[key] = true
+			uniqDeps = append(uniqDeps, d)
+		}
+	}
+	deps = uniqDeps
 	total := len(deps)
 	if total == 0 {
 		return nil, nil

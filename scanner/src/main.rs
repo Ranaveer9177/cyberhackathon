@@ -181,8 +181,35 @@ fn main() {
             eprintln!("PROGRESS:{}:{}:{}", idx + 1, total_files, file_path);
         }
 
+        if let Ok(meta) = fs::metadata(file_path) {
+            if meta.len() > 8 * 1024 * 1024 {
+                files_skipped_count += 1;
+                scan_warnings.push(types::ScanWarning {
+                    file: file_path.clone(),
+                    reason: format!("File exceeds 8MB analysis limit ({} bytes)", meta.len()),
+                });
+                continue;
+            }
+        }
+
         let content = match fs::read_to_string(file_path) {
             Ok(c) => c,
+            Err(_)
+                if cfg!(windows) && file_path.len() >= 240 && !file_path.starts_with(r"\\?\") =>
+            {
+                let win_path = format!(r"\\?\{}", file_path.replace('/', r"\"));
+                match fs::read_to_string(&win_path) {
+                    Ok(c) => c,
+                    Err(e) => {
+                        files_skipped_count += 1;
+                        scan_warnings.push(types::ScanWarning {
+                            file: file_path.clone(),
+                            reason: format!("Unable to read file as text: {}", e),
+                        });
+                        continue;
+                    }
+                }
+            }
             Err(e) => {
                 files_skipped_count += 1;
                 scan_warnings.push(types::ScanWarning {
@@ -192,6 +219,16 @@ fn main() {
                 continue;
             }
         };
+
+        // Binary content detection: check for NUL bytes in the first 1KB
+        if content.as_bytes().iter().take(1024).any(|&b| b == 0) {
+            files_skipped_count += 1;
+            scan_warnings.push(types::ScanWarning {
+                file: file_path.clone(),
+                reason: "Binary content detected (contains NUL bytes)".to_string(),
+            });
+            continue;
+        }
 
         if enable_secrets {
             let mut findings = secrets::scan_secrets(file_path, &content, &mut finding_counter);

@@ -23,7 +23,7 @@ import (
 	"github.com/vibeguard/vibeguard/internal/scanner"
 )
 
-const version = "7.2.0"
+const version = "7.2.1"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -794,7 +794,7 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 	// Step 2 & 3: Run scanner for secrets & source code
 	liveProg := report.NewLiveProgress("Scanning", os.Stdout)
 	scanResult, err := scanner.RunScannerWithProgressAndFlags(targetScanPath, func(cur, tot int, f string) {
-		liveProg.Update(cur, tot)
+		liveProg.UpdateWithFile(cur, tot, f)
 	}, extraFlags...)
 	liveProg.Clear()
 	if err != nil {

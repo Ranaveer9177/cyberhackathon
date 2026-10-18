@@ -1,5 +1,9 @@
 use crate::types::{Category, Severity};
 use regex::Regex;
+use std::sync::OnceLock;
+
+static SAST_RULES: OnceLock<Vec<Rule>> = OnceLock::new();
+static SECRET_RULES: OnceLock<Vec<Rule>> = OnceLock::new();
 
 #[allow(dead_code)]
 #[derive(Clone)]
@@ -52,8 +56,10 @@ impl Rule {
 }
 
 pub fn get_sast_rules() -> Vec<Rule> {
-    vec![
-        Rule::new(
+    SAST_RULES
+        .get_or_init(|| {
+            vec![
+                Rule::new(
             "VG-SAST-001",
             "Potential SQL Injection",
             Category::SourceCode,
@@ -265,123 +271,130 @@ pub fn get_sast_rules() -> Vec<Rule> {
             "Retrieve bearer tokens and JWT secrets at runtime from environment variables or a vault.",
         ),
     ]
+    })
+    .clone()
 }
 
 pub fn get_secret_rules() -> Vec<Rule> {
-    vec![
-        Rule::new(
-            "VG-SEC-001",
-            "AWS Access Key",
-            Category::Secret,
-            Severity::CRITICAL,
-            "HIGH",
-            "CWE-798",
-            &["source_code", "config"],
-            &["hardcoded credential"],
-            &["IAM roles", "AWS Secrets Manager"],
-            Regex::new(r#"AKIA[0-9A-Z]{16}"#).unwrap(),
-            "AWS Access Key ID detected.",
-            "Revoke the key immediately and use IAM roles instead.",
-        ),
-        Rule::new(
-            "VG-SEC-002",
-            "Generic API Key",
-            Category::Secret,
-            Severity::CRITICAL,
-            "HIGH",
-            "CWE-798",
-            &["source_code", "config"],
-            &["api_key assignment"],
-            &["environment variables", "vault"],
-            Regex::new(r#"(?i)(api[_-]?key|apikey)\s*[:=]\s*['"][^'"]{8,}"#).unwrap(),
-            "Generic API Key detected.",
-            "Remove the key from code and use a secret manager.",
-        ),
-        Rule::new(
-            "VG-SEC-003",
-            "GitHub Token",
-            Category::Secret,
-            Severity::CRITICAL,
-            "HIGH",
-            "CWE-798",
-            &["source_code", "git config"],
-            &["ghp_ token"],
-            &["GitHub Secrets", "SSH deploy keys"],
-            Regex::new(r#"ghp_[a-zA-Z0-9]{36}"#).unwrap(),
-            "GitHub Personal Access Token detected.",
-            "Revoke the token and generate a new one if needed.",
-        ),
-        Rule::new(
-            "VG-SEC-004",
-            "Slack Token",
-            Category::Secret,
-            Severity::CRITICAL,
-            "HIGH",
-            "CWE-798",
-            &["source_code", "config"],
-            &["xox token"],
-            &["Slack App credentials in vault"],
-            Regex::new(r#"xox[bprs]-[a-zA-Z0-9-]+"#).unwrap(),
-            "Slack Token detected.",
-            "Revoke and rotate the Slack token.",
-        ),
-        Rule::new(
-            "VG-SEC-005",
-            "Private Key",
-            Category::Secret,
-            Severity::CRITICAL,
-            "HIGH",
-            "CWE-798",
-            &["source_code", "repo file"],
-            &["RSA/DSA/EC PRIVATE KEY"],
-            &["KMS", "vault", "SSH agent"],
-            Regex::new(r#"-----BEGIN\s+(RSA|DSA|EC|OPENSSH)?\s*PRIVATE KEY-----"#).unwrap(),
-            "Private cryptographic key detected.",
-            "Remove private keys from the repository.",
-        ),
-        Rule::new(
-            "VG-SEC-006",
-            "Password Assignment",
-            Category::Secret,
-            Severity::CRITICAL,
-            "HIGH",
-            "CWE-798",
-            &["source_code", "config"],
-            &["password = '...'"],
-            &["environment variables"],
-            Regex::new(r#"(?i)(password|passwd|pwd)\s*[:=]\s*['"][^'"]+['"]"#).unwrap(),
-            "Hardcoded password assignment detected.",
-            "Use environment variables for passwords.",
-        ),
-        Rule::new(
-            "VG-SEC-007",
-            "Token/Secret Assignment",
-            Category::Secret,
-            Severity::CRITICAL,
-            "HIGH",
-            "CWE-798",
-            &["source_code", "config"],
-            &["token = '...'"],
-            &["runtime secrets manager"],
-            Regex::new(r#"(?i)(token|secret|jwt_secret)\s*[:=]\s*['"][^'"]{8,}['"]"#).unwrap(),
-            "Hardcoded token or secret assignment detected.",
-            "Move secrets to secure storage or environment variables.",
-        ),
-        Rule::new(
-            "VG-SEC-008",
-            "Generic Credential",
-            Category::Secret,
-            Severity::CRITICAL,
-            "HIGH",
-            "CWE-798",
-            &["source_code", "config"],
-            &["credential = '...'"],
-            &["external vault"],
-            Regex::new(r#"(?i)(secret|credential)\s*[:=]\s*['"][^'"]{8,}['"]"#).unwrap(),
-            "Generic secret or credential detected.",
-            "Securely manage all credentials outside of source control.",
-        ),
-    ]
+    SECRET_RULES
+        .get_or_init(|| {
+            vec![
+                Rule::new(
+                    "VG-SEC-001",
+                    "AWS Access Key",
+                    Category::Secret,
+                    Severity::CRITICAL,
+                    "HIGH",
+                    "CWE-798",
+                    &["source_code", "config"],
+                    &["hardcoded credential"],
+                    &["IAM roles", "AWS Secrets Manager"],
+                    Regex::new(r#"AKIA[0-9A-Z]{16}"#).unwrap(),
+                    "AWS Access Key ID detected.",
+                    "Revoke the key immediately and use IAM roles instead.",
+                ),
+                Rule::new(
+                    "VG-SEC-002",
+                    "Generic API Key",
+                    Category::Secret,
+                    Severity::CRITICAL,
+                    "HIGH",
+                    "CWE-798",
+                    &["source_code", "config"],
+                    &["api_key assignment"],
+                    &["environment variables", "vault"],
+                    Regex::new(r#"(?i)(api[_-]?key|apikey)\s*[:=]\s*['"][^'"]{8,}"#).unwrap(),
+                    "Generic API Key detected.",
+                    "Remove the key from code and use a secret manager.",
+                ),
+                Rule::new(
+                    "VG-SEC-003",
+                    "GitHub Token",
+                    Category::Secret,
+                    Severity::CRITICAL,
+                    "HIGH",
+                    "CWE-798",
+                    &["source_code", "git config"],
+                    &["ghp_ token"],
+                    &["GitHub Secrets", "SSH deploy keys"],
+                    Regex::new(r#"ghp_[a-zA-Z0-9]{36}"#).unwrap(),
+                    "GitHub Personal Access Token detected.",
+                    "Revoke the token and generate a new one if needed.",
+                ),
+                Rule::new(
+                    "VG-SEC-004",
+                    "Slack Token",
+                    Category::Secret,
+                    Severity::CRITICAL,
+                    "HIGH",
+                    "CWE-798",
+                    &["source_code", "config"],
+                    &["xox token"],
+                    &["Slack App credentials in vault"],
+                    Regex::new(r#"xox[bprs]-[a-zA-Z0-9-]+"#).unwrap(),
+                    "Slack Token detected.",
+                    "Revoke and rotate the Slack token.",
+                ),
+                Rule::new(
+                    "VG-SEC-005",
+                    "Private Key",
+                    Category::Secret,
+                    Severity::CRITICAL,
+                    "HIGH",
+                    "CWE-798",
+                    &["source_code", "repo file"],
+                    &["RSA/DSA/EC PRIVATE KEY"],
+                    &["KMS", "vault", "SSH agent"],
+                    Regex::new(r#"-----BEGIN\s+(RSA|DSA|EC|OPENSSH)?\s*PRIVATE KEY-----"#).unwrap(),
+                    "Private cryptographic key detected.",
+                    "Remove private keys from the repository.",
+                ),
+                Rule::new(
+                    "VG-SEC-006",
+                    "Password Assignment",
+                    Category::Secret,
+                    Severity::CRITICAL,
+                    "HIGH",
+                    "CWE-798",
+                    &["source_code", "config"],
+                    &["password = '...'"],
+                    &["environment variables"],
+                    Regex::new(r#"(?i)(password|passwd|pwd)\s*[:=]\s*['"][^'"]+['"]"#).unwrap(),
+                    "Hardcoded password assignment detected.",
+                    "Use environment variables for passwords.",
+                ),
+                Rule::new(
+                    "VG-SEC-007",
+                    "Token/Secret Assignment",
+                    Category::Secret,
+                    Severity::CRITICAL,
+                    "HIGH",
+                    "CWE-798",
+                    &["source_code", "config"],
+                    &["token = '...'"],
+                    &["runtime secrets manager"],
+                    Regex::new(r#"(?i)(token|secret|jwt_secret)\s*[:=]\s*['"][^'"]{8,}['"]"#)
+                        .unwrap(),
+                    "Hardcoded token or secret assignment detected.",
+                    "Move secrets to secure storage or environment variables.",
+                ),
+                Rule::new(
+                    "VG-SEC-008",
+                    "Generic Credential",
+                    Category::Secret,
+                    Severity::CRITICAL,
+                    "HIGH",
+                    "CWE-798",
+                    &["source_code", "config"],
+                    &["credential = '...'"],
+                    &["external vault"],
+                    Regex::new(r#"(?i)(secret|credential)\s*[:=]\s*['"][^'"]{8,}['"]"#).unwrap(),
+                    "Generic secret or credential detected.",
+                    "Securely manage all credentials outside of source control.",
+                ),
+            ]
+        })
+        .clone()
 }
 
 pub fn rule_cwe(rule_id: &str) -> Option<&'static str> {

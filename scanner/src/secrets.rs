@@ -2,6 +2,11 @@ use crate::rules::{get_secret_rules, rule_cwe};
 use crate::types::{Category, Finding, Severity};
 use regex::Regex;
 use std::path::Path;
+use std::sync::OnceLock;
+
+static AUTH_TOKEN_RE: OnceLock<Regex> = OnceLock::new();
+static ASSIGN_RE: OnceLock<Regex> = OnceLock::new();
+static COMP_RE: OnceLock<Regex> = OnceLock::new();
 
 pub fn is_sensitive_filename(file_path: &str) -> (bool, &'static str) {
     let path = Path::new(file_path);
@@ -126,6 +131,42 @@ pub fn compute_secret_confidence(
         return None;
     }
 
+    // Candidate Key Name Filtering:
+    // Reject variable names that describe keys/names/types rather than credentials themselves.
+    let key_lower = key.to_lowercase();
+    let is_non_credential_key = key_lower == "key"
+        || key_lower == "keylower"
+        || key_lower == "key_lower"
+        || key_lower == "lowerkey"
+        || key_lower == "lower_key"
+        || key_lower == "keyname"
+        || key_lower == "key_name"
+        || key_lower == "keyvalue"
+        || key_lower == "key_value"
+        || key_lower == "secretname"
+        || key_lower == "secret_name"
+        || key_lower == "tokenname"
+        || key_lower == "token_name"
+        || key_lower == "apikeyname"
+        || key_lower == "api_key_name";
+
+    if is_non_credential_key {
+        return None;
+    }
+
+    // Reject environment reference calls: os.getenv, os.environ, process.env, $env:, etc.
+    if val_lower.contains("os.getenv")
+        || val_lower.contains("os.environ")
+        || val_lower.contains("process.env")
+        || val_lower.contains("$env:")
+        || line_lower.contains("os.getenv")
+        || line_lower.contains("os.environ")
+        || line_lower.contains("process.env")
+        || line_lower.contains("$env:")
+    {
+        return None;
+    }
+
     let mut score: i32 = 0;
 
     // 1. Filename signal (+30)
@@ -134,7 +175,6 @@ pub fn compute_secret_confidence(
     }
 
     // 2. Key name signal (+25)
-    let key_lower = key.to_lowercase();
     if key_lower.contains("password")
         || key_lower.contains("passwd")
         || key_lower.contains("pwd")
@@ -313,9 +353,11 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
 
     // 2. High-entropy Provider Keys (AWS, GitHub, Slack, Private Key)
     let rules = get_secret_rules();
-    let auth_token_re = Regex::new(
-        r#"(?i)(Authorization:\s*Bearer\s+[A-Za-z0-9._~+/-]{10,}|(?:ADMIN_TOKEN|BEARER_TOKEN|SESSION_TOKEN)\s*=\s*['"](?:Bearer\s+)?[A-Za-z0-9._~+/-]{10,}['"]|JWT_SECRET\s*[:=]\s*['"][^'"]{8,}['"])"#,
-    ).unwrap();
+    let auth_token_re = AUTH_TOKEN_RE.get_or_init(|| {
+        Regex::new(
+            r#"(?i)(Authorization:\s*Bearer\s+[A-Za-z0-9._~+/-]{10,}|(?:ADMIN_TOKEN|BEARER_TOKEN|SESSION_TOKEN)\s*=\s*['"](?:Bearer\s+)?[A-Za-z0-9._~+/-]{10,}['"]|JWT_SECRET\s*[:=]\s*['"][^'"]{8,}['"])"#,
+        ).unwrap()
+    });
 
     for (line_idx, line) in content.lines().enumerate() {
         let line_num = line_idx + 1;
@@ -389,13 +431,25 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
         }
     }
 
-    // 3. Credential Assignment Detection with Context + Confidence
-    let assign_re = Regex::new(
-        r#"(?i)(?:^|[\s,;{(])(?P<key>[a-zA-Z0-9_-]*(?:password|passwd|pwd|api[_-]?key|apikey|secret|token|key)[a-zA-Z0-9_-]*)\s*(?:[:=]|==)\s*(?P<val>['"]?[^\s'";,]{3,}['"]?)"#,
-    ).unwrap();
+    // 3. Credential Assignment & Comparison Detection with Context + Confidence
+    // Allowlisted candidate key names: password, passwd, pwd, db_password, admin_password,
+    // api_key, apikey, secret, token, jwt_secret, auth_token, access_token, private_key, client_secret
+    let assign_re = ASSIGN_RE.get_or_init(|| {
+        Regex::new(
+            r#"(?i)(?:^|[\s,;{(])(?P<key>[a-zA-Z0-9_-]*(?:password|passwd|pwd|api[_-]?key|apikey|jwt[_-]?secret|auth[_-]?token|access[_-]?token|client[_-]?secret|private[_-]?key)[a-zA-Z0-9_-]*|(?:db|admin|root|app|master)[_-]?(?:secret|token)|(?:\b(?:secret|token)\b))\s*[:=]\s*(?P<val>['"]?[^\s'";,]{3,}['"]?)"#,
+        ).unwrap()
+    });
+
+    let comp_re = COMP_RE.get_or_init(|| {
+        Regex::new(
+            r#"(?i)(?:^|[\s,;{(])(?P<key>[a-zA-Z0-9_-]*(?:password|passwd|pwd|api[_-]?key|apikey|jwt[_-]?secret|auth[_-]?token|access[_-]?token|client[_-]?secret)[a-zA-Z0-9_-]*)\s*==\s*(?P<val>['"][^\s'";,]{8,}['"])"#,
+        ).unwrap()
+    });
 
     for (line_idx, line) in content.lines().enumerate() {
         let line_num = line_idx + 1;
+
+        // A. Assignment detector
         if let Some(caps) = assign_re.captures(line) {
             let key = caps.name("key").map_or("", |m| m.as_str());
             let val = caps.name("val").map_or("", |m| m.as_str());
@@ -424,6 +478,53 @@ pub fn scan_secrets(file_path: &str, content: &str, finding_counter: &mut usize)
                     title: title.to_string(),
                     description: format!(
                         "Hardcoded credential assignment detected for key '{}'.",
+                        key
+                    ),
+                    file: file_path.to_string(),
+                    line: line_num,
+                    column: Some(1),
+                    evidence: Some(masked_evidence),
+                    recommendation: Some(
+                        "Store credentials in environment variables or a secure secrets vault."
+                            .to_string(),
+                    ),
+                    confidence: conf_str.to_string(),
+                    source: None,
+                    sink: None,
+                    data_flow: None,
+                    cwe: rule_cwe(rule_id).map(|s| s.to_string()),
+                    ..Default::default()
+                });
+            }
+        } else if let Some(caps) = comp_re.captures(line) {
+            // B. Comparison detector (only explicit credential variables, never key/keyLower/key_lower)
+            let key = caps.name("key").map_or("", |m| m.as_str());
+            let val = caps.name("val").map_or("", |m| m.as_str());
+
+            if let Some((_score, conf_str, severity)) =
+                compute_secret_confidence(file_path, is_sensitive, line, key, val)
+            {
+                *finding_counter += 1;
+                let masked_evidence = format!("{}==********", key);
+                let (title, rule_id) = if key.to_lowercase().contains("password")
+                    || key.to_lowercase().contains("passwd")
+                    || key.to_lowercase().contains("pwd")
+                {
+                    ("Hardcoded Password in Comparison", "VG-SECRET-001")
+                } else if key.to_lowercase().contains("api") {
+                    ("Hardcoded API Key in Comparison", "VG-SECRET-002")
+                } else {
+                    ("Hardcoded Secret in Comparison", "VG-SECRET-003")
+                };
+
+                findings.push(Finding {
+                    id: rule_id.to_string(),
+                    rule_id: Some(rule_id.to_string()),
+                    category: Category::Secret,
+                    severity,
+                    title: title.to_string(),
+                    description: format!(
+                        "Hardcoded credential comparison check detected for key '{}'.",
                         key
                     ),
                     file: file_path.to_string(),
@@ -563,6 +664,47 @@ mod tests {
         assert!(findings
             .iter()
             .any(|f| f.id == "VG-SECRET-001" && f.severity == Severity::HIGH));
+    }
+
+    #[test]
+    fn test_regression_false_positives_not_detected() {
+        let mut counter = 0;
+        let negative_cases = [
+            "keyLower = strings.ToLower(key)\n",
+            "key_lower = key.to_lowercase()\n",
+            "keyName = \"password\"\n",
+            "keyValue = \"example\"\n",
+            "secretName = \"token\"\n",
+            "tokenName = \"bearer\"\n",
+            "key == \"password\"\n",
+            "apiKeyName = \"API_KEY\"\n",
+            "api_key = os.getenv(\"API_KEY\")\n",
+            "secret_token = process.env.TOKEN\n",
+        ];
+
+        for code in negative_cases {
+            let findings = scan_secrets("scanner.rs", code, &mut counter);
+            assert!(
+                findings.is_empty(),
+                "expected NO findings for negative case {:?}, got {:?}",
+                code,
+                findings
+            );
+        }
+    }
+
+    #[test]
+    fn test_comparison_credential_detected() {
+        let mut counter = 0;
+        let content = "if password == \"SuperSecretAdminPass123\" {\n";
+        let findings = scan_secrets("auth.rs", content, &mut counter);
+        assert!(
+            !findings.is_empty(),
+            "expected finding for password comparison"
+        );
+        assert_eq!(findings[0].id, "VG-SECRET-001");
+        assert_eq!(findings[0].title, "Hardcoded Password in Comparison");
+        assert_eq!(findings[0].evidence.as_deref(), Some("password==********"));
     }
 
     #[test]
