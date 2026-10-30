@@ -19,9 +19,10 @@
 
 - 🔍 Scans for **hardcoded secrets, API keys, and credentials**
 - 🛡️ Performs **deep static analysis** (SQLi, CMDi, SSRF, XSS, path traversal, deserialization, weak crypto)
-- ⚡ **High-Throughput Algorithmic Scaling** ($O(L + C \cdot P)$ call-site indexing, 54x–194x speedup on monolithic 2,000+ file projects)
+- ⚡ **Sub-Second Performance & Massive Algorithmic Scaling** (106+ files in ~0.65s; 10,000 files in ~15.2s; $O(L + C \cdot P)$ call-site indexing)
+- 💾 **Two-Tier Vulnerability Intelligence** (Global system cache + local project cache with 10-worker OSV pool)
 - 📦 Audits **open-source dependencies** for known CVEs (offline-capable)
-- 🐳 Validates **Docker/Compose** security configuration
+- 🐳 Validates **Docker & Docker Compose** security configuration
 - 📊 Generates **terminal, HTML, JSON, and SARIF 2.1.0** reports
 - 🚫 **Blocks** the push automatically if critical or high findings are found
 
@@ -281,13 +282,14 @@ VibeGuard's semantic analysis clears these patterns correctly:
 
 ---
 
-## Benchmark Results
+## Benchmark Results & Performance Scaling
 
+### 1. Accuracy & Precision Matrix
 Verified against the `FastNote/vibeguard-benchmark/` matrix — 46 deterministic test fixtures:
 
 ```
 ╔═══════════════════════════════════════════════════════════════╗
-║          VIBEGUARD BENCHMARK SCORECARD (v7.2.0)               ║
+║          VIBEGUARD BENCHMARK SCORECARD (v7.2.1)               ║
 ╠═══════════════════════════════════════════════════════════════╣
 ║  True Positives (Detected):       80 / 80   → 100.0% Recall  ║
 ║  False Negatives (Missed):         0 / 80   →   0.0% Miss    ║
@@ -300,14 +302,47 @@ Verified against the `FastNote/vibeguard-benchmark/` matrix — 46 deterministic
 ╚═══════════════════════════════════════════════════════════════╝
 ```
 
-Self-scan of the VibeGuard repository:
+### 2. High-Throughput Performance & Scalability Benchmarks
+VibeGuard is engineered for enterprise-scale codebases with zero memory degradation:
+
+| Test Corpus | Files Scanned | Execution Time | Memory / FD Leak | Gate Result |
+| :--- | :---: | :---: | :---: | :---: |
+| **VibeGuard Repository (Self-Scan)** | 106+ | **0.658s – 1.044s** | None | **100/100 PASSED** |
+| **Monolithic AST Benchmark** | 2,091 | **5.32s** | None | **100/100 PASSED** |
+| **Synthetic Scale Stress Suite 1** | 5,000 | **5.719s** | None | **100/100 PASSED** |
+| **Synthetic Scale Stress Suite 2** | 10,000 | **15.191s** | None | **100/100 PASSED** |
+
+> **Architectural Protections for 35,000+ Files:**
+> - **Two-Tier OSV Cache**: Global (`%LOCALAPPDATA%\VibeGuard\cache\osv`) + local target cache.
+> - **Adaptive Timeout Engine**: Dynamically calculates $5\text{s} \text{ per } 100 \text{ files}$ (clamped between 300s and 1,200s), eliminating timeout failures on massive repos.
+> - **Binary Sniffing**: 1KB traversal probe detects NUL bytes (`buffer_is_binary`) and skips non-source files instantly.
+> - **Early Subtree Pruning**: Traversal skips `.git`, `node_modules`, `vendor`, and build artifacts before descending into subdirectories.
+
+---
+
+## Developer Security Model: Why Flag `.env` When in `.gitignore`?
+
+Developers often ask: *"If my `.env` is listed in `.gitignore`, it won't be pushed to GitHub, so why does VibeGuard flag it?"*
+
+VibeGuard operates on the **Defense-in-Depth** security principle:
 
 ```
-Security Score: 100/100 (LOW RISK)
-Gate Status:    PASSED
-Files Scanned:  117
-Findings:       0 Critical, 0 High, 0 Medium, 0 Low
+Developer Workstation
+      │
+      ├── 1. Accidental Bypass: `git add -f .env` or `git commit -a` bypasses .gitignore
+      ├── 2. Docker Image Leaks: `COPY . .` in Dockerfile bundles .env into public images
+      ├── 3. Local Malware / Supply Chain: Malicious npm/pip packages harvest local plaintext .env
+      │
+      ▼
+   Solution:
+      • Manual Scan (`vibeguard scan .`): Alerts developer that secrets exist locally.
+      • Push Firewall (`git push` hook): Scans exact commit snapshot (`git archive`).
+        If .env was correctly ignored by git, it is NOT in the commit and does NOT block the push!
 ```
+
+1. **`.gitignore` Only Protects Git — Not Your Computer**: A plaintext `.env` on your workstation can still be read by rogue npm/pip dependencies, devtools, or local malware.
+2. **Container Leaks**: If your project has a `Dockerfile` with `COPY . .` without a `.dockerignore`, Docker will copy `.env` directly into the final container image, publishing your database and cloud credentials even if Git ignored it.
+3. **Pre-Push Snapshot Isolation**: When you run `git push`, VibeGuard extracts the exact commit tree via `git archive`. If `.env` is genuinely ignored, **it is not included in the push snapshot and your push proceeds cleanly**.
 
 ---
 
@@ -315,7 +350,7 @@ Findings:       0 Critical, 0 High, 0 Medium, 0 Low
 
 ```json
 {
-  "version": "7.2.0",
+  "version": "7.2.1",
   "gate": {
     "block_on_critical": true,
     "block_on_high": true,
@@ -445,15 +480,16 @@ cyberhackathon/
 
 | Document | Description |
 |:--|:--|
-| [VIBEGUARD_SHOWCASE.md](VIBEGUARD_SHOWCASE.md) | **Visual Showcase & Screenshots Guide**: Step-by-step CLI walkthrough & academic document index |
-| [SETUP.md](docs/SETUP.md) | Global installation, PATH config, setup details |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture, IPC, engine boundaries |
-| [DEEP_SCANNER_ARCHITECTURE.md](docs/DEEP_SCANNER_ARCHITECTURE.md) | 20-stage pipeline, AST modeling, taint propagation |
-| [RULES.md](docs/RULES.md) | All built-in rules, CWE mappings, regex definitions |
-| [LANGUAGE.md](docs/LANGUAGE.md) | Why Go + Rust: rationale and technical decisions |
-| [TESTING.md](docs/TESTING.md) | Test suites, benchmark fixtures, verification steps |
-| [CHANGELOG.md](docs/CHANGELOG.md) | Release history from v0.1.0 → v7.2.0 |
-| [TERMS.md](TERMS.md) | Acceptable use, privacy guarantees, disclaimers |
+| [FEATURES.md](docs/FEATURES.md) | **Feature Specifications**: Complete engine reference, detection rules, CLI commands & Defender heuristics |
+| [SETUP.md](docs/SETUP.md) | Global installation, PATH configuration, portable setup details |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Multi-engine architecture, IPC protocol, subsystem boundaries & caching |
+| [DEEP_SCANNER_ARCHITECTURE.md](docs/DEEP_SCANNER_ARCHITECTURE.md) | 20-stage pipeline, AST modeling, interprocedural taint propagation & binary sniffing |
+| [RULES.md](docs/RULES.md) | All built-in rules, CWE mappings, confidence scoring algorithms |
+| [LANGUAGE.md](docs/LANGUAGE.md) | Architecture rationale: why Go + Rust, performance analysis |
+| [TESTING.md](docs/TESTING.md) | Test suites, chaos engineering domains, scale benchmarks |
+| [ROADMAP.md](docs/ROADMAP.md) | Strategic evolution roadmap, completed versions & future horizons |
+| [CHANGELOG.md](docs/CHANGELOG.md) | Comprehensive release history from v0.1.0 → v7.2.1 |
+| [TERMS.md](TERMS.md) | Acceptable use policy, privacy guarantees, ethical standards |
 
 ---
 

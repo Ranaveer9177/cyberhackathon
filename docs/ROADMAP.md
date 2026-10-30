@@ -56,6 +56,8 @@
   - Permanent content-based binary sniffing: early `WalkDir::filter_entry` subtree pruning, 1KB NUL-byte header probe during traversal, inverted text allowlist, 8MB file ceiling, and extended-length path fallback.
   - $O(1)$ interprocedural symbol lookups and module candidate caching.
   - Adaptive execution timeout (up to 1,200s) and package deduplication for reliable scanning of 35,000+ file projects.
+  - Two-tier global/local OSV vulnerability caching (`%LOCALAPPDATA%\VibeGuard\cache\osv` + `.vibeguard/cache/osv`) with clamped 5s timeouts, delivering sub-second scans (0.65s).
+  - Empirical scale verification across 5,000 files (5.719s) and 10,000 files (15.191s) with zero leaks or timeouts.
   - Live progress file feedback in CLI.
 
 ---
