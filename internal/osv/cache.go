@@ -16,6 +16,7 @@ var (
 	offlineMode      = false
 	customBaseURL    = ""
 	isCustomCacheDir = false
+	cacheTTL         = 24 * time.Hour
 	cacheDir         = filepath.Join(".vibeguard", "cache", "osv")
 )
 
@@ -70,13 +71,20 @@ func SetBaseURL(url string) {
 	customBaseURL = url
 }
 
+// SetCacheTTL configures the maximum age before cached OSV intelligence is refreshed.
+func SetCacheTTL(ttl time.Duration) {
+	cacheMu.Lock()
+	defer cacheMu.Unlock()
+	cacheTTL = ttl
+}
+
 func getCacheKey(ecosystem, name, version string) string {
 	h := sha256.New()
 	h.Write([]byte(ecosystem + ":" + name + ":" + version))
 	return hex.EncodeToString(h.Sum(nil))[:24] + ".json"
 }
 
-// GetCachedVulns retrieves cached vulnerabilities for a package if present.
+// GetCachedVulns retrieves cached vulnerabilities for a package if present and fresh.
 func GetCachedVulns(name, version, ecosystem string) ([]Vulnerability, bool) {
 	cacheMu.RLock()
 	defer cacheMu.RUnlock()
@@ -85,6 +93,46 @@ func GetCachedVulns(name, version, ecosystem string) ([]Vulnerability, bool) {
 		return nil, false
 	}
 
+	rec, ok := readCachedRecord(name, version, ecosystem)
+	if !ok {
+		return nil, false
+	}
+
+	// Verify cache integrity (prevent tampering/poisoning)
+	if rec.Package != name || rec.Version != version || rec.Ecosystem != ecosystem {
+		return nil, false
+	}
+
+	// Check TTL expiration (unless offline mode is active)
+	if !offlineMode && cacheTTL > 0 && !rec.Timestamp.IsZero() && time.Since(rec.Timestamp) > cacheTTL {
+		return nil, false
+	}
+
+	return rec.Vulnerabilities, true
+}
+
+// GetStaleCachedVulns retrieves cached vulnerabilities even if past TTL, for network failure fallback.
+func GetStaleCachedVulns(name, version, ecosystem string) ([]Vulnerability, bool) {
+	cacheMu.RLock()
+	defer cacheMu.RUnlock()
+
+	if !cacheEnabled && !offlineMode {
+		return nil, false
+	}
+
+	rec, ok := readCachedRecord(name, version, ecosystem)
+	if !ok {
+		return nil, false
+	}
+
+	if rec.Package != name || rec.Version != version || rec.Ecosystem != ecosystem {
+		return nil, false
+	}
+
+	return rec.Vulnerabilities, true
+}
+
+func readCachedRecord(name, version, ecosystem string) (*CachedRecord, bool) {
 	key := getCacheKey(ecosystem, name, version)
 	filePath := filepath.Join(cacheDir, key)
 
@@ -106,7 +154,7 @@ func GetCachedVulns(name, version, ecosystem string) ([]Vulnerability, bool) {
 		return nil, false
 	}
 
-	return rec.Vulnerabilities, true
+	return &rec, true
 }
 
 // SaveCachedVulns stores query results to the local disk cache.

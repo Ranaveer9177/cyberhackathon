@@ -79,18 +79,49 @@ func QueryOSV(name, version, ecosystem string) ([]Vulnerability, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	var (
+		resp    *http.Response
+		lastErr error
+	)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewBuffer(bodyBytes))
-	if err != nil {
-		return nil, err
+	// Up to 2 retries (3 attempts total) with exponential backoff on transient network errors
+	for attempt := 0; attempt < 3; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Duration(100*attempt) * time.Millisecond)
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewBuffer(bodyBytes))
+		if err != nil {
+			cancel()
+			return nil, err
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err = defaultHTTPClient.Do(req)
+		cancel()
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		// If transient 5xx server error, retry
+		if resp.StatusCode >= 500 && resp.StatusCode <= 504 {
+			resp.Body.Close()
+			lastErr = fmt.Errorf("OSV API returned HTTP %d", resp.StatusCode)
+			continue
+		}
+
+		lastErr = nil
+		break
 	}
-	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := defaultHTTPClient.Do(req)
-	if err != nil {
-		return nil, err
+	if lastErr != nil {
+		// Fall back to stale cache if available to survive transient network outages
+		if stale, ok := GetStaleCachedVulns(name, version, ecosystem); ok {
+			return stale, nil
+		}
+		return nil, lastErr
 	}
 	defer resp.Body.Close()
 
