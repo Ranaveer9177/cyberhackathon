@@ -162,18 +162,23 @@ func isAlphaNumUnderscore(b byte) bool {
 	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_'
 }
 
-// countFilesInDir returns a rough estimate of files in a directory tree (capped at 5000).
+// countFilesInDir returns a rough estimate of files in a directory tree (capped at 5000) with early subtree pruning.
 func countFilesInDir(dir string) int {
 	count := 0
-	_ = filepath.Walk(dir, func(_ string, info os.FileInfo, err error) error {
+	_ = filepath.WalkDir(dir, func(_ string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil
 		}
-		if !info.IsDir() {
-			count++
-			if count >= 5000 {
-				return filepath.SkipAll
+		if d.IsDir() {
+			name := d.Name()
+			if name == ".git" || name == "node_modules" || name == "target" || name == ".vibeguard" || name == "reports" || name == "vendor" {
+				return filepath.SkipDir
 			}
+			return nil
+		}
+		count++
+		if count >= 5000 {
+			return filepath.SkipAll
 		}
 		return nil
 	})

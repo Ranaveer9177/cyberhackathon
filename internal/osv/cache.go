@@ -11,11 +11,12 @@ import (
 )
 
 var (
-	cacheMu      sync.RWMutex
-	cacheEnabled = true
-	offlineMode  = false
-	customBaseURL = ""
-	cacheDir     = filepath.Join(".vibeguard", "cache", "osv")
+	cacheMu          sync.RWMutex
+	cacheEnabled     = true
+	offlineMode      = false
+	customBaseURL    = ""
+	isCustomCacheDir = false
+	cacheDir         = filepath.Join(".vibeguard", "cache", "osv")
 )
 
 type CachedRecord struct {
@@ -31,6 +32,7 @@ func SetCacheDir(dir string) {
 	cacheMu.Lock()
 	defer cacheMu.Unlock()
 	cacheDir = dir
+	isCustomCacheDir = true
 }
 
 // SetCacheEnabled toggles OSV disk caching.
@@ -88,7 +90,15 @@ func GetCachedVulns(name, version, ecosystem string) ([]Vulnerability, bool) {
 
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, false
+		if !isCustomCacheDir {
+			if localApp := os.Getenv("LOCALAPPDATA"); localApp != "" {
+				globalPath := filepath.Join(localApp, "VibeGuard", "cache", "osv", key)
+				data, err = os.ReadFile(globalPath)
+			}
+		}
+		if err != nil {
+			return nil, false
+		}
 	}
 
 	var rec CachedRecord
@@ -127,5 +137,14 @@ func SaveCachedVulns(name, version, ecosystem string, vulns []Vulnerability) err
 
 	key := getCacheKey(ecosystem, name, version)
 	filePath := filepath.Join(cacheDir, key)
-	return os.WriteFile(filePath, data, 0644)
+	_ = os.WriteFile(filePath, data, 0644)
+
+	if !isCustomCacheDir {
+		if localApp := os.Getenv("LOCALAPPDATA"); localApp != "" {
+			globalDir := filepath.Join(localApp, "VibeGuard", "cache", "osv")
+			_ = os.MkdirAll(globalDir, 0755)
+			_ = os.WriteFile(filepath.Join(globalDir, key), data, 0644)
+		}
+	}
+	return nil
 }

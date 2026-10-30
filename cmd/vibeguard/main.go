@@ -615,6 +615,12 @@ func runScanWithRefs(projectPath string, format string, customOutput string, isH
 		return 3
 	}
 
+	// Bind OSV cache directory to target project's .vibeguard/cache/osv
+	projCache := filepath.Join(absPath, ".vibeguard", "cache", "osv")
+	if info, err := os.Stat(filepath.Dir(filepath.Dir(projCache))); err == nil && info.IsDir() {
+		osv.SetCacheDir(projCache)
+	}
+
 	if optIncludeTests {
 		var filtered []string
 		for _, ex := range cfg.Exclude {

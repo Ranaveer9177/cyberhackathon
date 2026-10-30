@@ -258,8 +258,7 @@ pub fn scan_directory_ext(
             if let Some(ext) = file_path.extension().and_then(|s| s.to_str()) {
                 let ext_lower = ext.to_lowercase();
                 if skipped_exts.contains(&ext_lower.as_str())
-                    || (!known_text_exts.contains(&ext_lower.as_str())
-                        && is_binary_file(file_path))
+                    || (!known_text_exts.contains(&ext_lower.as_str()) && is_binary_file(file_path))
                 {
                     skip = true;
                     binary_skipped += 1;

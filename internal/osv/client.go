@@ -30,7 +30,7 @@ type VulnResult struct {
 
 // defaultHTTPClient reuses TCP connections and enables HTTP keep-alive connection pooling
 var defaultHTTPClient = &http.Client{
-	Timeout: 10 * time.Second,
+	Timeout: 5 * time.Second,
 	Transport: &http.Transport{
 		MaxIdleConns:        100,
 		MaxIdleConnsPerHost: 20,
@@ -79,7 +79,7 @@ func QueryOSV(name, version, ecosystem string) ([]Vulnerability, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewBuffer(bodyBytes))
