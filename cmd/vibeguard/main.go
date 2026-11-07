@@ -934,6 +934,19 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 	// Step 4: Detect and check dependencies
 	var vulnResults []osv.VulnResult
 	depCritHighCount := 0
+
+	isTTY := false
+	if stat, err := os.Stdout.Stat(); err == nil && (stat.Mode()&os.ModeCharDevice) != 0 {
+		isTTY = true
+	}
+	if os.Getenv("CI") != "" || os.Getenv("VIBEGUARD_NON_INTERACTIVE") != "" {
+		isTTY = false
+	}
+
+	if isTTY {
+		fmt.Print("[4/5] Dependency/CVE scan ...... checking dependencies...")
+	}
+
 	if cfg.DependencyScan {
 		deps, err := dependencies.DetectDependencies(targetScanPath)
 		if err != nil {
@@ -952,12 +965,15 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 
 		if len(osvDeps) > 0 {
 			var osvErr error
-			liveDepProg := report.NewLiveProgress("Checking vulnerabilities", os.Stdout)
 			vulnResults, osvErr = osv.CheckAllDependenciesWithProgress(osvDeps, func(cur, tot int) {
-				liveDepProg.Update(cur, tot)
+				if isTTY {
+					fmt.Printf("\r[4/5] Dependency/CVE scan ...... checking vulnerabilities (%d/%d)...", cur, tot)
+				}
 			})
-			liveDepProg.Clear()
 			if osvErr != nil && len(osvDeps) > 0 && cfg.FailClosed && !osv.IsOfflineMode() {
+				if isTTY {
+					fmt.Printf("\r[4/5] Dependency/CVE scan ...... %s                                      \n", failStr)
+				}
 				fmt.Fprintln(os.Stderr, "Security policy failure: OSV unavailable and fail_closed is enabled.")
 				return 4
 			}
@@ -977,10 +993,14 @@ func scanSingleTarget(absPath string, root string, cfg *config.Config, format st
 	if osv.IsOfflineMode() {
 		osvMode = "offline (security.db)"
 	}
+	depStatusStr := passStr
 	if depCritHighCount > 0 {
-		fmt.Printf("[4/5] Dependency/CVE scan ...... %s\n", failStr)
+		depStatusStr = failStr
+	}
+	if isTTY {
+		fmt.Printf("\r[4/5] Dependency/CVE scan ...... %s                                      \n", depStatusStr)
 	} else {
-		fmt.Printf("[4/5] Dependency/CVE scan ...... %s\n", passStr)
+		fmt.Printf("[4/5] Dependency/CVE scan ...... %s\n", depStatusStr)
 	}
 
 	depFindingCounter := len(allFindings) + 1

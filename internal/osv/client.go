@@ -80,8 +80,8 @@ func QueryOSV(name, version, ecosystem string) ([]Vulnerability, error) {
 	}
 
 	var (
-		resp    *http.Response
-		lastErr error
+		queryResp QueryResponse
+		lastErr   error
 	)
 
 	// Up to 2 retries (3 attempts total) with exponential backoff on transient network errors
@@ -98,9 +98,9 @@ func QueryOSV(name, version, ecosystem string) ([]Vulnerability, error) {
 		}
 		req.Header.Set("Content-Type", "application/json")
 
-		resp, err = defaultHTTPClient.Do(req)
-		cancel()
+		resp, err := defaultHTTPClient.Do(req)
 		if err != nil {
+			cancel()
 			lastErr = err
 			continue
 		}
@@ -108,8 +108,22 @@ func QueryOSV(name, version, ecosystem string) ([]Vulnerability, error) {
 		// If transient 5xx server error, retry
 		if resp.StatusCode >= 500 && resp.StatusCode <= 504 {
 			resp.Body.Close()
+			cancel()
 			lastErr = fmt.Errorf("OSV API returned HTTP %d", resp.StatusCode)
 			continue
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			cancel()
+			return nil, fmt.Errorf("OSV API returned HTTP %d", resp.StatusCode)
+		}
+
+		err = json.NewDecoder(resp.Body).Decode(&queryResp)
+		resp.Body.Close()
+		cancel()
+		if err != nil {
+			return nil, err
 		}
 
 		lastErr = nil
@@ -122,16 +136,6 @@ func QueryOSV(name, version, ecosystem string) ([]Vulnerability, error) {
 			return stale, nil
 		}
 		return nil, lastErr
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("OSV API returned HTTP %d", resp.StatusCode)
-	}
-
-	var queryResp QueryResponse
-	if err := json.NewDecoder(resp.Body).Decode(&queryResp); err != nil {
-		return nil, err
 	}
 
 	// 3. Save result into cache & local database
