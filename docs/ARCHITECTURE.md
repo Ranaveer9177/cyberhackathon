@@ -102,6 +102,9 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
   - Rust: `Cargo.toml` & `Cargo.lock`
 - **Two-Tier Global/Local OSV Cache Subsystem**:
   - Dual-tier lookup architecture: queries local target `.vibeguard/cache/osv/` first, automatically checks global `%LOCALAPPDATA%\VibeGuard\cache\osv/` on cache misses, and mirrors results locally.
+  - Automatic 24-hour TTL expiration with Stale-While-Revalidate (SWR) fallback: serves cached intelligence if upstream OSV APIs fail or are offline.
+  - Strict anti-poisoning cache validation: verifies package, version, and ecosystem tuples to prevent unauthorized record injection.
+  - Bounded 3-attempt exponential backoff retry loop (`100ms -> 200ms`) on transient network/5xx server errors.
   - Clamped 5s HTTP context timeout with connection pooling prevents remote API hangs.
   - Yields instant, offline sub-second scans (down to ~0.65s for 100+ files).
 - **Google OSV Integration**:
@@ -129,6 +132,7 @@ VibeGuard operates as a decoupled, multi-language security architecture combinin
   3. Live Google OSV API queries completed.
   4. Final 100% completion marker with `Security analysis complete.` status.
 - **ANSI Terminal Control**: In-place line rewriting using `\033[%dA\r` and line clears (`\033[K`) on character devices.
+- **In-Place Stage 4 Live Dependency Progress**: Directly outputs live vulnerability checking status (`[4/5] Dependency/CVE scan ...... checking vulnerabilities (%d/%d)...`) to eliminate perceived terminal freezes between AST source scanning and dependency resolution.
 - **Graceful Stream Fallback**: Automatic non-TTY fallback for CI/CD pipelines, log files, or piped shell execution.
 
 ### 2.6 Report Generation Subsystem (`internal/report/`)

@@ -20,7 +20,7 @@
 - 🔍 Scans for **hardcoded secrets, API keys, and credentials**
 - 🛡️ Performs **deep static analysis** (SQLi, CMDi, SSRF, XSS, path traversal, deserialization, weak crypto)
 - ⚡ **Sub-Second Performance & Massive Algorithmic Scaling** (106+ files in ~0.65s; 10,000 files in ~15.2s; $O(L + C \cdot P)$ call-site indexing)
-- 💾 **Two-Tier Vulnerability Intelligence** (Global system cache + local project cache with 10-worker OSV pool)
+- 💾 **Two-Tier Vulnerability Intelligence** (Global system cache + local project cache, 24h TTL, anti-poisoning & SWR fallback)
 - 📦 Audits **open-source dependencies** for known CVEs (offline-capable)
 - 🐳 Validates **Docker & Docker Compose** security configuration
 - 📊 Generates **terminal, HTML, JSON, and SARIF 2.1.0** reports
@@ -313,7 +313,8 @@ VibeGuard is engineered for enterprise-scale codebases with zero memory degradat
 | **Synthetic Scale Stress Suite 2** | 10,000 | **15.191s** | None | **100/100 PASSED** |
 
 > **Architectural Protections for 35,000+ Files:**
-> - **Two-Tier OSV Cache**: Global (`%LOCALAPPDATA%\VibeGuard\cache\osv`) + local target cache.
+> - **Two-Tier OSV Cache & 24h TTL**: Global (`%LOCALAPPDATA%\VibeGuard\cache\osv`) + local target cache with Stale-While-Revalidate and anti-poisoning validation.
+> - **In-Place Live Progress**: Real-time package counters on Stage 4 eliminate terminal freezes.
 > - **Adaptive Timeout Engine**: Dynamically calculates $5\text{s} \text{ per } 100 \text{ files}$ (clamped between 300s and 1,200s), eliminating timeout failures on massive repos.
 > - **Binary Sniffing**: 1KB traversal probe detects NUL bytes (`buffer_is_binary`) and skips non-source files instantly.
 > - **Early Subtree Pruning**: Traversal skips `.git`, `node_modules`, `vendor`, and build artifacts before descending into subdirectories.

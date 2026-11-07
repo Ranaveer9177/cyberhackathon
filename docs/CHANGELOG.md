@@ -26,6 +26,15 @@ All notable changes to the VibeGuard project are documented in this file.
   - Clamped per-query HTTP client and context timeouts to 5s with connection pooling, preventing slow remote API hangs from blocking pre-push gates.
   - Dynamic cache directory binding ensures every scanned target project maintains its own isolated cache while leveraging global intelligence.
   - Reduced repeat scan execution latency from **21.2s down to 0.658s–1.044s** (over **20x faster**).
+- **Enterprise OSV Cache Hardening & Stale-While-Revalidate (SWR)** (`internal/osv/cache.go`, `internal/osv/client.go`):
+  - Added 24-hour automatic Time-To-Live (TTL) cache expiration via `SetCacheTTL`, ensuring vulnerability feeds refresh automatically.
+  - Implemented strict package/version/ecosystem cache integrity verification to eliminate cache poisoning risks.
+  - Implemented Stale-While-Revalidate (SWR) fallback via `GetStaleCachedVulns`: gracefully falls back to existing cache if remote OSV API is temporarily unreachable.
+  - Added 3-attempt exponential backoff retry loop (`100ms -> 200ms`) on transient network or 5xx server errors.
+  - Resolved HTTP body streaming lifecycle, guaranteeing full response decoding prior to context cancellation.
+  - Added comprehensive test coverage in `internal/osv/cache_test.go` (100% PASS).
+- **In-Place Live Dependency Scanning UX** (`cmd/vibeguard/main.go`):
+  - Completely eliminated perceived Stage 3 terminal freeze by immediately displaying Stage 4 status (`[4/5] Dependency/CVE scan ...... checking dependencies...`) and updating in-place with real-time package counts (`checking vulnerabilities (cur/tot)...`) before resolving to `PASS`/`FAIL`.
 - **Pruned Directory Counting** (`internal/scanner/runner.go`):
   - Migrated file counting from unpruned `filepath.Walk` to `filepath.WalkDir` with root directory early pruning (`.git`, `node_modules`, `target`, `.vibeguard`, `reports`, `vendor`), eliminating overhead on large dependency trees.
 - **Adaptive Execution Timeout & Fallback Notice** (`internal/scanner/runner.go`):

@@ -124,6 +124,10 @@
 ### 2.10 Two-Tier Global/Local OSV Caching & Sub-Second Engine
 - **Hierarchical Lookup Architecture**: Automatically resolves queries through local project cache (`.vibeguard/cache/osv`), falls back to global user cache (`%LOCALAPPDATA%\VibeGuard\cache\osv`), and mirrors results to ensure zero redundant network overhead.
 - **Sub-Second Execution**: Delivers full repository scans in **0.65s–1.04s** across 100+ files with zero internet dependency once primed.
+- **Automatic 24-Hour TTL & Freshness**: Records older than 24 hours automatically re-validate against OSV while preserving instant offline execution.
+- **Cache Integrity & Anti-Poisoning**: Strict package, version, and ecosystem matching validates cache records before use.
+- **Stale-While-Revalidate (SWR) Resilience**: Gracefully falls back to existing cached records if the remote API experiences an outage or temporary network loss.
+- **Exponential Backoff Retries**: Bounded 3-attempt retry loop (`100ms -> 200ms`) protects against transient network drops and upstream 5xx gateway errors.
 - **Fail-Safe Clamping**: 5-second per-query HTTP context timeout with connection pooling guarantees pre-push hooks never stall on remote network lag.
 
 ### 2.11 High-Throughput Algorithmic Scaling & Memory Safety
